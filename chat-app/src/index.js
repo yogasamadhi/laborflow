@@ -6,6 +6,8 @@ import { BrowserRouter, Route, Redirect, Switch } from 'react-router-dom'
 import thunk from 'redux-thunk'
 import reducer from './reducer'
 import './config'
+import Login from './container/login'
+import Register from './container/register'
 
 const store = createStore(reducer, compose(
     applyMiddleware(thunk),
@@ -16,8 +18,10 @@ ReactDom.render(
     (
         <Provider store={store}>
             <BrowserRouter>
-                <Switch>
-                </Switch>
+                <div>
+                    <Route path='/login' component={Login}></Route>
+                    <Route path='/register' component={Register}></Route>
+                </div>
             </BrowserRouter>
         </Provider>
     ),
