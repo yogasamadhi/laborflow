@@ -39,3 +39,7 @@ sudo cnpm i axios --save
 "proxy":"http://localhost:9093"
 ##安装cookie-parser
 sudo cnpm i cookie-parser --save
+##安装body-parser
+sudo cnpm i body-parser --save
+##安装utility,进行md5加密
+sudo cnpm i utility --save
