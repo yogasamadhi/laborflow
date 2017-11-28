@@ -21,6 +21,22 @@ Router.post('/login', function (req, res) {
         return res.json({ code: 0, data: doc })
     })
 })
+
+Router.post('/update',function(req,res){
+    const userid = req.cookies.userid
+    if (!userid){
+        return json.dumps({code:1})
+    }
+    const body =req.body
+    User.findByIdAndUpdate(userid,body,function(err,doc){
+        const data = Object.assign({},{
+            user:doc.user,
+            type:doc.type
+        },body)
+        return res.json({code:0,data})
+    })
+})
+
 Router.post('/register', function (req, res) {
     console.log(req.body)
     const { user, pwd, type } = req.body
