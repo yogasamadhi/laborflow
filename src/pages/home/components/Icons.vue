@@ -16,7 +16,7 @@
 <script>
 export default {
   name: "HomeIcons",
-  data() {
+  data () {
     return {
       iconList: [
         {
@@ -83,7 +83,7 @@ export default {
     };
   },
   computed: {
-    pages() {
+    pages () {
       const pages = [];
       this.iconList.forEach((item, index) => {
         const page = Math.floor(index / 8);
