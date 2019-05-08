@@ -2,7 +2,7 @@
   <div>
     <div class="title">周末去哪儿</div>
     <ul>
-      <li class="item border-bottom" v-for="item of weekendList" :key="item.id">
+      <li class="item border-bottom" v-for="item of list" :key="item.id">
         <div class="item-img-wrapper">
           <img class="item-img" :src="item.imgUrl">
         </div>
@@ -18,17 +18,8 @@
 <script>
 export default {
   name: "HomeWeekend",
-  data() {
-    return {
-      weekendList: [
-        {
-          id: "0001",
-          imgUrl: "",
-          title: "大连圣亚海洋世界",
-          desc: "浪漫大连首站，浪漫的海洋主题乐园"
-        }
-      ]
-    };
+  props: {
+    list: Array
   }
 };
 </script>
