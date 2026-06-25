@@ -9,10 +9,9 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - ./docker-data:/var/lib/postgresql
+      - ./docker-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-laborflow} -d ${POSTGRES_DB:-laborflow}"]
       interval: 10s
       timeout: 5s
       retries: 5
-

@@ -2,6 +2,7 @@ package com.company.labor.common.exception;
 
 import com.company.labor.common.result.Result;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,6 +22,11 @@ public class GlobalExceptionHandler {
         return Result.fail("参数校验失败");
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Result<Void> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return Result.fail("数据已存在或不符合约束，请检查后重试");
+    }
+
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(AccessDeniedException.class)
     public Result<Void> handleAccessDenied() {
@@ -33,4 +39,3 @@ public class GlobalExceptionHandler {
         return Result.fail(ex.getMessage());
     }
 }
-

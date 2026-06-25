@@ -6,6 +6,7 @@
 node_modules/
 dist/
 coverage/
+*.tsbuildinfo
 
 target/
 *.class
@@ -13,4 +14,5 @@ target/
 
 uploads/
 logs/
+docker-data/
 docker-data/

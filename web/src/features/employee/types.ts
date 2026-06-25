@@ -1,13 +1,13 @@
 export type Employee = {
-  id: number;
+  id: string;
   name: string;
   phone?: string;
   idCard?: string;
   gender?: string;
   birthDate?: string;
-  departmentId?: number;
+  departmentId?: string;
   departmentName?: string;
-  positionId?: number;
+  positionId?: string;
   positionName?: string;
   employeeType: string;
   entryDate?: string;
@@ -19,4 +19,3 @@ export type Employee = {
   status: string;
   remark?: string;
 };
-

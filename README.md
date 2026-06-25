@@ -14,19 +14,23 @@ cp .env.example .env
 docker compose up -d
 ```
 
+PostgreSQL 默认映射到宿主机 `5434` 端口，后端默认连接 `jdbc:postgresql://localhost:5434/laborflow`。
+
+默认服务端口：前端 `5175`，后端 `8089`。
+
 后端需要 Java 21 和 Maven：
 
 ```bash
 cd server
-mvn spring-boot:run
+JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn spring-boot:run
 ```
 
 前端：
 
 ```bash
 cd web
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 默认账号：
@@ -41,4 +45,3 @@ admin / admin123456
 web/     React 管理后台
 server/  Spring Boot API 服务
 ```
-

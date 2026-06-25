@@ -9,7 +9,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         "com.company.labor.module.system.mapper",
         "com.company.labor.module.employee.mapper",
         "com.company.labor.module.salary.mapper",
-        "com.company.labor.module.file.mapper"
+        "com.company.labor.module.file.mapper",
+        "com.company.labor.module.project.mapper",
+        "com.company.labor.module.compensation.mapper"
 })
 public class LaborApplication {
     public static void main(String[] args) {

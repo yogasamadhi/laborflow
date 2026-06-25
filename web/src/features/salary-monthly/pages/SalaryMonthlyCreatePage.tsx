@@ -1,25 +1,87 @@
 import { useMutation } from "@tanstack/react-query";
-import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Field, TextArea, TextInput } from "../../../components/common/Field";
+import { CalendarPlus, RefreshCw } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
 import { postData } from "../../../lib/axios";
 
+function currentMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
+
 export function SalaryMonthlyCreatePage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ salaryMonth: "", title: "", remark: "" });
-  const save = useMutation({ mutationFn: () => postData<{ id: number }>("/salary/monthly", form), onSuccess: (data) => navigate(`/salary/monthly/${data.id}`) });
-  function submit(event: FormEvent) { event.preventDefault(); save.mutate(); }
+  const [form, setForm] = useState({ salaryMonth: currentMonth(), title: "", remark: "" });
+  const [autoGenerate, setAutoGenerate] = useState(true);
+  const [error, setError] = useState("");
+  const [createdMonthlyId, setCreatedMonthlyId] = useState<string | null>(null);
+  const defaultTitle = useMemo(() => `${form.salaryMonth || currentMonth()} 工资表`, [form.salaryMonth]);
+  const save = useMutation({
+    mutationFn: async () => {
+      const monthly = await postData<{ id: string }>("/salary/monthly", { ...form, title: form.title || defaultTitle });
+      setCreatedMonthlyId(monthly.id);
+      if (autoGenerate) {
+        try {
+          await postData(`/salary/monthly/${monthly.id}/generate`);
+        } catch (reason) {
+          const message = reason instanceof Error ? reason.message : "生成工资明细失败";
+          throw new Error(`工资表已创建，但自动生成失败：${message}`);
+        }
+      }
+      return monthly;
+    },
+    onSuccess: (data) => navigate(`/salary/monthly/${data.id}`),
+    onError: (reason) => setError(reason instanceof Error ? reason.message : "创建失败")
+  });
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    save.mutate();
+  }
+
   return (
     <Page title="创建工资月份">
-      <form className="panel grid" onSubmit={submit}>
-        <Field label="工资月份"><TextInput placeholder="2026-06" value={form.salaryMonth} onChange={(e) => setForm({ ...form, salaryMonth: e.target.value })} required /></Field>
-        <Field label="标题"><TextInput value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></Field>
-        <Field label="备注"><TextArea value={form.remark} onChange={(e) => setForm({ ...form, remark: e.target.value })} /></Field>
-        <Button type="submit">创建</Button>
+      <form className="panel grid create-monthly-form" onSubmit={submit}>
+        {error && <div className="form-error">{error}</div>}
+        {createdMonthlyId && error && (
+          <div>
+            <Link to={`/salary/monthly/${createdMonthlyId}`}>
+              <Button type="button" variant="secondary">进入已创建的工资表</Button>
+            </Link>
+          </div>
+        )}
+        <div className="grid grid-2">
+          <Field label="工资月份">
+            <TextInput type="month" value={form.salaryMonth} onChange={(event) => setForm({ ...form, salaryMonth: event.target.value })} required />
+          </Field>
+          <Field label="标题">
+            <TextInput placeholder={defaultTitle} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
+          </Field>
+        </div>
+        <Field label="生成方式">
+          <SelectInput value={autoGenerate ? "auto" : "manual"} onChange={(event) => setAutoGenerate(event.target.value === "auto")}>
+            <option value="auto">创建后立即按工资档案生成明细</option>
+            <option value="manual">只创建月份，稍后手动生成</option>
+          </SelectInput>
+        </Field>
+        <Field label="备注">
+          <TextArea value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} />
+        </Field>
+        <div className="summary-strip">
+          <span>月份：{form.salaryMonth || "-"}</span>
+          <span>标题：{form.title || defaultTitle}</span>
+          <strong>{autoGenerate ? "会立即生成工资明细" : "只保存草稿工资表"}</strong>
+        </div>
+        <div className="toolbar">
+          <Button type="submit" disabled={save.isPending}>
+            {autoGenerate ? <RefreshCw size={16} /> : <CalendarPlus size={16} />}
+            {save.isPending ? "处理中" : "创建工资表"}
+          </Button>
+        </div>
       </form>
     </Page>
   );
 }
-

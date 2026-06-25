@@ -6,12 +6,23 @@ import { Field, SelectInput, TextArea, TextInput } from "../../../components/com
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
 import { getData, postData, putData } from "../../../lib/axios";
+import type { Department } from "../../department/types";
+import type { Position } from "../../position/types";
 import type { Employee } from "../types";
 
 const initial: Partial<Employee> = {
   employeeType: "company_employee",
   status: "active"
 };
+
+function normalizeEmployee(employee: Employee): Employee {
+  return {
+    ...employee,
+    id: String(employee.id),
+    departmentId: employee.departmentId == null ? undefined : String(employee.departmentId),
+    positionId: employee.positionId == null ? undefined : String(employee.positionId)
+  };
+}
 
 export function EmployeeFormPage() {
   const { id } = useParams();
@@ -22,8 +33,18 @@ export function EmployeeFormPage() {
     queryFn: () => getData<Employee>(`/employees/${id}`),
     enabled: Boolean(id)
   });
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", "options"],
+    queryFn: () => getData<{ records: Department[] }>("/departments", { page: 1, pageSize: 200, status: "active" })
+  });
+  const { data: positionsData } = useQuery({
+    queryKey: ["positions", "options", form.departmentId],
+    queryFn: () => getData<{ records: Position[] }>("/positions", { page: 1, pageSize: 200, status: "active", departmentId: form.departmentId || undefined })
+  });
+  const departments = departmentsData?.records ?? [];
+  const positions = positionsData?.records ?? [];
   useEffect(() => {
-    if (data) setForm(data);
+    if (data) setForm(normalizeEmployee(data));
   }, [data]);
   const mutation = useMutation({
     mutationFn: () => (id ? putData(`/employees/${id}`, form) : postData("/employees", form)),
@@ -51,8 +72,18 @@ export function EmployeeFormPage() {
           <Field label="身份证号"><TextInput value={form.idCard ?? ""} onChange={(e) => set("idCard", e.target.value)} /></Field>
           <Field label="性别"><SelectInput value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)}><option value="">未填</option><option value="male">男</option><option value="female">女</option></SelectInput></Field>
           <Field label="出生日期"><TextInput type="date" value={form.birthDate ?? ""} onChange={(e) => set("birthDate", e.target.value)} /></Field>
-          <Field label="部门 ID"><TextInput type="number" value={form.departmentId ?? ""} onChange={(e) => set("departmentId", Number(e.target.value) || undefined)} /></Field>
-          <Field label="岗位 ID"><TextInput type="number" value={form.positionId ?? ""} onChange={(e) => set("positionId", Number(e.target.value) || undefined)} /></Field>
+          <Field label="部门">
+            <SelectInput value={form.departmentId ?? ""} onChange={(e) => setForm((old) => ({ ...old, departmentId: e.target.value || undefined, positionId: undefined }))}>
+              <option value="">未指定</option>
+              {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            </SelectInput>
+          </Field>
+          <Field label="岗位">
+            <SelectInput value={form.positionId ?? ""} onChange={(e) => set("positionId", e.target.value || undefined)}>
+              <option value="">未指定</option>
+              {positions.map((position) => <option key={position.id} value={position.id}>{position.name}</option>)}
+            </SelectInput>
+          </Field>
           <Field label="员工类型"><SelectInput value={form.employeeType ?? "company_employee"} onChange={(e) => set("employeeType", e.target.value)}><option value="company_employee">公司员工</option><option value="project_staff">项目人员</option><option value="temporary_worker">临时人员</option><option value="team_leader">班组负责人</option></SelectInput></Field>
           <Field label="员工状态"><SelectInput value={form.status ?? "active"} onChange={(e) => set("status", e.target.value)}><option value="active">在职</option><option value="inactive">停用</option><option value="left">离职</option></SelectInput></Field>
           <Field label="入职日期"><TextInput type="date" value={form.entryDate ?? ""} onChange={(e) => set("entryDate", e.target.value)} /></Field>
@@ -68,4 +99,3 @@ export function EmployeeFormPage() {
     </Page>
   );
 }
-

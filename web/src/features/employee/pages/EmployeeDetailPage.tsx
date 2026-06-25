@@ -25,7 +25,7 @@ export function EmployeeDetailPage() {
   ];
 
   return (
-    <Page title="员工详情" actions={<Link to={`/employees/${id}/edit`}><Button variant="secondary">编辑</Button></Link>}>
+    <Page title="员工详情" actions={<><Link to={`/employees/${id}/salary-history`}><Button>历史工资</Button></Link>{" "}<Link to={`/employees/${id}/edit`}><Button variant="secondary">编辑</Button></Link></>}>
       <div className="panel">
         <table>
           <tbody>
@@ -36,4 +36,3 @@ export function EmployeeDetailPage() {
     </Page>
   );
 }
-

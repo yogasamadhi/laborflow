@@ -1,7 +1,5 @@
 package com.company.labor.module.employee.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.employee.domain.entity.PositionDO;
@@ -24,30 +22,28 @@ public class PositionController {
     private final PositionService service;
 
     @GetMapping
-    public Result<PageResult<PositionDO>> list(@RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "20") long pageSize, @RequestParam(required = false) Long departmentId) {
-        LambdaQueryWrapper<PositionDO> wrapper = new LambdaQueryWrapper<>();
-        if (departmentId != null) wrapper.eq(PositionDO::getDepartmentId, departmentId);
-        return Result.success(PageResult.of(service.page(new Page<>(page, pageSize), wrapper)));
+    public Result<PageResult<PositionDO>> list(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long departmentId) {
+        return Result.success(PageResult.of(service.search(page, pageSize, keyword, status, departmentId)));
     }
 
     @PostMapping
     public Result<PositionDO> create(@RequestBody PositionDO position) {
-        if (position.getStatus() == null) position.setStatus("active");
-        service.save(position);
-        return Result.success(position);
+        return Result.success(service.createPosition(position));
     }
 
     @PutMapping("/{id}")
     public Result<PositionDO> update(@PathVariable Long id, @RequestBody PositionDO position) {
-        position.setId(id);
-        service.updateById(position);
-        return Result.success(service.getById(id));
+        return Result.success(service.updatePosition(id, position));
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        service.removeById(id);
+        service.deactivate(id);
         return Result.success();
     }
 }
-

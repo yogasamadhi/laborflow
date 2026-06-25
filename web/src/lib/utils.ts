@@ -21,8 +21,16 @@ export function statusText(status?: string) {
     paid: "已发放",
     archived: "已归档",
     cancelled: "已作废",
-    unpaid: "未发放"
+    unpaid: "未发放",
+    not_started: "未开工",
+    in_progress: "施工中",
+    paused: "暂停",
+    completed: "已完工",
+    settled: "已结算",
+    submitted: "已提交",
+    pm_confirmed: "项目经理已确认",
+    confirmed: "已确认",
+    rejected: "已驳回"
   };
   return status ? map[status] ?? status : "-";
 }
-

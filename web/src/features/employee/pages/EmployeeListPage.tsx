@@ -7,6 +7,8 @@ import { Field, SelectInput, TextInput } from "../../../components/common/Field"
 import { Button } from "../../../components/ui/Button";
 import { getData, PageResult, putData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
+import type { Department } from "../../department/types";
+import type { Position } from "../../position/types";
 import type { Employee } from "../types";
 
 export function EmployeeListPage() {
@@ -16,8 +18,18 @@ export function EmployeeListPage() {
     queryKey: ["employees", filters],
     queryFn: () => getData<PageResult<Employee>>("/employees", { ...filters, page: 1, pageSize: 50 })
   });
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", "options"],
+    queryFn: () => getData<PageResult<Department>>("/departments", { page: 1, pageSize: 200, status: "active" })
+  });
+  const { data: positionsData } = useQuery({
+    queryKey: ["positions", "options", filters.departmentId],
+    queryFn: () => getData<PageResult<Position>>("/positions", { page: 1, pageSize: 200, status: "active", departmentId: filters.departmentId || undefined })
+  });
+  const departments = departmentsData?.records ?? [];
+  const positions = positionsData?.records ?? [];
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => putData(`/employees/${id}/status`, { status }),
+    mutationFn: ({ id, status }: { id: string; status: string }) => putData(`/employees/${id}/status`, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["employees"] })
   });
 
@@ -43,6 +55,18 @@ export function EmployeeListPage() {
             <option value="active">在职</option>
             <option value="inactive">停用</option>
             <option value="left">离职</option>
+          </SelectInput>
+        </Field>
+        <Field label="部门">
+          <SelectInput value={filters.departmentId} onChange={(event) => setFilters({ ...filters, departmentId: event.target.value, positionId: "" })}>
+            <option value="">全部</option>
+            {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="岗位">
+          <SelectInput value={filters.positionId} onChange={(event) => setFilters({ ...filters, positionId: event.target.value })}>
+            <option value="">全部</option>
+            {positions.map((position) => <option key={position.id} value={position.id}>{position.name}</option>)}
           </SelectInput>
         </Field>
       </div>
@@ -83,4 +107,3 @@ export function EmployeeListPage() {
     </Page>
   );
 }
-

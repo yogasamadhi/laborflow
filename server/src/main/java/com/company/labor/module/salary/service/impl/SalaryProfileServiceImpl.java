@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.module.employee.domain.entity.EmployeeDO;
+import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.salary.domain.dto.SalaryProfileItemDTO;
 import com.company.labor.module.salary.domain.dto.SalaryProfileSaveDTO;
 import com.company.labor.module.salary.domain.entity.SalaryItemDO;
@@ -26,6 +28,7 @@ import org.springframework.util.StringUtils;
 public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, SalaryProfileDO> implements SalaryProfileService {
     private final SalaryProfileItemMapper profileItemMapper;
     private final SalaryItemMapper salaryItemMapper;
+    private final EmployeeMapper employeeMapper;
 
     @Override
     public Page<SalaryProfileDO> search(long page, long pageSize, Long employeeId) {
@@ -41,6 +44,16 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
         if (dto.getEmployeeId() == null) {
             throw new BusinessException("员工 ID 必填");
         }
+        EmployeeDO employee = employeeMapper.selectByIdIncludingDeleted(dto.getEmployeeId());
+        if (employee == null) {
+            throw new BusinessException("员工不存在，不能创建工资档案");
+        }
+        if (employee.getDeleted() != null && employee.getDeleted() == 1) {
+            throw new BusinessException("员工已删除，不能创建工资档案");
+        }
+        if ("left".equals(employee.getStatus())) {
+            throw new BusinessException("员工已离职，不能创建工资档案");
+        }
         SalaryProfileDO profile = id == null ? new SalaryProfileDO() : getById(id);
         if (profile == null) {
             throw new BusinessException("工资档案不存在");
@@ -49,6 +62,9 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
         profile.setEffectiveDate(dto.getEffectiveDate());
         profile.setStatus(StringUtils.hasText(dto.getStatus()) ? dto.getStatus() : "active");
         profile.setRemark(dto.getRemark());
+        if (id == null) {
+            profile.setDeleted(0);
+        }
         saveOrUpdate(profile);
 
         profileItemMapper.delete(new LambdaUpdateWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profile.getId()));
@@ -82,4 +98,3 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
         return profileItemMapper.selectList(new LambdaQueryWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profileId));
     }
 }
-

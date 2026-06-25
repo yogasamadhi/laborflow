@@ -1,11 +1,11 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8089}
 
 spring:
   application:
     name: laborflow
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/laborflow}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5434/laborflow}
     username: ${POSTGRES_USER:laborflow}
     password: ${POSTGRES_PASSWORD:laborflow123}
   flyway:
@@ -32,4 +32,3 @@ laborflow:
     secret: ${JWT_SECRET:please-change-this-secret-to-at-least-32-characters}
     expiration-minutes: 720
   upload-dir: ${UPLOAD_DIR:./uploads}
-
