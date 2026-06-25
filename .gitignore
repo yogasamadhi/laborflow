@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.idea/
+.vscode/
+
+node_modules/
+dist/
+coverage/
+
+target/
+*.class
+.m2/
+
+uploads/
+logs/
+docker-data/
