@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
 import { getData } from "../../../lib/axios";
-import { statusText } from "../../../lib/utils";
+import { employeeStatusText } from "../../../lib/utils";
 import type { Employee } from "../types";
 
 export function EmployeeDetailPage() {
@@ -16,7 +16,7 @@ export function EmployeeDetailPage() {
     ["部门", data?.departmentName ?? data?.departmentId],
     ["岗位", data?.positionName ?? data?.positionId],
     ["员工类型", data?.employeeType],
-    ["状态", statusText(data?.status)],
+    ["状态", employeeStatusText(data?.status)],
     ["银行卡号", data?.bankAccount],
     ["开户行", data?.bankName],
     ["紧急联系人", data?.emergencyContact],

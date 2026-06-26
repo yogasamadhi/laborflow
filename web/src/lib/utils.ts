@@ -12,9 +12,8 @@ export function money(value?: number | string | null) {
 
 export function statusText(status?: string) {
   const map: Record<string, string> = {
-    active: "在职",
+    active: "启用",
     inactive: "停用",
-    left: "离职",
     draft: "草稿",
     pending_approval: "待审核",
     approved: "已审核",
@@ -30,7 +29,18 @@ export function statusText(status?: string) {
     submitted: "已提交",
     pm_confirmed: "项目经理已确认",
     confirmed: "已确认",
-    rejected: "已驳回"
+    rejected: "已驳回",
+    released: "已发布",
+    allocated: "已分配"
   };
   return status ? map[status] ?? status : "-";
+}
+
+export function employeeStatusText(status?: string) {
+  const map: Record<string, string> = {
+    active: "在职",
+    inactive: "停用",
+    left: "离职"
+  };
+  return status ? map[status] ?? statusText(status) : "-";
 }

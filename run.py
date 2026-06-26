@@ -153,17 +153,22 @@ def parse_database_host_port(env: dict[str, str]) -> tuple[str, int]:
     return parsed.hostname or "localhost", parsed.port or 5434
 
 
-def wait_for_port(host: str, port: int, timeout_seconds: int = 60) -> None:
-    log(f"waiting for PostgreSQL at {host}:{port}")
+def wait_for_port(service: str, host: str, port: int, timeout_seconds: int = 60) -> None:
+    log(f"waiting for {service} at {host}:{port}")
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(2)
-            if sock.connect_ex((host, port)) == 0:
-                log("PostgreSQL is reachable")
+        for proc in processes:
+            code = proc.poll()
+            if code is not None:
+                fail(f"a child process exited unexpectedly with code {code}")
+        try:
+            with socket.create_connection((host, port), timeout=2):
+                log(f"{service} is reachable")
                 return
+        except OSError:
+            pass
         time.sleep(1)
-    fail(f"PostgreSQL is not reachable at {host}:{port}")
+    fail(f"{service} is not reachable at {host}:{port}")
 
 
 def ensure_docker(env: dict[str, str]) -> None:
@@ -261,14 +266,15 @@ def main() -> None:
         ensure_docker(env)
 
     host, port = parse_database_host_port(env)
-    wait_for_port(host, port)
+    wait_for_port("PostgreSQL", host, port)
 
     if not args.skip_install:
         ensure_web_dependencies(env)
 
     start_server(env)
     start_web(env)
-    wait_for_port("localhost", int(env.get("WEB_PORT", "5175")))
+    wait_for_port("API", "localhost", int(env.get("SERVER_PORT", "8089")))
+    wait_for_port("Web", "localhost", int(env.get("WEB_PORT", "5175")))
     wait_forever()
 
 
