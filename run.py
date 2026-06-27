@@ -95,10 +95,19 @@ def command_exists(command: str) -> bool:
     return shutil.which(command) is not None
 
 
+def prepare_cmd(cmd: list[str]) -> list[str]:
+    # On Windows, npm/Maven CLIs ship as .cmd shims (pnpm.CMD, mvn.CMD).
+    # CreateProcess cannot launch .cmd/.bat directly — only real .exe files —
+    # so route through cmd.exe to avoid a spurious "command not found".
+    if os.name == "nt":
+        return ["cmd", "/c", *cmd]
+    return cmd
+
+
 def run_checked(cmd: list[str], cwd: Path, env: dict[str, str] | None = None) -> None:
     log(f"running: {' '.join(cmd)}")
     try:
-        subprocess.run(cmd, cwd=cwd, env=env, check=True)
+        subprocess.run(prepare_cmd(cmd), cwd=cwd, env=env, check=True)
     except FileNotFoundError:
         fail(f"command not found: {cmd[0]}")
     except subprocess.CalledProcessError as exc:
@@ -109,12 +118,16 @@ def popen_stream(name: str, cmd: list[str], cwd: Path, env: dict[str, str] | Non
     log(f"starting {name}: {' '.join(cmd)}")
     try:
         proc = subprocess.Popen(
-            cmd,
+            prepare_cmd(cmd),
             cwd=cwd,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            # Force UTF-8: child output (e.g. Vite's ➜) is UTF-8, but Windows text
+            # mode defaults to the locale codepage (GBK/cp936) and crashes the pump.
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,
         )
     except FileNotFoundError:
@@ -134,7 +147,16 @@ def popen_stream(name: str, cmd: list[str], cwd: Path, env: dict[str, str] | Non
 def stop_children() -> None:
     for proc in processes:
         if proc.poll() is None:
-            proc.terminate()
+            if os.name == "nt":
+                # Commands run via cmd.exe (see prepare_cmd); terminating the wrapper
+                # would not reach its grandchildren (java/node), so kill the whole tree.
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            else:
+                proc.terminate()
     deadline = time.time() + 8
     for proc in processes:
         if proc.poll() is None:
@@ -152,6 +174,27 @@ def parse_database_host_port(env: dict[str, str]) -> tuple[str, int]:
     parsed = urlparse(url)
     return parsed.hostname or "localhost", parsed.port or 5434
 
+
+def parse_port(env: dict[str, str], name: str, default: int) -> int:
+    raw = env.get(name, str(default))
+    try:
+        port = int(raw)
+    except ValueError:
+        fail(f"{name} must be a valid TCP port, got: {raw}")
+    if port < 1 or port > 65535:
+        fail(f"{name} must be between 1 and 65535, got: {raw}")
+    return port
+
+
+def ensure_port_available(service: str, host: str, port: int, env_name: str) -> None:
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            fail(
+                f"{service} port {port} is already in use. "
+                f"Stop the existing process or set {env_name} to another port."
+            )
+    except OSError:
+        return
 
 def wait_for_port(service: str, host: str, port: int, timeout_seconds: int = 60) -> None:
     log(f"waiting for {service} at {host}:{port}")
@@ -268,13 +311,18 @@ def main() -> None:
     host, port = parse_database_host_port(env)
     wait_for_port("PostgreSQL", host, port)
 
+    server_port = parse_port(env, "SERVER_PORT", 8089)
+    web_port = parse_port(env, "WEB_PORT", 5175)
+    ensure_port_available("API", "localhost", server_port, "SERVER_PORT")
+    ensure_port_available("Web", "localhost", web_port, "WEB_PORT")
+
     if not args.skip_install:
         ensure_web_dependencies(env)
 
     start_server(env)
     start_web(env)
-    wait_for_port("API", "localhost", int(env.get("SERVER_PORT", "8089")))
-    wait_for_port("Web", "localhost", int(env.get("WEB_PORT", "5175")))
+    wait_for_port("API", "localhost", server_port)
+    wait_for_port("Web", "localhost", web_port)
     wait_forever()
 
 
