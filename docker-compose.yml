@@ -9,7 +9,9 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - ./docker-data:/var/lib/postgresql/data
+      # Mount one level up for PostgreSQL 18+ (uses pg_ctlcluster layout,
+      # data lands in a version subdir, e.g. 18/docker). See docker-library/postgres#1259.
+      - ./docker-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-laborflow} -d ${POSTGRES_DB:-laborflow}"]
       interval: 10s
