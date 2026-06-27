@@ -6,7 +6,7 @@ import { Page } from "../../../components/common/Page";
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
 import { Button } from "../../../components/ui/Button";
 import { getData, PageResult, putData } from "../../../lib/axios";
-import { statusText } from "../../../lib/utils";
+import { employeeStatusText } from "../../../lib/utils";
 import type { Department } from "../../department/types";
 import type { Position } from "../../position/types";
 import type { Employee } from "../types";
@@ -92,7 +92,11 @@ export function EmployeeListPage() {
                 <td>{employee.departmentName ?? employee.departmentId ?? "-"}</td>
                 <td>{employee.positionName ?? employee.positionId ?? "-"}</td>
                 <td>{employee.employeeType}</td>
-                <td><span className="badge badge-green">{statusText(employee.status)}</span></td>
+                <td>
+                  <span className={`badge ${employee.status === "active" ? "badge-green" : employee.status === "left" ? "badge-red" : "badge-yellow"}`}>
+                    {employeeStatusText(employee.status)}
+                  </span>
+                </td>
                 <td>{employee.bankAccount ?? "-"}</td>
                 <td>
                   <Link to={`/employees/${employee.id}/edit`}><Button variant="secondary">编辑</Button></Link>{" "}

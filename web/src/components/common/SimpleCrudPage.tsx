@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { deleteData, getData, PageResult, postData, putData } from "../../lib/axios";
+import { statusText } from "../../lib/utils";
 import { Button } from "../ui/Button";
 import { Field, TextInput } from "./Field";
 import { Page } from "./Page";
@@ -70,7 +71,7 @@ export function SimpleCrudPage({ title, resource, readonly = false }: { title: s
               <tr key={row.id}>
                 <td>{row.name ?? "-"}</td>
                 <td>{row.code ?? "-"}</td>
-                <td>{row.status ?? "-"}</td>
+                <td>{statusText(row.status)}</td>
                 <td>{row.createdAt ?? "-"}</td>
                 {!readonly && (
                   <td>
@@ -86,4 +87,3 @@ export function SimpleCrudPage({ title, resource, readonly = false }: { title: s
     </Page>
   );
 }
-

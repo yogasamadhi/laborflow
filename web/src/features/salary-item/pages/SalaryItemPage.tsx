@@ -4,6 +4,7 @@ import { Field, SelectInput, TextInput } from "../../../components/common/Field"
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
 import { deleteData, getData, PageResult, postData, putData } from "../../../lib/axios";
+import { statusText } from "../../../lib/utils";
 
 type SalaryItem = { id: number; name: string; type: string; isFixed: number; status: string; sortOrder: number };
 
@@ -23,8 +24,7 @@ export function SalaryItemPage() {
         <Field label="类型"><SelectInput value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option value="earning">应发项</option><option value="deduction">扣减项</option></SelectInput></Field>
         <Button type="submit">{form.id ? "保存" : "新增"}</Button>
       </form>
-      <div className="panel table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(item => <tr key={item.id}><td>{item.name}</td><td>{item.type === "earning" ? "应发项" : "扣减项"}</td><td>{item.status}</td><td><Button variant="secondary" onClick={() => setForm(item)}>编辑</Button>{" "}<Button variant="danger" onClick={() => deleteData(`/salary/items/${item.id}`).then(() => queryClient.invalidateQueries({ queryKey: ["salary-items"] }))}>停用</Button></td></tr>)}</tbody></table></div>
+      <div className="panel table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(item => <tr key={item.id}><td>{item.name}</td><td>{item.type === "earning" ? "应发项" : "扣减项"}</td><td>{statusText(item.status)}</td><td><Button variant="secondary" onClick={() => setForm(item)}>编辑</Button>{" "}<Button variant="danger" onClick={() => deleteData(`/salary/items/${item.id}`).then(() => queryClient.invalidateQueries({ queryKey: ["salary-items"] }))}>停用</Button></td></tr>)}</tbody></table></div>
     </Page>
   );
 }
-
