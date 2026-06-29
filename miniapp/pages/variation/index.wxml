@@ -1,0 +1,30 @@
+<view class="page">
+  <view class="page-header row">
+    <view>
+      <text class="eyebrow">现场上报</text>
+      <text class="title">签证变更</text>
+    </view>
+    <van-button round size="small" type="primary" icon="plus" bind:tap="create">新增</van-button>
+  </view>
+
+  <van-empty wx:if="{{rows.length === 0}}" image="search" description="暂无签证" />
+
+  <view wx:for="{{rows}}" wx:key="id" class="card">
+    <view class="row">
+      <view>
+        <text class="row-title">{{item.variationTypeText}}</text>
+        <text class="muted small">{{item.occurrenceDateText}} / 项目 #{{item.projectId}}</text>
+      </view>
+      <van-tag plain type="{{item.statusTagType}}">{{item.statusText}}</van-tag>
+    </view>
+    <view class="metric-row">
+      <text>工程量：{{item.increasedQuantityText}}</text>
+      <text>{{item.amountText}}</text>
+    </view>
+    <text wx:if="{{item.rejectedReason}}" class="reject-reason">驳回原因：{{item.rejectedReason}}</text>
+    <text class="muted small">原因：{{item.reasonText}}</text>
+    <view wx:if="{{item.canEdit}}" class="list-actions">
+      <van-button size="small" plain type="primary" icon="edit" data-item="{{item}}" bind:tap="edit">{{item.actionText}}</van-button>
+    </view>
+  </view>
+</view>

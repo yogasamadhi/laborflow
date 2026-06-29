@@ -32,7 +32,6 @@ ENV_EXAMPLE = ROOT / ".env.example"
 
 DEFAULT_JAVA_HOME = Path("/Users/h/code/env/jdk-21/Contents/Home")
 DEFAULT_MAVEN = Path("/Users/h/code/env/maven-3.9/bin/mvn")
-DEFAULT_MAVEN_REPO = ROOT / ".m2" / "repository"
 
 processes: list[subprocess.Popen[str]] = []
 
@@ -264,10 +263,9 @@ def start_server(env: dict[str, str]) -> subprocess.Popen[str]:
     server_env = env.copy()
     server_env["JAVA_HOME"] = str(java_home)
     server_env["PATH"] = f"{java_home / 'bin'}{os.pathsep}{server_env.get('PATH', '')}"
-    DEFAULT_MAVEN_REPO.mkdir(parents=True, exist_ok=True)
     return popen_stream(
         "server",
-        [maven, f"-Dmaven.repo.local={DEFAULT_MAVEN_REPO}", "spring-boot:run"],
+        [maven, "spring-boot:run"],
         SERVER_DIR,
         server_env,
     )

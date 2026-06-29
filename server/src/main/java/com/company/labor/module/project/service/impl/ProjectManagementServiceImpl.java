@@ -295,12 +295,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
-    public Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status) {
+    public Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status, Long createdBy) {
         return dailyWorkReportMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<DailyWorkReportDO>()
                 .eq(DailyWorkReportDO::getDeleted, 0)
                 .eq(projectId != null, DailyWorkReportDO::getProjectId, projectId)
                 .eq(teamId != null, DailyWorkReportDO::getTeamId, teamId)
                 .eq(StringUtils.hasText(status), DailyWorkReportDO::getStatus, status)
+                .eq(createdBy != null, DailyWorkReportDO::getCreatedBy, createdBy)
                 .orderByDesc(DailyWorkReportDO::getWorkDate)
                 .orderByDesc(DailyWorkReportDO::getCreatedAt));
     }
@@ -479,11 +480,12 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
-    public Page<VariationOrderDO> variationOrders(long page, long pageSize, Long projectId, String status) {
+    public Page<VariationOrderDO> variationOrders(long page, long pageSize, Long projectId, String status, Long createdBy) {
         return variationOrderMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<VariationOrderDO>()
                 .eq(VariationOrderDO::getDeleted, 0)
                 .eq(projectId != null, VariationOrderDO::getProjectId, projectId)
                 .eq(StringUtils.hasText(status), VariationOrderDO::getStatus, status)
+                .eq(createdBy != null, VariationOrderDO::getCreatedBy, createdBy)
                 .orderByDesc(VariationOrderDO::getOccurrenceDate)
                 .orderByDesc(VariationOrderDO::getCreatedAt));
     }

@@ -9,8 +9,8 @@ import lombok.Data;
 public class LoginVO {
     private String token;
     private Long userId;
+    private Long employeeId;
     private String username;
     private String nickname;
     private List<String> roles;
 }
-

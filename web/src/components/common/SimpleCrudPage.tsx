@@ -8,7 +8,7 @@ import { Field, TextInput } from "./Field";
 import { Page } from "./Page";
 
 type Row = {
-  id: number;
+  id: string;
   name?: string;
   code?: string;
   status?: string;

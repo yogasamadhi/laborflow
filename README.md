@@ -5,6 +5,7 @@
 ## 技术栈
 
 - Web：React 19、React Router、TypeScript、Vite、Tailwind CSS 风格组件、TanStack Query、TanStack Table、React Hook Form、Zod、ECharts、Axios、dayjs、lucide-react
+- Miniapp：微信原生小程序、Vant Weapp 依赖预置
 - Server：Spring Boot 3、Java 21、MyBatis Plus、Spring Security、JWT、Flyway、PostgreSQL 18、OpenAPI/Knife4j
 
 ## 本地启动
@@ -33,6 +34,12 @@ pnpm install
 pnpm dev
 ```
 
+小程序：
+
+```bash
+微信开发者工具导入 miniapp/
+```
+
 默认账号：
 
 ```text
@@ -44,4 +51,5 @@ admin / admin123456
 ```text
 web/     React 管理后台
 server/  Spring Boot API 服务
+miniapp/ 微信小程序端
 ```

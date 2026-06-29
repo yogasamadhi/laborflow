@@ -22,7 +22,9 @@ import com.company.labor.module.project.domain.entity.VariationOrderDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectManagementService;
+import com.company.labor.security.LoginUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -187,17 +189,24 @@ public class ProjectManagementController {
                                                               @RequestParam(defaultValue = "20") long pageSize,
                                                               @RequestParam(required = false) Long projectId,
                                                               @RequestParam(required = false) Long teamId,
-                                                              @RequestParam(required = false) String status) {
-        return Result.success(PageResult.of(service.dailyReports(page, pageSize, projectId, teamId, status)));
+                                                              @RequestParam(required = false) String status,
+                                                              @RequestParam(required = false) Boolean mine,
+                                                              Authentication authentication) {
+        Long createdBy = Boolean.TRUE.equals(mine) ? currentUserId(authentication) : null;
+        return Result.success(PageResult.of(service.dailyReports(page, pageSize, projectId, teamId, status, createdBy)));
     }
 
     @PostMapping("/api/daily-work-reports")
-    public Result<DailyWorkReportDO> saveDailyReport(@RequestBody DailyWorkReportDO report) {
+    public Result<DailyWorkReportDO> saveDailyReport(@RequestBody DailyWorkReportDO report, Authentication authentication) {
+        Long userId = currentUserId(authentication);
+        report.setCreatedBy(userId);
+        report.setUpdatedBy(userId);
         return Result.success(service.saveDailyReport(report));
     }
 
     @PutMapping("/api/daily-work-reports/{id}")
-    public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @RequestBody DailyWorkReportDO report) {
+    public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @RequestBody DailyWorkReportDO report, Authentication authentication) {
+        report.setUpdatedBy(currentUserId(authentication));
         return Result.success(service.updateDailyReport(id, report));
     }
 
@@ -261,17 +270,24 @@ public class ProjectManagementController {
     public Result<PageResult<VariationOrderDO>> variationOrders(@RequestParam(defaultValue = "1") long page,
                                                                 @RequestParam(defaultValue = "20") long pageSize,
                                                                 @RequestParam(required = false) Long projectId,
-                                                                @RequestParam(required = false) String status) {
-        return Result.success(PageResult.of(service.variationOrders(page, pageSize, projectId, status)));
+                                                                @RequestParam(required = false) String status,
+                                                                @RequestParam(required = false) Boolean mine,
+                                                                Authentication authentication) {
+        Long createdBy = Boolean.TRUE.equals(mine) ? currentUserId(authentication) : null;
+        return Result.success(PageResult.of(service.variationOrders(page, pageSize, projectId, status, createdBy)));
     }
 
     @PostMapping("/api/variation-orders")
-    public Result<VariationOrderDO> saveVariationOrder(@RequestBody VariationOrderDO order) {
+    public Result<VariationOrderDO> saveVariationOrder(@RequestBody VariationOrderDO order, Authentication authentication) {
+        Long userId = currentUserId(authentication);
+        order.setCreatedBy(userId);
+        order.setUpdatedBy(userId);
         return Result.success(service.saveVariationOrder(order));
     }
 
     @PutMapping("/api/variation-orders/{id}")
-    public Result<VariationOrderDO> updateVariationOrder(@PathVariable Long id, @RequestBody VariationOrderDO order) {
+    public Result<VariationOrderDO> updateVariationOrder(@PathVariable Long id, @RequestBody VariationOrderDO order, Authentication authentication) {
+        order.setUpdatedBy(currentUserId(authentication));
         return Result.success(service.updateVariationOrder(id, order));
     }
 
@@ -409,5 +425,13 @@ public class ProjectManagementController {
     @GetMapping("/api/project-dashboard/{projectId}")
     public Result<ProjectDashboardVO> dashboard(@PathVariable Long projectId) {
         return Result.success(service.dashboard(projectId));
+    }
+
+    private Long currentUserId(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return null;
+        }
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        return loginUser.getUser().getId();
     }
 }

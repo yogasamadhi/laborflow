@@ -1,0 +1,9 @@
+{
+  "name": "laborflow-miniapp",
+  "version": "3.0.0",
+  "private": true,
+  "description": "LaborFlow 微信小程序端",
+  "dependencies": {
+    "@vant/weapp": "^1.11.7"
+  }
+}

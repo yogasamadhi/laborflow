@@ -1,0 +1,15 @@
+.empty-card {
+  text-align: left;
+}
+
+.title-lite {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.todo-title {
+  display: block;
+  font-weight: 700;
+}

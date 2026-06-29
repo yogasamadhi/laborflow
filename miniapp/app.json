@@ -1,0 +1,61 @@
+{
+  "pages": [
+    "pages/login/index",
+    "pages/home/index",
+    "pages/salary/index",
+    "pages/salary/detail",
+    "pages/report/index",
+    "pages/report/create",
+    "pages/variation/index",
+    "pages/variation/create",
+    "pages/todo/index",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "LaborFlow",
+    "navigationBarBackgroundColor": "#173f35",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#eef4f6",
+    "backgroundTextStyle": "dark"
+  },
+  "usingComponents": {
+    "van-button": "@vant/weapp/button/index",
+    "van-cell": "@vant/weapp/cell/index",
+    "van-cell-group": "@vant/weapp/cell-group/index",
+    "van-divider": "@vant/weapp/divider/index",
+    "van-empty": "@vant/weapp/empty/index",
+    "van-field": "@vant/weapp/field/index",
+    "van-grid": "@vant/weapp/grid/index",
+    "van-grid-item": "@vant/weapp/grid-item/index",
+    "van-icon": "@vant/weapp/icon/index",
+    "van-loading": "@vant/weapp/loading/index",
+    "van-tag": "@vant/weapp/tag/index"
+  },
+  "tabBar": {
+    "color": "#697a76",
+    "selectedColor": "#e9684a",
+    "backgroundColor": "#fbfefd",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/salary/index",
+        "text": "工资"
+      },
+      {
+        "pagePath": "pages/todo/index",
+        "text": "待办"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

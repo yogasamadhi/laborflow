@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="page-header">
+    <text class="eyebrow">{{employeeNameText}}</text>
+    <text class="title">我的工资</text>
+  </view>
+
+  <view class="card summary">
+    <view>
+      <text class="muted small">累计实发</text>
+      <text class="summary-money">¥{{totalActualText}}</text>
+    </view>
+    <view class="summary-side">
+      <text class="muted small">记录</text>
+      <text class="summary-count">{{records.length}}</text>
+    </view>
+  </view>
+
+  <van-empty wx:if="{{unbound}}" image="error" description="当前账号未绑定员工，无法查看工资" />
+  <van-empty wx:elif="{{records.length === 0}}" image="search" description="暂无工资记录" />
+
+  <view wx:for="{{records}}" wx:key="detailId" class="card salary-row" data-item="{{item}}" bindtap="openDetail">
+    <view class="row">
+      <view>
+        <text class="row-title">{{item.salaryMonth}}</text>
+        <text class="muted small">{{item.paymentDateText}}</text>
+      </view>
+      <view class="right">
+        <text class="money">{{item.actualAmountText}}</text>
+        <van-tag plain type="{{item.statusTagType}}">{{item.statusText}}</van-tag>
+      </view>
+    </view>
+    <van-divider />
+    <van-grid column-num="2" border="{{false}}">
+      <van-grid-item icon="gold-coin-o" text="应发 {{item.payableAmountText}}" />
+      <van-grid-item icon="refund-o" text="扣减 {{item.deductionAmountText}}" />
+    </van-grid>
+  </view>
+</view>

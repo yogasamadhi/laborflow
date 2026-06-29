@@ -6,9 +6,9 @@ import { Button } from "../../../components/ui/Button";
 import { downloadFile, getData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 
-type RecordRow = { salaryMonth: string; monthlyId: number; detailId: number; payableAmount: number; deductionAmount: number; actualAmount: number; paymentStatus: string; paymentDate?: string; paymentMethod?: string; remark?: string };
+type RecordRow = { salaryMonth: string; monthlyId: string; detailId: string; payableAmount: number; deductionAmount: number; actualAmount: number; paymentStatus: string; paymentDate?: string; paymentMethod?: string; remark?: string };
 type YearSummary = { year: string; payableAmount: number; deductionAmount: number; actualAmount: number; paidCount: number; unpaidCount: number };
-type History = { employeeId: number; employeeName: string; totalActualAmount: number; latestPaymentRecord?: RecordRow; records: RecordRow[]; yearlySummaries: YearSummary[] };
+type History = { employeeId: string; employeeName: string; totalActualAmount: number; latestPaymentRecord?: RecordRow; records: RecordRow[]; yearlySummaries: YearSummary[] };
 
 export function EmployeeSalaryHistoryPage() {
   const { id } = useParams();

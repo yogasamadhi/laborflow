@@ -3,7 +3,7 @@ import { Page } from "../../../components/common/Page";
 import { getData } from "../../../lib/axios";
 import { money } from "../../../lib/utils";
 
-type Anomaly = { type: string; level: string; salaryMonth?: string; monthlyId?: number; employeeId?: number; employeeName?: string; actualAmount?: number; compareAmount?: number; message: string };
+type Anomaly = { type: string; level: string; salaryMonth?: string; monthlyId?: string; employeeId?: string; employeeName?: string; actualAmount?: number; compareAmount?: number; message: string };
 
 export function SalaryAnomaliesPage() {
   const { data } = useQuery({ queryKey: ["salary-anomalies"], queryFn: () => getData<Anomaly[]>("/statistics/salary/anomalies", { fluctuationRatio: 0.3 }) });

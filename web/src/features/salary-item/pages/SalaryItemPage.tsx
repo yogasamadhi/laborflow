@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/Button";
 import { deleteData, getData, PageResult, postData, putData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
 
-type SalaryItem = { id: number; name: string; type: string; isFixed: number; status: string; sortOrder: number };
+type SalaryItem = { id: string; name: string; type: string; isFixed: number; status: string; sortOrder: number };
 
 export function SalaryItemPage() {
   const queryClient = useQueryClient();

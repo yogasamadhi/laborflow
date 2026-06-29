@@ -29,13 +29,13 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPassword()));
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         String token = jwtTokenProvider.createToken(loginUser);
-        return Result.success(new LoginVO(token, loginUser.getUser().getId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
+        return Result.success(new LoginVO(token, loginUser.getUser().getId(), loginUser.getUser().getEmployeeId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
     }
 
     @GetMapping("/me")
     public Result<LoginVO> me(Authentication authentication) {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        return Result.success(new LoginVO(null, loginUser.getUser().getId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
+        return Result.success(new LoginVO(null, loginUser.getUser().getId(), loginUser.getUser().getEmployeeId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
     }
 
     @PostMapping("/logout")
@@ -43,4 +43,3 @@ public class AuthController {
         return Result.success();
     }
 }
-

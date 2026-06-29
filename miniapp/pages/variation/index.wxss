@@ -1,0 +1,36 @@
+.mini-button {
+  width: 132rpx;
+  min-height: 64rpx;
+  color: #ffffff;
+  background: #173f35;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  line-height: 64rpx;
+}
+
+.row-title {
+  display: block;
+  font-weight: 700;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #edf2f0;
+}
+
+.reject-reason {
+  display: block;
+  margin-top: 18rpx;
+  color: #c2412d;
+  font-size: 24rpx;
+}
+
+.list-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20rpx;
+}

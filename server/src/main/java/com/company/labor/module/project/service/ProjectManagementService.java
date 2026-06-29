@@ -52,7 +52,7 @@ public interface ProjectManagementService {
     ProjectProcessPriceDO saveProjectProcessPrice(ProjectProcessPriceDO price);
     ProjectProcessPriceDO updateProjectProcessPrice(Long id, ProjectProcessPriceDO price);
 
-    Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status);
+    Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status, Long createdBy);
     DailyWorkReportDO saveDailyReport(DailyWorkReportDO report);
     DailyWorkReportDO updateDailyReport(Long id, DailyWorkReportDO report);
     void submitDailyReport(Long id);
@@ -66,7 +66,7 @@ public interface ProjectManagementService {
     void confirmTeamSettlement(Long id);
     void markTeamSettlementPaid(Long id);
 
-    Page<VariationOrderDO> variationOrders(long page, long pageSize, Long projectId, String status);
+    Page<VariationOrderDO> variationOrders(long page, long pageSize, Long projectId, String status, Long createdBy);
     VariationOrderDO saveVariationOrder(VariationOrderDO order);
     VariationOrderDO updateVariationOrder(Long id, VariationOrderDO order);
     void submitVariationOrder(Long id);

@@ -31,9 +31,9 @@ export type ApiResult<T> = {
 
 export type PageResult<T> = {
   records: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  total: string;
+  page: string;
+  pageSize: string;
 };
 
 function unwrapResult<T>(result: ApiResult<T>): T {
@@ -78,5 +78,5 @@ export async function downloadFile(url: string, filename: string, params?: Recor
 export async function uploadFile(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return postData<{ id: number; filePath: string; originalName: string }>("/files/upload", formData);
+  return postData<{ id: string; filePath: string; originalName: string }>("/files/upload", formData);
 }

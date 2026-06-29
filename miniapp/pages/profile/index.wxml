@@ -1,0 +1,30 @@
+<view class="page">
+  <view class="page-header">
+    <text class="title">我的账号</text>
+    <text class="subtitle">账号绑定和角色权限来自 Web 管理端</text>
+  </view>
+
+  <view class="card">
+    <view class="profile-mark">{{avatarText}}</view>
+    <text class="profile-name">{{displayName}}</text>
+    <text class="muted small">{{usernameText}}</text>
+  </view>
+
+  <view class="van-card-shell">
+    <van-cell-group border="{{false}}">
+      <van-cell title="用户 ID" value="{{userIdText}}" icon="idcard" />
+      <van-cell title="员工 ID" value="{{employeeIdText}}" icon="contact-o" />
+      <van-cell title="角色" value="{{rolesText}}" icon="cluster-o" />
+    </van-cell-group>
+  </view>
+
+  <view wx:if="{{!employeeBound}}" class="card bind-warning">
+    <van-icon name="warning-o" size="36rpx" />
+    <text>当前账号未绑定员工，工资查询将不可用。请在 Web 后台维护账号员工关系。</text>
+  </view>
+
+  <view class="profile-actions">
+    <van-button block plain type="primary" icon="replay" bind:tap="refreshMe">刷新资料</van-button>
+    <van-button block type="danger" icon="close" bind:tap="logout">退出登录</van-button>
+  </view>
+</view>

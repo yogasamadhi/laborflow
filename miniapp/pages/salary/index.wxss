@@ -1,0 +1,44 @@
+.summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-money {
+  display: block;
+  margin-top: 10rpx;
+  color: #e9684a;
+  font-size: 52rpx;
+  font-weight: 800;
+}
+
+.summary-side {
+  text-align: right;
+}
+
+.summary-count {
+  display: block;
+  margin-top: 10rpx;
+  color: #173f35;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.row-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.right {
+  text-align: right;
+}
+
+.right .money {
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.salary-row {
+  padding-bottom: 10rpx;
+}

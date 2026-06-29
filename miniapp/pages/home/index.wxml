@@ -1,0 +1,72 @@
+<view class="page">
+  <view class="page-header">
+    <text class="eyebrow">{{displayName}}</text>
+    <text class="title">今日现场工作台</text>
+    <view class="identity-row">
+      <van-tag plain type="primary">{{roleText}}</van-tag>
+      <van-tag plain type="{{bindTagType}}">{{bindText}}</van-tag>
+    </view>
+  </view>
+
+  <view class="card field-card">
+    <view class="row">
+      <view>
+        <text class="muted small">今日日报</text>
+        <text class="field-title">{{todayReportText}}</text>
+      </view>
+      <van-tag plain type="{{todayReportTagType}}">{{todayReportBadgeText}}</van-tag>
+    </view>
+    <view class="field-metrics">
+      <view>
+        <text class="metric-value">{{todoCount}}</text>
+        <text class="muted small">待办</text>
+      </view>
+      <view>
+        <text class="metric-value">{{draftCount}}</text>
+        <text class="muted small">草稿</text>
+      </view>
+      <view>
+        <text class="metric-value">{{rejectedCount}}</text>
+        <text class="muted small">需修改</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="van-card-shell action-shell">
+    <van-grid column-num="3" border="{{false}}">
+      <van-grid-item icon="records-o" text="填报日报" bind:click="goReportCreate" />
+      <van-grid-item icon="edit" text="签证上报" bind:click="goVariationCreate" />
+      <van-grid-item icon="photograph" text="现场照片" bind:click="goReportPhoto" />
+    </van-grid>
+  </view>
+
+  <view class="card salary-card" bindtap="goSalary">
+    <view class="row">
+      <text class="muted small">最近工资</text>
+      <van-icon name="balance-list-o" size="38rpx" />
+    </view>
+    <text class="amount">¥{{totalActualText}}</text>
+    <text class="muted small">{{latestPaymentMonth}} / {{latestPaymentStatus}}</text>
+  </view>
+
+  <view class="card" wx:if="{{isManager}}">
+    <view class="row">
+      <text class="section-title">审批待办（{{todoCount}}）</text>
+      <text class="muted small" bindtap="goTodo">处理全部</text>
+    </view>
+    <van-empty wx:if="{{todos.length === 0}}" image="search" description="暂无待处理事项" />
+    <view wx:for="{{todos}}" wx:key="id" class="todo-row">
+      <text>{{item.title}}</text>
+      <van-tag plain type="warning">{{item.desc}}</van-tag>
+    </view>
+  </view>
+
+  <view class="card">
+    <text class="section-title">在建项目</text>
+    <van-empty wx:if="{{projects.length === 0}}" image="search" description="暂无在建项目" />
+    <view wx:for="{{projects}}" wx:key="id" class="project-row">
+      <text>{{item.name}}</text>
+      <text class="muted small">{{item.projectManagerText}}</text>
+    </view>
+  </view>
+</view>

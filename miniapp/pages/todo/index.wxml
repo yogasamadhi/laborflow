@@ -1,0 +1,33 @@
+<view class="page">
+  <view class="page-header">
+    <text class="eyebrow">管理审批</text>
+    <text class="title">待办事项</text>
+  </view>
+
+  <view wx:if="{{!isManager}}" class="card empty-card">
+    <van-empty image="error" description="暂无审批权限" />
+    <text class="muted">小程序权限与 Web 端角色保持一致，请在后台为账号分配管理角色。</text>
+  </view>
+
+  <block wx:if="{{isManager}}">
+    <view class="form-card">
+      <van-field value="{{remark}}" bind:change="onRemark" label="处理意见" type="textarea" autosize placeholder="同意可留空，驳回建议填写原因" />
+    </view>
+
+    <van-empty wx:if="{{rows.length === 0}}" image="search" description="暂无待办" />
+
+    <view wx:for="{{rows}}" wx:key="id" class="card">
+      <view class="row">
+        <view>
+          <text class="todo-title">{{item.title}}</text>
+          <text class="muted small">{{item.desc}}</text>
+        </view>
+        <van-tag plain type="warning">{{item.statusText}}</van-tag>
+      </view>
+      <view class="button-row">
+        <van-button block plain type="danger" icon="close" data-item="{{item}}" bind:tap="reject">驳回</van-button>
+        <van-button block type="primary" icon="success" data-item="{{item}}" bind:tap="approve">同意</van-button>
+      </view>
+    </view>
+  </block>
+</view>

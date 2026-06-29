@@ -1,0 +1,43 @@
+<view class="page">
+  <view class="page-header">
+    <text class="eyebrow">{{month}}</text>
+    <text class="title">工资条明细</text>
+  </view>
+
+  <view class="card" wx:if="{{detail}}">
+    <view class="row">
+      <text class="muted">发放状态</text>
+      <van-tag plain type="{{detail.paymentStatusTagType}}">{{detail.paymentStatusText}}</van-tag>
+    </view>
+    <view class="money-line">
+      <text class="muted small">实发金额</text>
+      <text class="actual">{{detail.actualAmountText}}</text>
+    </view>
+    <view class="split">
+      <view>
+        <text class="muted small">应发</text>
+        <text>{{detail.payableAmountText}}</text>
+      </view>
+      <view>
+        <text class="muted small">扣减</text>
+        <text>{{detail.deductionAmountText}}</text>
+      </view>
+      <view>
+        <text class="muted small">发放日期</text>
+        <text>{{detail.paymentDateText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <text class="section-title">工资项目</text>
+    <van-empty wx:if="{{items.length === 0}}" image="search" description="暂无明细项" />
+    <view wx:for="{{items}}" wx:key="id" class="item-row">
+      <view>
+        <text>{{item.salaryItemName}}</text>
+        <van-tag plain type="{{item.tagType}}">{{item.typeText}}</van-tag>
+      </view>
+      <text class="{{item.amountClass}}">{{item.amountText}}</text>
+    </view>
+  </view>
+</view>

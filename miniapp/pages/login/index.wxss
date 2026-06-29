@@ -1,0 +1,38 @@
+.login-page {
+  min-height: 100vh;
+  padding: 96rpx 32rpx 40rpx;
+  background:
+    radial-gradient(circle at 86% 8%, rgba(233, 104, 74, 0.3) 0, rgba(233, 104, 74, 0) 180rpx),
+    linear-gradient(160deg, #173f35 0%, #2f6f5e 34%, #eef4f6 72%);
+}
+
+.brand {
+  margin-bottom: 56rpx;
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96rpx;
+  height: 96rpx;
+  margin-bottom: 28rpx;
+  color: #ffffff;
+  background: #e9684a;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.card {
+  overflow: hidden;
+  padding: 8rpx 0 24rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.62);
+  box-shadow: 0 22rpx 50rpx rgba(23, 63, 53, 0.22);
+}
+
+.login-actions {
+  display: grid;
+  gap: 18rpx;
+  padding: 24rpx 28rpx 0;
+}

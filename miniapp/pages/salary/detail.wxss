@@ -1,0 +1,52 @@
+.money-line {
+  margin-top: 32rpx;
+}
+
+.actual {
+  display: block;
+  margin-top: 8rpx;
+  color: #e9684a;
+  font-size: 56rpx;
+  font-weight: 800;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #edf2f0;
+}
+
+.split text {
+  display: block;
+}
+
+.section-title {
+  display: block;
+  margin-bottom: 8rpx;
+  font-weight: 700;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #edf2f0;
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-row text {
+  display: block;
+}
+
+.deduction {
+  color: #c2412d;
+  font-weight: 700;
+}

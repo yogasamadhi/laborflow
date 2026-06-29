@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="page-header">
+    <text class="eyebrow">工程量日报</text>
+    <text class="title">{{pageTitle}}</text>
+  </view>
+
+  <view class="form-card">
+    <van-cell-group border="{{false}}">
+      <picker mode="date" value="{{form.workDate}}" bindchange="onDateChange">
+        <van-cell title="日期" value="{{form.workDate}}" icon="calendar-o" is-link />
+      </picker>
+      <picker range="{{projectNames}}" bindchange="onProjectChange">
+        <van-cell title="项目" value="{{projectText}}" icon="hotel-o" is-link />
+      </picker>
+      <picker range="{{sectionNames}}" bindchange="onSectionChange">
+        <van-cell title="施工段" value="{{sectionText}}" icon="location-o" is-link />
+      </picker>
+      <picker range="{{processNames}}" bindchange="onProcessChange">
+        <van-cell title="工序" value="{{processText}}" icon="apps-o" is-link />
+      </picker>
+      <picker range="{{teamNames}}" bindchange="onTeamChange">
+        <van-cell title="班组" value="{{teamText}}" icon="friends-o" is-link />
+      </picker>
+      <van-field value="{{form.completedQuantity}}" data-key="completedQuantity" bind:change="onInput" label="完成工程量" type="digit" placeholder="请输入" />
+      <van-field value="{{form.unit}}" data-key="unit" bind:change="onInput" label="单位" placeholder="m / m³ / 项" />
+      <van-field value="{{form.workerCount}}" data-key="workerCount" bind:change="onInput" label="施工人数" type="number" placeholder="请输入" />
+      <van-field value="{{form.machineryUsage}}" data-key="machineryUsage" bind:change="onInput" label="机械使用" placeholder="如挖机 1 台班" />
+      <van-field value="{{form.exceptionNote}}" data-key="exceptionNote" bind:change="onInput" label="异常说明" type="textarea" autosize placeholder="无异常可留空" />
+      <van-field value="{{form.reporterName}}" data-key="reporterName" bind:change="onInput" label="填报人" placeholder="请输入" />
+    </van-cell-group>
+    <view class="form-actions">
+      <van-button block plain type="primary" icon="photograph" bind:tap="uploadPhotos">上传现场照片（{{photoCount}}）</van-button>
+      <van-button block plain type="primary" loading="{{loading}}" icon="bookmark-o" bind:tap="saveDraft">保存草稿</van-button>
+      <van-button block type="primary" loading="{{loading}}" icon="success" bind:tap="submit">提交日报</van-button>
+    </view>
+  </view>
+</view>
