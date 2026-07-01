@@ -5,8 +5,10 @@ import com.company.labor.common.result.Result;
 import com.company.labor.module.employee.domain.dto.StatusUpdateDTO;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.service.EmployeeService;
+import com.company.labor.security.RoleExpressions;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.ORG_MANAGE)
 public class EmployeeController {
     private final EmployeeService service;
 
@@ -61,4 +64,3 @@ public class EmployeeController {
         return Result.success();
     }
 }
-

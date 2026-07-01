@@ -6,10 +6,12 @@ import com.company.labor.module.salary.domain.dto.SalaryProfileSaveDTO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileItemDO;
 import com.company.labor.module.salary.service.SalaryProfileService;
+import com.company.labor.security.RoleExpressions;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/salary/profiles")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.SALARY_MANAGE)
 public class SalaryProfileController {
     private final SalaryProfileService service;
 
@@ -48,4 +51,3 @@ public class SalaryProfileController {
         return Result.success(service.saveProfile(id, dto));
     }
 }
-

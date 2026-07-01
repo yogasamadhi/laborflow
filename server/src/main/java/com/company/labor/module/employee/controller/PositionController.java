@@ -4,7 +4,9 @@ import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.employee.domain.entity.PositionDO;
 import com.company.labor.module.employee.service.PositionService;
+import com.company.labor.security.RoleExpressions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/positions")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.ORG_MANAGE)
 public class PositionController {
     private final PositionService service;
 

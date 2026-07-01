@@ -3,11 +3,11 @@ import { LockKeyhole } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { postData } from "../../../lib/axios";
-import { setToken } from "../../../lib/auth";
+import { LoginUser, setLoginUser, setToken } from "../../../lib/auth";
 import { Button } from "../../../components/ui/Button";
 import { Field, TextInput } from "../../../components/common/Field";
 
-type LoginResponse = {
+type LoginResponse = LoginUser & {
   token: string;
 };
 
@@ -19,6 +19,7 @@ export function LoginPage() {
     mutationFn: () => postData<LoginResponse>("/auth/login", { username, password }),
     onSuccess: (data) => {
       setToken(data.token);
+      setLoginUser(data);
       navigate("/dashboard");
     }
   });
@@ -48,4 +49,3 @@ export function LoginPage() {
     </div>
   );
 }
-

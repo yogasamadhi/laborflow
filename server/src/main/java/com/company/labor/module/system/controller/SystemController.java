@@ -9,7 +9,9 @@ import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.mapper.OperationLogMapper;
 import com.company.labor.module.system.mapper.SysRoleMapper;
 import com.company.labor.module.system.service.SysUserService;
+import com.company.labor.security.RoleExpressions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/system")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.ADMIN)
 public class SystemController {
     private final SysUserService userService;
     private final SysRoleMapper roleMapper;
@@ -38,4 +41,3 @@ public class SystemController {
         return Result.success(PageResult.of(operationLogMapper.selectPage(new Page<>(page, pageSize), null)));
     }
 }
-

@@ -5,7 +5,9 @@ import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.salary.domain.entity.SalaryItemDO;
 import com.company.labor.module.salary.service.SalaryItemService;
+import com.company.labor.security.RoleExpressions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/salary/items")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.SALARY_MANAGE)
 public class SalaryItemController {
     private final SalaryItemService service;
 
@@ -48,4 +51,3 @@ public class SalaryItemController {
         return Result.success();
     }
 }
-

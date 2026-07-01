@@ -10,7 +10,9 @@ import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocatio
 import com.company.labor.module.compensation.domain.entity.ProjectBonusPoolDO;
 import com.company.labor.module.compensation.domain.vo.CompensationDashboardVO;
 import com.company.labor.module.compensation.service.CompensationService;
+import com.company.labor.security.RoleExpressions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/compensation")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.COMPENSATION_MANAGE)
 public class CompensationController {
     private final CompensationService service;
 

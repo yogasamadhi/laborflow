@@ -23,7 +23,9 @@ import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.security.LoginUser;
+import com.company.labor.security.RoleExpressions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +51,7 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/projects")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectDO> saveProject(@RequestBody ProjectDO project) {
         return Result.success(service.saveProject(project));
     }
@@ -59,17 +62,20 @@ public class ProjectManagementController {
     }
 
     @PutMapping("/api/projects/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectDO> updateProject(@PathVariable Long id, @RequestBody ProjectDO project) {
         return Result.success(service.updateProject(id, project));
     }
 
     @DeleteMapping("/api/projects/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> deleteProject(@PathVariable Long id) {
         service.deleteProject(id);
         return Result.success();
     }
 
     @PostMapping("/api/projects/{id}/status")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> updateProjectStatus(@PathVariable Long id, @RequestBody ProjectActionDTO dto) {
         service.updateProjectStatus(id, dto.getStatus());
         return Result.success();
@@ -85,17 +91,20 @@ public class ProjectManagementController {
     }
 
     @PostMapping({"/api/project-sections", "/api/projects/{projectId}/sections"})
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectSectionDO> saveSection(@PathVariable(required = false) Long projectId, @RequestBody ProjectSectionDO section) {
         if (projectId != null) section.setProjectId(projectId);
         return Result.success(service.saveSection(section));
     }
 
     @PutMapping("/api/project-sections/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectSectionDO> updateSection(@PathVariable Long id, @RequestBody ProjectSectionDO section) {
         return Result.success(service.updateSection(id, section));
     }
 
     @DeleteMapping("/api/project-sections/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> deleteSection(@PathVariable Long id) {
         service.deleteSection(id);
         return Result.success();
@@ -110,16 +119,19 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/work-processes")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<WorkProcessDO> saveWorkProcess(@RequestBody WorkProcessDO process) {
         return Result.success(service.saveWorkProcess(process));
     }
 
     @PutMapping("/api/work-processes/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<WorkProcessDO> updateWorkProcess(@PathVariable Long id, @RequestBody WorkProcessDO process) {
         return Result.success(service.updateWorkProcess(id, process));
     }
 
     @DeleteMapping("/api/work-processes/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> deactivateWorkProcess(@PathVariable Long id) {
         service.deactivateWorkProcess(id);
         return Result.success();
@@ -134,22 +146,26 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/teams")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<TeamDO> saveTeam(@RequestBody TeamDO team) {
         return Result.success(service.saveTeam(team));
     }
 
     @PutMapping("/api/teams/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<TeamDO> updateTeam(@PathVariable Long id, @RequestBody TeamDO team) {
         return Result.success(service.updateTeam(id, team));
     }
 
     @DeleteMapping("/api/teams/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> deactivateTeam(@PathVariable Long id) {
         service.deactivateTeam(id);
         return Result.success();
     }
 
     @GetMapping("/api/team-unit-prices")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<PageResult<TeamUnitPriceDO>> teamUnitPrices(@RequestParam(defaultValue = "1") long page,
                                                               @RequestParam(defaultValue = "20") long pageSize,
                                                               @RequestParam(required = false) Long projectId,
@@ -158,16 +174,19 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/team-unit-prices")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<TeamUnitPriceDO> saveTeamUnitPrice(@RequestBody TeamUnitPriceDO price) {
         return Result.success(service.saveTeamUnitPrice(price));
     }
 
     @PutMapping("/api/team-unit-prices/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<TeamUnitPriceDO> updateTeamUnitPrice(@PathVariable Long id, @RequestBody TeamUnitPriceDO price) {
         return Result.success(service.updateTeamUnitPrice(id, price));
     }
 
     @GetMapping("/api/project-process-prices")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<PageResult<ProjectProcessPriceDO>> projectProcessPrices(@RequestParam(defaultValue = "1") long page,
                                                                           @RequestParam(defaultValue = "20") long pageSize,
                                                                           @RequestParam(required = false) Long projectId) {
@@ -175,11 +194,13 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/project-process-prices")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectProcessPriceDO> saveProjectProcessPrice(@RequestBody ProjectProcessPriceDO price) {
         return Result.success(service.saveProjectProcessPrice(price));
     }
 
     @PutMapping("/api/project-process-prices/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectProcessPriceDO> updateProjectProcessPrice(@PathVariable Long id, @RequestBody ProjectProcessPriceDO price) {
         return Result.success(service.updateProjectProcessPrice(id, price));
     }
@@ -217,18 +238,21 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/daily-work-reports/{id}/pm-confirm")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> pmConfirmDailyReport(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
         service.pmConfirmDailyReport(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/daily-work-reports/{id}/final-confirm")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> finalConfirmDailyReport(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
         service.finalConfirmDailyReport(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/daily-work-reports/{id}/reject")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> rejectDailyReport(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
         service.rejectDailyReport(id, dto);
         return Result.success();
@@ -241,6 +265,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/team-settlements")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<PageResult<TeamSettlementDO>> teamSettlements(@RequestParam(defaultValue = "1") long page,
                                                                 @RequestParam(defaultValue = "20") long pageSize,
                                                                 @RequestParam(required = false) Long projectId,
@@ -250,17 +275,20 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/team-settlements/generate")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<TeamSettlementDO> generateTeamSettlement(@RequestBody GenerateTeamSettlementDTO dto) {
         return Result.success(service.generateTeamSettlement(dto));
     }
 
     @PostMapping("/api/team-settlements/{id}/confirm")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<Void> confirmTeamSettlement(@PathVariable Long id) {
         service.confirmTeamSettlement(id);
         return Result.success();
     }
 
     @PostMapping("/api/team-settlements/{id}/mark-paid")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<Void> markTeamSettlementPaid(@PathVariable Long id) {
         service.markTeamSettlementPaid(id);
         return Result.success();
@@ -298,12 +326,14 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/variation-orders/{id}/confirm")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> confirmVariationOrder(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
         service.confirmVariationOrder(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/variation-orders/{id}/reject")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> rejectVariationOrder(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
         service.rejectVariationOrder(id, dto);
         return Result.success();
@@ -316,6 +346,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/project-cost-records")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<PageResult<ProjectCostRecordDO>> costRecords(@RequestParam(defaultValue = "1") long page,
                                                                @RequestParam(defaultValue = "20") long pageSize,
                                                                @RequestParam(required = false) Long projectId) {
@@ -323,16 +354,19 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/project-cost-records")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<ProjectCostRecordDO> saveCostRecord(@RequestBody ProjectCostRecordDO record) {
         return Result.success(service.saveCostRecord(record));
     }
 
     @PutMapping("/api/project-cost-records/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<ProjectCostRecordDO> updateCostRecord(@PathVariable Long id, @RequestBody ProjectCostRecordDO record) {
         return Result.success(service.updateCostRecord(id, record));
     }
 
     @GetMapping("/api/project-payment-records")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<PageResult<ProjectPaymentRecordDO>> paymentRecords(@RequestParam(defaultValue = "1") long page,
                                                                      @RequestParam(defaultValue = "20") long pageSize,
                                                                      @RequestParam(required = false) Long projectId,
@@ -341,11 +375,13 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/project-payment-records")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<ProjectPaymentRecordDO> savePaymentRecord(@RequestBody ProjectPaymentRecordDO record) {
         return Result.success(service.savePaymentRecord(record));
     }
 
     @PutMapping("/api/project-payment-records/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<ProjectPaymentRecordDO> updatePaymentRecord(@PathVariable Long id, @RequestBody ProjectPaymentRecordDO record) {
         return Result.success(service.updatePaymentRecord(id, record));
     }
@@ -359,11 +395,13 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/machinery-equipments")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<MachineryEquipmentDO> saveMachineryEquipment(@RequestBody MachineryEquipmentDO equipment) {
         return Result.success(service.saveMachineryEquipment(equipment));
     }
 
     @PutMapping("/api/machinery-equipments/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<MachineryEquipmentDO> updateMachineryEquipment(@PathVariable Long id, @RequestBody MachineryEquipmentDO equipment) {
         return Result.success(service.updateMachineryEquipment(id, equipment));
     }
@@ -377,11 +415,13 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/machinery-work-records")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<MachineryWorkRecordDO> saveMachineryWorkRecord(@RequestBody MachineryWorkRecordDO record) {
         return Result.success(service.saveMachineryWorkRecord(record));
     }
 
     @PutMapping("/api/machinery-work-records/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<MachineryWorkRecordDO> updateMachineryWorkRecord(@PathVariable Long id, @RequestBody MachineryWorkRecordDO record) {
         return Result.success(service.updateMachineryWorkRecord(id, record));
     }
@@ -395,11 +435,13 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/material-records")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<MaterialRecordDO> saveMaterialRecord(@RequestBody MaterialRecordDO record) {
         return Result.success(service.saveMaterialRecord(record));
     }
 
     @PutMapping("/api/material-records/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<MaterialRecordDO> updateMaterialRecord(@PathVariable Long id, @RequestBody MaterialRecordDO record) {
         return Result.success(service.updateMaterialRecord(id, record));
     }
@@ -413,16 +455,19 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/project-document-archives")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectDocumentArchiveDO> saveDocumentArchive(@RequestBody ProjectDocumentArchiveDO archive) {
         return Result.success(service.saveDocumentArchive(archive));
     }
 
     @PutMapping("/api/project-document-archives/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectDocumentArchiveDO> updateDocumentArchive(@PathVariable Long id, @RequestBody ProjectDocumentArchiveDO archive) {
         return Result.success(service.updateDocumentArchive(id, archive));
     }
 
     @GetMapping("/api/project-dashboard/{projectId}")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<ProjectDashboardVO> dashboard(@PathVariable Long projectId) {
         return Result.success(service.dashboard(projectId));
     }

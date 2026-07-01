@@ -14,6 +14,7 @@ import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.salary.service.SalaryExportService;
 import com.company.labor.module.salary.service.SalaryMonthlyService;
 import com.company.labor.security.LoginUser;
+import com.company.labor.security.RoleExpressions;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -41,6 +42,7 @@ public class SalaryMonthlyController {
     private final SalaryMonthlyMapper monthlyMapper;
 
     @GetMapping("/monthly")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<PageResult<SalaryMonthlyDO>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
@@ -57,16 +59,19 @@ public class SalaryMonthlyController {
     }
 
     @PostMapping("/monthly")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> create(@RequestBody SalaryMonthlyDO monthly) {
         return Result.success(service.createMonthly(monthly));
     }
 
     @GetMapping("/monthly/{id}")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> detail(@PathVariable Long id) {
         return Result.success(service.getById(id));
     }
 
     @PutMapping("/monthly/{id}")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> update(@PathVariable Long id, @RequestBody SalaryMonthlyDO monthly) {
         monthly.setId(id);
         service.updateById(monthly);
@@ -74,6 +79,7 @@ public class SalaryMonthlyController {
     }
 
     @PostMapping("/monthly/{id}/delete")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> deleteMonthly(@PathVariable Long id) {
         requireMonthly(id);
         monthlyMapper.softDeleteById(id);
@@ -81,6 +87,7 @@ public class SalaryMonthlyController {
     }
 
     @PostMapping("/monthly/{id}/restore")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> restoreMonthly(@PathVariable Long id) {
         SalaryMonthlyDO monthly = requireMonthly(id);
         long activeCount = monthlyMapper.countActiveByMonthExceptId(monthly.getSalaryMonth(), id);
@@ -92,12 +99,14 @@ public class SalaryMonthlyController {
     }
 
     @PostMapping("/monthly/{id}/generate")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> generate(@PathVariable Long id) {
         service.generate(id);
         return Result.success(service.getById(id));
     }
 
     @PostMapping("/monthly/{id}/submit")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> submit(@PathVariable Long id) {
         service.submit(id);
         return Result.success();
@@ -119,17 +128,20 @@ public class SalaryMonthlyController {
     }
 
     @PostMapping("/monthly/{id}/mark-paid")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> markMonthlyPaid(@PathVariable Long id, @RequestBody SalaryPaymentDTO dto) {
         service.markMonthlyPaid(id, dto);
         return Result.success();
     }
 
     @GetMapping("/monthly/{monthlyId}/details")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<PageResult<SalaryMonthlyDetailDO>> details(@PathVariable Long monthlyId, @RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "20") long pageSize) {
         return Result.success(PageResult.of(service.details(monthlyId, page, pageSize)));
     }
 
     @PutMapping("/details/{detailId}")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDetailDO> updateDetail(@PathVariable Long detailId, @RequestBody SalaryMonthlyDetailDO detail) {
         return Result.success(service.updateDetail(detailId, detail));
     }
@@ -141,47 +153,55 @@ public class SalaryMonthlyController {
     }
 
     @GetMapping("/monthly/{monthlyId}/detail-items")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<List<SalaryDetailItemDO>> monthlyDetailItems(@PathVariable Long monthlyId) {
         return Result.success(detailItemMapper.selectByMonthlyId(monthlyId));
     }
 
     @PostMapping("/details/{detailId}/mark-paid")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> markDetailPaid(@PathVariable Long detailId, @RequestBody SalaryPaymentDTO dto) {
         service.markDetailPaid(detailId, dto);
         return Result.success();
     }
 
     @PostMapping("/details/batch-mark-paid")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> batchMarkPaid(@RequestBody BatchSalaryPaymentDTO dto) {
         service.batchMarkPaid(dto);
         return Result.success();
     }
 
     @GetMapping("/monthly/{id}/export")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public void exportMonthly(@PathVariable Long id, HttpServletResponse response) throws IOException {
         prepareExcelResponse(response, "月度工资表-" + id + ".xlsx");
         exportService.exportMonthly(id, response.getOutputStream());
     }
 
     @GetMapping("/monthly/{id}/export/department-summary")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public void exportDepartmentSummary(@PathVariable Long id, HttpServletResponse response) throws IOException {
         prepareExcelResponse(response, "部门工资汇总-" + id + ".xlsx");
         exportService.exportDepartmentSummary(id, response.getOutputStream());
     }
 
     @GetMapping("/monthly/{id}/export/payment-records")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public void exportPaymentRecords(@PathVariable Long id, HttpServletResponse response) throws IOException {
         prepareExcelResponse(response, "工资发放记录-" + id + ".xlsx");
         exportService.exportPaymentRecords(id, response.getOutputStream());
     }
 
     @GetMapping("/monthly/{id}/payslip")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public void exportPayslip(@PathVariable Long id, @RequestParam(required = false) Long employeeId, HttpServletResponse response) throws IOException {
         prepareExcelResponse(response, "工资条-" + id + ".xlsx");
         exportService.exportPayslip(id, employeeId, response.getOutputStream());
     }
 
     @GetMapping("/employees/{employeeId}/details/export")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public void exportEmployeeDetails(@PathVariable Long employeeId, HttpServletResponse response) throws IOException {
         prepareExcelResponse(response, "员工工资明细-" + employeeId + ".xlsx");
         exportService.exportEmployeeDetails(employeeId, response.getOutputStream());
