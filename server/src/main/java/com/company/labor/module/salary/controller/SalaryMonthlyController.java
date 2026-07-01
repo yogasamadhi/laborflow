@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.salary.domain.dto.SalaryApprovalDTO;
 import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
+import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
@@ -76,9 +78,7 @@ public class SalaryMonthlyController {
     @PutMapping("/monthly/{id}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> update(@PathVariable Long id, @RequestBody SalaryMonthlyDO monthly) {
-        monthly.setId(id);
-        service.updateById(monthly);
-        return Result.success(service.getById(id));
+        return Result.success(service.updateMonthly(id, monthly));
     }
 
     @PostMapping("/monthly/{id}/delete")
@@ -117,16 +117,16 @@ public class SalaryMonthlyController {
 
     @PostMapping("/monthly/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN','BOSS')")
-    public Result<Void> approve(@PathVariable Long id, Authentication authentication) {
+    public Result<Void> approve(@PathVariable Long id, @RequestBody(required = false) SalaryApprovalDTO dto, Authentication authentication) {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        service.approve(id, loginUser.getUser().getId());
+        service.approve(id, loginUser.getUser().getId(), dto == null ? null : dto.getRemark());
         return Result.success();
     }
 
     @PostMapping("/monthly/{id}/reject")
     @PreAuthorize("hasAnyRole('ADMIN','BOSS')")
-    public Result<Void> reject(@PathVariable Long id) {
-        service.reject(id);
+    public Result<Void> reject(@PathVariable Long id, @RequestBody(required = false) SalaryApprovalDTO dto) {
+        service.reject(id, dto == null ? null : dto.getRemark());
         return Result.success();
     }
 
@@ -160,6 +160,12 @@ public class SalaryMonthlyController {
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<List<SalaryDetailItemDO>> monthlyDetailItems(@PathVariable Long monthlyId) {
         return Result.success(detailItemMapper.selectByMonthlyId(monthlyId));
+    }
+
+    @GetMapping("/monthly/{monthlyId}/audits")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
+    public Result<List<SalaryAuditRecordDO>> auditRecords(@PathVariable Long monthlyId) {
+        return Result.success(service.auditRecords(monthlyId));
     }
 
     @PostMapping("/details/{detailId}/mark-paid")

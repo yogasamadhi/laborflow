@@ -58,7 +58,7 @@ async function list() {
 }
 
 async function approve(item, remark) {
-  if (item.type === "salary") return salary.approveMonthly(item.businessId);
+  if (item.type === "salary") return salary.approveMonthly(item.businessId, remark);
   if (item.type === "report_pm") return project.confirmDailyReport(item.businessId, "pm", { remark });
   if (item.type === "report_final") return project.confirmDailyReport(item.businessId, "final", { remark });
   if (item.type === "variation") return project.confirmVariationOrder(item.businessId, { remark });
@@ -67,7 +67,7 @@ async function approve(item, remark) {
 }
 
 async function reject(item, remark) {
-  if (item.type === "salary") return salary.rejectMonthly(item.businessId);
+  if (item.type === "salary") return salary.rejectMonthly(item.businessId, remark);
   if (item.type === "report_pm" || item.type === "report_final") return project.rejectDailyReport(item.businessId, { remark });
   if (item.type === "variation") return project.rejectVariationOrder(item.businessId, { remark });
   throw new Error("当前待办不支持驳回");

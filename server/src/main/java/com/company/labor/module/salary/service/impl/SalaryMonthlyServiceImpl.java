@@ -17,11 +17,13 @@ import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
+import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
 import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileItemDO;
+import com.company.labor.module.salary.mapper.SalaryAuditRecordMapper;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyDetailMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
@@ -29,6 +31,8 @@ import com.company.labor.module.salary.mapper.SalaryProfileItemMapper;
 import com.company.labor.module.salary.mapper.SalaryProfileMapper;
 import com.company.labor.module.salary.service.SalaryMonthlyService;
 import com.company.labor.module.system.service.OperationLogService;
+import com.company.labor.security.AuditUserProvider;
+import com.company.labor.security.LoginUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -50,7 +54,9 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     private final SalaryProfileItemMapper salaryProfileItemMapper;
     private final SalaryMonthlyDetailMapper detailMapper;
     private final SalaryDetailItemMapper detailItemMapper;
+    private final SalaryAuditRecordMapper auditRecordMapper;
     private final OperationLogService operationLogService;
+    private final AuditUserProvider auditUserProvider;
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final PerformanceScoreMapper performanceScoreMapper;
     private final ProjectBonusAllocationMapper bonusAllocationMapper;
@@ -76,7 +82,21 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         monthly.setDeleted(0);
         save(monthly);
         log("create_monthly", monthly.getId(), "创建工资表：" + monthly.getSalaryMonth());
+        audit(monthly.getId(), null, "create_monthly", null, monthly.getStatus(), "创建工资表：" + monthly.getSalaryMonth(), null);
         return monthly;
+    }
+
+    @Override
+    @Transactional
+    public SalaryMonthlyDO updateMonthly(Long monthlyId, SalaryMonthlyDO monthly) {
+        SalaryMonthlyDO old = requireMonthly(monthlyId);
+        monthly.setId(monthlyId);
+        updateById(monthly);
+        SalaryMonthlyDO updated = requireMonthly(monthlyId);
+        String content = "修改工资表：" + valueOrDefault(old.getTitle(), old.getSalaryMonth()) + " -> " + valueOrDefault(updated.getTitle(), updated.getSalaryMonth());
+        log("update_monthly", monthlyId, content);
+        audit(monthlyId, null, "update_monthly", old.getStatus(), updated.getStatus(), content, null);
+        return updated;
     }
 
     @Override
@@ -199,6 +219,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         }
         summarize(monthlyId);
         log("generate_monthly", monthlyId, "生成工资明细");
+        audit(monthlyId, null, "generate_monthly", monthly.getStatus(), "draft", "生成工资明细：" + generatedCount + " 人", null);
     }
 
     @Override
@@ -209,11 +230,12 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         monthly.setStatus("pending_approval");
         updateById(monthly);
         log("submit_approval", monthlyId, "提交审核");
+        audit(monthlyId, null, "submit_approval", "draft", "pending_approval", "提交审核", null);
     }
 
     @Override
     @Transactional
-    public void approve(Long monthlyId, Long userId) {
+    public void approve(Long monthlyId, Long userId, String remark) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         requireStatus(monthly, "pending_approval");
         monthly.setStatus("approved");
@@ -221,16 +243,18 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         monthly.setApprovedAt(LocalDateTime.now());
         updateById(monthly);
         log("approve", monthlyId, "审核通过");
+        audit(monthlyId, null, "approve", "pending_approval", "approved", textOrDefault(remark, "审核通过"), null);
     }
 
     @Override
     @Transactional
-    public void reject(Long monthlyId) {
+    public void reject(Long monthlyId, String remark) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         requireStatus(monthly, "pending_approval");
         monthly.setStatus("draft");
         updateById(monthly);
         log("reject", monthlyId, "审核驳回");
+        audit(monthlyId, null, "reject", "pending_approval", "draft", textOrDefault(remark, "审核驳回"), null);
     }
 
     @Override
@@ -265,7 +289,10 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         detail.setSalaryMonthlyId(old.getSalaryMonthlyId());
         detailMapper.updateById(detail);
         summarize(old.getSalaryMonthlyId());
-        log("update_detail", old.getSalaryMonthlyId(), "修改工资明细：" + detailId);
+        SalaryMonthlyDetailDO updated = detailMapper.selectById(detailId);
+        String content = "修改工资明细：" + detailId + "，实发 " + amount(old.getActualAmount()) + " -> " + amount(updated.getActualAmount());
+        log("update_detail", old.getSalaryMonthlyId(), content);
+        audit(old.getSalaryMonthlyId(), detailId, "update_detail", monthly.getStatus(), monthly.getStatus(), content, null);
         return detailMapper.selectById(detailId);
     }
 
@@ -276,12 +303,15 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         if (detail == null) throw new BusinessException("工资明细不存在");
         SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
         requireStatus(monthly, "approved");
+        String beforePaymentStatus = detail.getPaymentStatus();
         applyPayment(detail, dto);
         detailMapper.updateById(detail);
         refreshPaidStatus(monthly.getId());
         log("single_payment", detail.getSalaryMonthlyId(), "单人发放：" + detailId);
+        audit(detail.getSalaryMonthlyId(), detailId, "single_payment", beforePaymentStatus, detail.getPaymentStatus(), "单人发放：" + detailId, dto.getPaymentProofUrl());
         if (StringUtils.hasText(dto.getPaymentProofUrl())) {
             log("upload_proof", detail.getSalaryMonthlyId(), "上传凭证：" + detailId);
+            audit(detail.getSalaryMonthlyId(), detailId, "upload_proof", null, null, "上传凭证：" + detailId, dto.getPaymentProofUrl());
         }
     }
 
@@ -299,18 +329,37 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                     .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, dto.getMonthlyId())
                     .eq(SalaryMonthlyDetailDO::getDeleted, 0)));
         }
+        Set<Long> affectedMonthlyIds = new HashSet<>();
         for (SalaryMonthlyDetailDO detail : details) {
             SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
             requireStatus(monthly, "approved");
+            String beforePaymentStatus = detail.getPaymentStatus();
             applyPayment(detail, dto);
             detailMapper.updateById(detail);
             refreshPaidStatus(detail.getSalaryMonthlyId());
+            affectedMonthlyIds.add(detail.getSalaryMonthlyId());
+            audit(detail.getSalaryMonthlyId(), detail.getId(), "batch_payment", beforePaymentStatus, detail.getPaymentStatus(), "批量发放", dto.getPaymentProofUrl());
+            if (StringUtils.hasText(dto.getPaymentProofUrl())) {
+                audit(detail.getSalaryMonthlyId(), detail.getId(), "upload_proof", null, null, "批量上传凭证", dto.getPaymentProofUrl());
+            }
         }
         Long businessId = dto.getMonthlyId() == null && !details.isEmpty() ? details.get(0).getSalaryMonthlyId() : dto.getMonthlyId();
         log("batch_payment", businessId, "批量发放：" + details.size() + " 人");
+        for (Long monthlyId : affectedMonthlyIds) {
+            audit(monthlyId, null, "batch_payment", null, null, "批量发放：" + countByMonthly(details, monthlyId) + " 人", dto.getPaymentProofUrl());
+        }
         if (StringUtils.hasText(dto.getPaymentProofUrl())) {
             log("upload_proof", businessId, "批量上传凭证：" + details.size() + " 人");
+            for (Long monthlyId : affectedMonthlyIds) {
+                audit(monthlyId, null, "upload_proof", null, null, "批量上传凭证：" + countByMonthly(details, monthlyId) + " 人", dto.getPaymentProofUrl());
+            }
         }
+    }
+
+    @Override
+    public List<SalaryAuditRecordDO> auditRecords(Long monthlyId) {
+        requireMonthly(monthlyId);
+        return auditRecordMapper.selectByMonthlyId(monthlyId);
     }
 
     private SalaryProfileDO latestProfile(Long employeeId) {
@@ -417,5 +466,46 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
 
     private void log(String action, Long businessId, String content) {
         operationLogService.record("salary", businessId, action, content);
+    }
+
+    private void audit(Long monthlyId, Long detailId, String action, String statusBefore, String statusAfter, String remark, String proofUrl) {
+        SalaryAuditRecordDO record = new SalaryAuditRecordDO();
+        record.setSalaryMonthlyId(monthlyId);
+        record.setSalaryDetailId(detailId);
+        record.setAction(action);
+        LoginUser operator = auditUserProvider.currentLoginUser();
+        if (operator != null) {
+            record.setOperatorId(operator.getUser().getId());
+            record.setOperatorName(operator.getUsername());
+        }
+        record.setStatusBefore(statusBefore);
+        record.setStatusAfter(statusAfter);
+        record.setRemark(limit(remark, 255));
+        record.setProofUrl(limit(proofUrl, 255));
+        record.setCreatedAt(LocalDateTime.now());
+        auditRecordMapper.insert(record);
+    }
+
+    private String textOrDefault(String text, String fallback) {
+        return StringUtils.hasText(text) ? text : fallback;
+    }
+
+    private String valueOrDefault(String value, String fallback) {
+        return StringUtils.hasText(value) ? value : fallback;
+    }
+
+    private String amount(BigDecimal value) {
+        return value == null ? "0" : value.toPlainString();
+    }
+
+    private String limit(String value, int maxLength) {
+        if (!StringUtils.hasText(value) || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
+    }
+
+    private long countByMonthly(List<SalaryMonthlyDetailDO> details, Long monthlyId) {
+        return details.stream().filter(detail -> monthlyId.equals(detail.getSalaryMonthlyId())).count();
     }
 }

@@ -72,6 +72,7 @@ export function SalaryMonthlyPaymentPage() {
     onSuccess: async () => {
       setError("");
       await queryClient.invalidateQueries({ queryKey: ["salary-payment", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
     },
     onError: (reason) => setError(reason instanceof Error ? reason.message : "发放登记失败")
@@ -86,6 +87,7 @@ export function SalaryMonthlyPaymentPage() {
       setError("");
       setSelectedIds([]);
       await queryClient.invalidateQueries({ queryKey: ["salary-payment", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
     },
     onError: (reason) => setError(reason instanceof Error ? reason.message : "批量发放失败")

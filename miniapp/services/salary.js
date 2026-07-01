@@ -16,12 +16,16 @@ function detailItems(detailId) {
   return request.get("/salary/details/" + detailId + "/items");
 }
 
-function approveMonthly(id) {
-  return request.post("/salary/monthly/" + id + "/approve");
+function monthlyAudits(monthlyId) {
+  return request.get("/salary/monthly/" + monthlyId + "/audits");
 }
 
-function rejectMonthly(id) {
-  return request.post("/salary/monthly/" + id + "/reject");
+function approveMonthly(id, remark) {
+  return request.post("/salary/monthly/" + id + "/approve", { remark });
+}
+
+function rejectMonthly(id, remark) {
+  return request.post("/salary/monthly/" + id + "/reject", { remark });
 }
 
 module.exports = {
@@ -29,6 +33,7 @@ module.exports = {
   monthlyList,
   monthlyDetails,
   detailItems,
+  monthlyAudits,
   approveMonthly,
   rejectMonthly
 };

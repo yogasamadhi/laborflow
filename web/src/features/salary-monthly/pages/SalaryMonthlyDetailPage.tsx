@@ -52,6 +52,18 @@ type Profile = {
   status: string;
 };
 
+type AuditRecord = {
+  id: string;
+  salaryDetailId?: string;
+  action: string;
+  operatorName?: string;
+  statusBefore?: string;
+  statusAfter?: string;
+  remark?: string;
+  proofUrl?: string;
+  createdAt?: string;
+};
+
 const badgeClass: Record<string, string> = {
   draft: "badge-yellow",
   pending_approval: "badge-yellow",
@@ -86,6 +98,10 @@ export function SalaryMonthlyDetailPage() {
   const { data: monthlyDetailItems } = useQuery({
     queryKey: ["salary-monthly-detail-items", monthlyId],
     queryFn: () => getData<DetailItem[]>(`/salary/monthly/${monthlyId}/detail-items`)
+  });
+  const { data: audits } = useQuery({
+    queryKey: ["salary-audits", monthlyId],
+    queryFn: () => getData<AuditRecord[]>(`/salary/monthly/${monthlyId}/audits`)
   });
   const { data: profilesData } = useQuery({
     queryKey: ["salary-profiles", "monthly-detail-diagnostics"],
@@ -122,6 +138,7 @@ export function SalaryMonthlyDetailPage() {
       setSuccess(`重新生成完成：${result.totalEmployeeCount ?? 0} 人，实发合计 ${money(result.totalActualAmount)}。`);
       await queryClient.invalidateQueries({ queryKey: ["salary-details", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly-detail-items", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
     },
     onError: (reason) => {
@@ -135,6 +152,7 @@ export function SalaryMonthlyDetailPage() {
       setError("");
       setEditing(null);
       await queryClient.invalidateQueries({ queryKey: ["salary-details", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
     },
     onError: (reason) => setError(reason instanceof Error ? reason.message : "保存失败")
@@ -168,6 +186,36 @@ export function SalaryMonthlyDetailPage() {
         <div className="card"><div className="muted">应发</div><h3>{money(monthly?.totalPayableAmount)}</h3></div>
         <div className="card"><div className="muted">扣减</div><h3>{money(monthly?.totalDeductionAmount)}</h3></div>
         <div className="card"><div className="muted">实发</div><h3>{money(monthly?.totalActualAmount)}</h3></div>
+      </div>
+
+      <div className="panel audit-panel">
+        <div className="section-heading">
+          <h3>审批证据链</h3>
+          <span className="muted">{audits?.length ?? 0} 条记录</span>
+        </div>
+        {(audits ?? []).length === 0 ? (
+          <div className="empty-state">暂无工资审批证据。</div>
+        ) : (
+          <div className="audit-timeline">
+            {(audits ?? []).map((item) => (
+              <div className="audit-row" key={item.id}>
+                <div className="audit-time">{item.createdAt ? item.createdAt.replace("T", " ").slice(0, 16) : "-"}</div>
+                <div className="audit-main">
+                  <div className="audit-title">
+                    <strong>{auditActionText(item.action)}</strong>
+                    <span className="muted">{item.operatorName ?? "系统"}</span>
+                    {item.salaryDetailId && <span className="badge badge-yellow">明细 {item.salaryDetailId}</span>}
+                  </div>
+                  <div className="audit-meta">
+                    {(item.statusBefore || item.statusAfter) && <span>{statusText(item.statusBefore)} → {statusText(item.statusAfter)}</span>}
+                    {item.remark && <span>{item.remark}</span>}
+                    {item.proofUrl && <a href={item.proofUrl} target="_blank" rel="noreferrer">查看凭证</a>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="panel toolbar monthly-toolbar">
@@ -308,4 +356,20 @@ export function SalaryMonthlyDetailPage() {
       </Modal>
     </Page>
   );
+}
+
+function auditActionText(action: string) {
+  const map: Record<string, string> = {
+    create_monthly: "创建工资表",
+    update_monthly: "修改工资表",
+    generate_monthly: "生成工资",
+    submit_approval: "提交审核",
+    approve: "审核通过",
+    reject: "审核驳回",
+    update_detail: "修改明细",
+    single_payment: "单人发放",
+    batch_payment: "批量发放",
+    upload_proof: "上传凭证"
+  };
+  return map[action] ?? action;
 }
