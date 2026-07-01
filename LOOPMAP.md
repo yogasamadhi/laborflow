@@ -39,7 +39,7 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
 | L0-01 | backend | done | 建立生产环境配置校验 | `server/src/main/resources/application.yml`、后端配置类、`.env.example` | 生产 profile 下缺少强 JWT 密钥、数据库连接、上传目录等关键配置时应用启动失败；默认弱密钥不能用于生产 |
-| L0-02 | backend | todo | 收紧 OpenAPI 与静态上传访问 | `SecurityConfig`、`OpenApiConfig`、`WebMvcConfig` | 生产环境 Swagger/OpenAPI 默认关闭或仅管理员可见；上传文件不能无鉴权公开读取 |
+| L0-02 | backend | done | 收紧 OpenAPI 与静态上传访问 | `SecurityConfig`、`OpenApiConfig`、`WebMvcConfig` | 生产环境 Swagger/OpenAPI 默认关闭或仅管理员可见；上传文件不能无鉴权公开读取 |
 | L0-03 | backend/web | todo | 补齐接口级 RBAC 权限 | `server/src/main/java/com/company/labor/module/**/controller`、`web/src/components/layout/AppLayout.tsx` | 工资、系统、项目利润、审批、发放等敏感接口有角色限制；无权限菜单不展示；无权限请求返回 403 |
 | L0-04 | backend | todo | 增加数据范围权限 | 员工、工资、项目、日报、签证、统计相关 service/controller | 普通员工只能看本人数据；项目人员只能看授权项目；财务/老板/管理员按角色看到对应范围 |
 | L0-05 | backend/web | todo | 移除演示账号和弱默认行为 | `README.md`、`PROJECT_BRIEF.md`、`LoginPage.tsx`、seed migration | 登录页不再默认填充 `admin/admin123456`；文档标注初始化后必须改密；生产 seed 不保留弱口令 |
@@ -189,10 +189,20 @@ Pushed:
 
 ```text
 Loop: L0-01
-Commit: loop commit for L0-01
+Commit: 59edf86
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
 验证命令: JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
 结果: passed
 备注: Added production-only startup validation for JWT secret, database connection/password, and upload directory.
+```
+
+```text
+Loop: L0-02
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+结果: passed
+备注: Disabled springdoc by default in production profiles, restricted OpenAPI routes to ADMIN when enabled, and removed anonymous upload resource access.
 ```
