@@ -3,6 +3,8 @@ package com.company.labor.module.compensation.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.common.statemachine.BusinessStateMachine;
+import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
 import com.company.labor.module.compensation.domain.entity.AttendanceRecordDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceIndicatorDO;
 import com.company.labor.module.compensation.domain.entity.PerformancePlanDO;
@@ -138,7 +140,7 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public PerformanceScoreDO saveScore(PerformanceScoreDO score) {
         normalizeScore(score);
-        score.setStatus(defaultText(score.getStatus(), "draft"));
+        score.setStatus("draft");
         score.setDeleted(0);
         scoreMapper.insert(score);
         return score;
@@ -147,8 +149,10 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public PerformanceScoreDO updateScore(Long id, PerformanceScoreDO score) {
         PerformanceScoreDO old = requireScore(id);
+        BusinessStateMachine.requireCurrent(Flow.PERFORMANCE_SCORE, old.getStatus(), "draft");
         score.setId(id);
         score.setEmployeeId(old.getEmployeeId());
+        score.setStatus(old.getStatus());
         normalizeScore(score);
         scoreMapper.updateById(score);
         return scoreMapper.selectById(id);
@@ -157,9 +161,11 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public void confirmScore(Long id) {
         PerformanceScoreDO score = requireScore(id);
+        String statusBefore = score.getStatus();
+        BusinessStateMachine.requireTransition(Flow.PERFORMANCE_SCORE, statusBefore, "confirmed");
         score.setStatus("confirmed");
         scoreMapper.updateById(score);
-        operationLogService.record("compensation", id, "confirm_score", "确认绩效评分");
+        operationLogService.record("compensation", id, "confirm_score", "确认绩效评分：" + statusBefore + " -> confirmed");
     }
 
     @Override
@@ -174,7 +180,7 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public ProjectBonusPoolDO saveBonusPool(ProjectBonusPoolDO pool) {
         normalizeBonusPool(pool);
-        pool.setReleaseStatus(defaultText(pool.getReleaseStatus(), "draft"));
+        pool.setReleaseStatus("draft");
         pool.setDeleted(0);
         bonusPoolMapper.insert(pool);
         return pool;
@@ -183,7 +189,9 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public ProjectBonusPoolDO updateBonusPool(Long id, ProjectBonusPoolDO pool) {
         ProjectBonusPoolDO old = requireBonusPool(id);
+        BusinessStateMachine.requireCurrent(Flow.PROJECT_BONUS_POOL, old.getReleaseStatus(), "draft");
         pool.setId(id);
+        pool.setReleaseStatus(old.getReleaseStatus());
         if (StringUtils.hasText(old.getDashboardSnapshot())) {
             pool.setDashboardSnapshot(old.getDashboardSnapshot());
         }
@@ -195,9 +203,11 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public void releaseBonusPool(Long id) {
         ProjectBonusPoolDO pool = requireBonusPool(id);
+        String statusBefore = pool.getReleaseStatus();
+        BusinessStateMachine.requireTransition(Flow.PROJECT_BONUS_POOL, statusBefore, "released");
         pool.setReleaseStatus("released");
         bonusPoolMapper.updateById(pool);
-        operationLogService.record("compensation", id, "release_bonus_pool", "发布项目奖金池");
+        operationLogService.record("compensation", id, "release_bonus_pool", "发布项目奖金池：" + statusBefore + " -> released");
     }
 
     @Override
@@ -213,7 +223,7 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public ProjectBonusAllocationDO saveBonusAllocation(ProjectBonusAllocationDO allocation) {
         normalizeBonusAllocation(allocation);
-        allocation.setStatus(defaultText(allocation.getStatus(), "allocated"));
+        allocation.setStatus("allocated");
         allocation.setDeleted(0);
         bonusAllocationMapper.insert(allocation);
         return allocation;
@@ -221,8 +231,10 @@ public class CompensationServiceImpl implements CompensationService {
 
     @Override
     public ProjectBonusAllocationDO updateBonusAllocation(Long id, ProjectBonusAllocationDO allocation) {
-        requireBonusAllocation(id);
+        ProjectBonusAllocationDO old = requireBonusAllocation(id);
+        BusinessStateMachine.requireCurrent(Flow.PROJECT_BONUS_ALLOCATION, old.getStatus(), "allocated");
         allocation.setId(id);
+        allocation.setStatus(old.getStatus());
         normalizeBonusAllocation(allocation);
         bonusAllocationMapper.updateById(allocation);
         return bonusAllocationMapper.selectById(id);
@@ -231,9 +243,11 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public void confirmBonusAllocation(Long id) {
         ProjectBonusAllocationDO allocation = requireBonusAllocation(id);
+        String statusBefore = allocation.getStatus();
+        BusinessStateMachine.requireTransition(Flow.PROJECT_BONUS_ALLOCATION, statusBefore, "confirmed");
         allocation.setStatus("confirmed");
         bonusAllocationMapper.updateById(allocation);
-        operationLogService.record("compensation", id, "confirm_bonus_allocation", "确认奖金分配");
+        operationLogService.record("compensation", id, "confirm_bonus_allocation", "确认奖金分配：" + statusBefore + " -> confirmed");
     }
 
     @Override

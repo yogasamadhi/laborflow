@@ -71,7 +71,7 @@
 | L3-01 | backend | done | 拆分请求 DTO 与响应 VO | 员工、工资、项目、绩效、系统 controller/domain | Controller 不再直接接收核心 DO 作为写入请求；内部字段不能被前端覆盖；已通过 `rg @RequestBody.*DO`、`git diff --check`、`mvn test` |
 | L3-02 | backend | done | 补齐参数校验 | DTO、Controller、GlobalExceptionHandler | 必填、金额、日期、月份、手机号、身份证、状态枚举有明确校验；错误信息可读；已通过 `rg @RequestBody`、`git diff --check`、`mvn test` |
 | L3-03 | database/backend | done | 增加数据库约束 | Flyway migration、mapper/service | 外键、唯一索引、状态 check、月份格式 check、金额范围约束覆盖核心表；已通过 `git diff --check`、`mvn test`，本机无 `psql/pg_ctl` 未执行真实 Flyway migrate |
-| L3-04 | backend | todo | 统一状态机校验 | 工资、日报、签证、班组结算、奖金池、绩效评分 | 非法状态跳转被拒绝；状态变更有统一入口和日志 |
+| L3-04 | backend | done | 统一状态机校验 | 工资、日报、签证、班组结算、奖金池、绩效评分 | 工资、日报、签证、班组结算、奖金池、绩效评分状态变更统一经 `BusinessStateMachine` 校验；非法跳转被拒绝；状态动作保留操作日志/审核记录；已通过 `rg requireAnyStatus/requireStatus`、`git diff --check`、`mvn test` |
 | L3-05 | backend | todo | 统一软删除与恢复规则 | 员工、工资、项目、基础资料 service/mapper | 删除、恢复、重复性约束行为一致；已被业务引用的数据不能随意物理删除 |
 
 ### P4：文件、凭证与资料归档安全

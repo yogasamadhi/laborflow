@@ -3,6 +3,8 @@ package com.company.labor.module.project.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.common.statemachine.BusinessStateMachine;
+import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
@@ -345,8 +347,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void submitDailyReport(Long id) {
         DailyWorkReportDO report = requireDailyReport(id);
-        requireAnyStatus(report.getStatus(), "draft", "rejected");
         String statusBefore = report.getStatus();
+        BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, statusBefore, "submitted");
         report.setStatus("submitted");
         report.setRejectedReason(null);
         dailyWorkReportMapper.updateById(report);
@@ -358,8 +360,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public void pmConfirmDailyReport(Long id, ProjectActionDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
-        requireAnyStatus(report.getStatus(), "submitted");
         String statusBefore = report.getStatus();
+        BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, statusBefore, "pm_confirmed");
         report.setStatus("pm_confirmed");
         dailyWorkReportMapper.updateById(report);
         confirmLog(id, "project_manager", "confirmed", statusBefore, report.getStatus(), dto);
@@ -370,8 +372,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public void finalConfirmDailyReport(Long id, ProjectActionDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
-        requireAnyStatus(report.getStatus(), "pm_confirmed");
         String statusBefore = report.getStatus();
+        BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, statusBefore, "confirmed");
         report.setStatus("confirmed");
         dailyWorkReportMapper.updateById(report);
         confirmLog(id, "commercial", "confirmed", statusBefore, report.getStatus(), dto);
@@ -382,8 +384,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public void rejectDailyReport(Long id, ProjectActionDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
-        requireAnyStatus(report.getStatus(), "submitted", "pm_confirmed");
         String statusBefore = report.getStatus();
+        BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, statusBefore, "rejected");
         report.setStatus("rejected");
         report.setRejectedReason(dto == null ? null : dto.getRemark());
         dailyWorkReportMapper.updateById(report);
@@ -523,18 +525,23 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void confirmTeamSettlement(Long id) {
         TeamSettlementDO settlement = requireTeamSettlement(id);
+        String statusBefore = settlement.getSettlementStatus();
+        BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT, statusBefore, "confirmed");
         settlement.setSettlementStatus("confirmed");
         teamSettlementMapper.updateById(settlement);
-        operationLogService.record("project", id, "confirm_team_settlement", "确认班组结算");
+        operationLogService.record("project", id, "confirm_team_settlement", "确认班组结算：" + statusBefore + " -> confirmed");
     }
 
     @Override
     public void markTeamSettlementPaid(Long id) {
         TeamSettlementDO settlement = requireTeamSettlement(id);
+        BusinessStateMachine.requireCurrent(Flow.TEAM_SETTLEMENT, settlement.getSettlementStatus(), "confirmed");
+        String statusBefore = settlement.getPaymentStatus();
+        BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT_PAYMENT, statusBefore, "paid");
         settlement.setPaymentStatus("paid");
         settlement.setPaidDate(LocalDate.now());
         teamSettlementMapper.updateById(settlement);
-        operationLogService.record("project", id, "mark_team_settlement_paid", "标记班组结算已支付");
+        operationLogService.record("project", id, "mark_team_settlement_paid", "标记班组结算已支付：" + statusBefore + " -> paid");
     }
 
     @Override
@@ -577,8 +584,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void submitVariationOrder(Long id) {
         VariationOrderDO order = requireVariationOrder(id);
-        requireAnyStatus(order.getStatus(), "draft", "rejected");
         String statusBefore = order.getStatus();
+        BusinessStateMachine.requireTransition(Flow.VARIATION_ORDER, statusBefore, "submitted");
         order.setStatus("submitted");
         order.setRejectedReason(null);
         variationOrderMapper.updateById(order);
@@ -589,8 +596,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void confirmVariationOrder(Long id, ProjectActionDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
-        requireAnyStatus(order.getStatus(), "submitted");
         String statusBefore = order.getStatus();
+        BusinessStateMachine.requireTransition(Flow.VARIATION_ORDER, statusBefore, "confirmed");
         order.setStatus("confirmed");
         variationOrderMapper.updateById(order);
         variationConfirmLog(id, "commercial", "confirmed", statusBefore, order.getStatus(), dto);
@@ -600,8 +607,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void rejectVariationOrder(Long id, ProjectActionDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
-        requireAnyStatus(order.getStatus(), "submitted");
         String statusBefore = order.getStatus();
+        BusinessStateMachine.requireTransition(Flow.VARIATION_ORDER, statusBefore, "rejected");
         order.setStatus("rejected");
         order.setRejectedReason(dto == null ? null : dto.getRemark());
         variationOrderMapper.updateById(order);
@@ -1181,13 +1188,6 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectDocumentArchiveDO row = documentArchiveMapper.selectById(id);
         if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("资料归档不存在");
         return row;
-    }
-
-    private void requireAnyStatus(String actual, String... expected) {
-        for (String status : expected) {
-            if (status.equals(actual)) return;
-        }
-        throw new BusinessException("当前状态不允许操作");
     }
 
     private void requireText(String value, String message) {

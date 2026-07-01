@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.common.statemachine.BusinessStateMachine;
+import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
 import com.company.labor.module.compensation.domain.entity.AttendanceRecordDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceScoreDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocationDO;
@@ -91,6 +93,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     public SalaryMonthlyDO updateMonthly(Long monthlyId, SalaryMonthlyDO monthly) {
         SalaryMonthlyDO old = requireMonthly(monthlyId);
         monthly.setId(monthlyId);
+        monthly.setStatus(old.getStatus());
         updateById(monthly);
         SalaryMonthlyDO updated = requireMonthly(monthlyId);
         String content = "修改工资表：" + valueOrDefault(old.getTitle(), old.getSalaryMonth()) + " -> " + valueOrDefault(updated.getTitle(), updated.getSalaryMonth());
@@ -103,7 +106,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     @Transactional
     public void generate(Long monthlyId) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        requireStatus(monthly, "draft");
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
         List<SalaryProfileDO> activeProfiles = latestActiveProfiles();
         if (activeProfiles.isEmpty()) {
             throw new BusinessException("没有启用的工资档案，无法生成工资明细");
@@ -226,42 +229,45 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     @Transactional
     public void submit(Long monthlyId) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        requireStatus(monthly, "draft");
+        String statusBefore = monthly.getStatus();
+        BusinessStateMachine.requireTransition(Flow.SALARY_MONTHLY, statusBefore, "pending_approval");
         monthly.setStatus("pending_approval");
         updateById(monthly);
         log("submit_approval", monthlyId, "提交审核");
-        audit(monthlyId, null, "submit_approval", "draft", "pending_approval", "提交审核", null);
+        audit(monthlyId, null, "submit_approval", statusBefore, "pending_approval", "提交审核", null);
     }
 
     @Override
     @Transactional
     public void approve(Long monthlyId, Long userId, String remark) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        requireStatus(monthly, "pending_approval");
+        String statusBefore = monthly.getStatus();
+        BusinessStateMachine.requireTransition(Flow.SALARY_MONTHLY, statusBefore, "approved");
         monthly.setStatus("approved");
         monthly.setApprovedBy(userId);
         monthly.setApprovedAt(LocalDateTime.now());
         updateById(monthly);
         log("approve", monthlyId, "审核通过");
-        audit(monthlyId, null, "approve", "pending_approval", "approved", textOrDefault(remark, "审核通过"), null);
+        audit(monthlyId, null, "approve", statusBefore, "approved", textOrDefault(remark, "审核通过"), null);
     }
 
     @Override
     @Transactional
     public void reject(Long monthlyId, String remark) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        requireStatus(monthly, "pending_approval");
+        String statusBefore = monthly.getStatus();
+        BusinessStateMachine.requireTransition(Flow.SALARY_MONTHLY, statusBefore, "draft");
         monthly.setStatus("draft");
         updateById(monthly);
         log("reject", monthlyId, "审核驳回");
-        audit(monthlyId, null, "reject", "pending_approval", "draft", textOrDefault(remark, "审核驳回"), null);
+        audit(monthlyId, null, "reject", statusBefore, "draft", textOrDefault(remark, "审核驳回"), null);
     }
 
     @Override
     @Transactional
     public void markMonthlyPaid(Long monthlyId, SalaryPaymentDTO dto) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        requireStatus(monthly, "approved");
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved");
         BatchSalaryPaymentDTO batch = new BatchSalaryPaymentDTO();
         batch.setMonthlyId(monthlyId);
         batch.setPaymentDate(dto.getPaymentDate());
@@ -284,9 +290,10 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDetailDO old = detailMapper.selectById(detailId);
         if (old == null) throw new BusinessException("工资明细不存在");
         SalaryMonthlyDO monthly = requireMonthly(old.getSalaryMonthlyId());
-        requireStatus(monthly, "draft");
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
         detail.setId(detailId);
         detail.setSalaryMonthlyId(old.getSalaryMonthlyId());
+        detail.setPaymentStatus(old.getPaymentStatus());
         detailMapper.updateById(detail);
         summarize(old.getSalaryMonthlyId());
         SalaryMonthlyDetailDO updated = detailMapper.selectById(detailId);
@@ -302,7 +309,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDetailDO detail = detailMapper.selectById(detailId);
         if (detail == null) throw new BusinessException("工资明细不存在");
         SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
-        requireStatus(monthly, "approved");
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved");
         String beforePaymentStatus = detail.getPaymentStatus();
         applyPayment(detail, dto);
         detailMapper.updateById(detail);
@@ -332,7 +339,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         Set<Long> affectedMonthlyIds = new HashSet<>();
         for (SalaryMonthlyDetailDO detail : details) {
             SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
-            requireStatus(monthly, "approved");
+            BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved");
             String beforePaymentStatus = detail.getPaymentStatus();
             applyPayment(detail, dto);
             detailMapper.updateById(detail);
@@ -397,13 +404,8 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         return monthly;
     }
 
-    private void requireStatus(SalaryMonthlyDO monthly, String status) {
-        if (!status.equals(monthly.getStatus())) {
-            throw new BusinessException("当前状态不允许操作");
-        }
-    }
-
     private void applyPayment(SalaryMonthlyDetailDO detail, SalaryPaymentDTO dto) {
+        BusinessStateMachine.requireTransition(Flow.SALARY_DETAIL_PAYMENT, detail.getPaymentStatus(), "paid");
         detail.setPaymentStatus("paid");
         detail.setPaymentDate(dto.getPaymentDate() == null ? LocalDate.now() : dto.getPaymentDate());
         detail.setPaymentMethod(StringUtils.hasText(dto.getPaymentMethod()) ? dto.getPaymentMethod() : "bank_transfer");
@@ -458,9 +460,16 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         boolean allPaid = !details.isEmpty() && details.stream().allMatch(item -> "paid".equals(item.getPaymentStatus()));
         if (allPaid) {
             SalaryMonthlyDO monthly = requireMonthly(monthlyId);
+            if ("paid".equals(monthly.getStatus())) {
+                return;
+            }
+            String statusBefore = monthly.getStatus();
+            BusinessStateMachine.requireTransition(Flow.SALARY_MONTHLY, statusBefore, "paid");
             monthly.setStatus("paid");
             monthly.setPaidAt(LocalDateTime.now());
             updateById(monthly);
+            log("monthly_paid", monthlyId, "工资表全部发放完成");
+            audit(monthlyId, null, "monthly_paid", statusBefore, "paid", "工资表全部发放完成", null);
         }
     }
 
