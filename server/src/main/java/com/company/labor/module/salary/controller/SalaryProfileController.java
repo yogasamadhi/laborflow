@@ -7,6 +7,7 @@ import com.company.labor.module.salary.domain.entity.SalaryProfileDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileItemDO;
 import com.company.labor.module.salary.service.SalaryProfileService;
 import com.company.labor.security.RoleExpressions;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class SalaryProfileController {
     }
 
     @PostMapping
-    public Result<SalaryProfileDO> create(@RequestBody SalaryProfileSaveDTO dto) {
+    public Result<SalaryProfileDO> create(@Valid @RequestBody SalaryProfileSaveDTO dto) {
         return Result.success(service.saveProfile(null, dto));
     }
 
@@ -47,7 +48,7 @@ public class SalaryProfileController {
     }
 
     @PutMapping("/{id}")
-    public Result<SalaryProfileDO> update(@PathVariable Long id, @RequestBody SalaryProfileSaveDTO dto) {
+    public Result<SalaryProfileDO> update(@PathVariable Long id, @Valid @RequestBody SalaryProfileSaveDTO dto) {
         return Result.success(service.saveProfile(id, dto));
     }
 }

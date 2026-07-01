@@ -2,12 +2,14 @@ package com.company.labor.common.exception;
 
 import com.company.labor.common.result.Result;
 import jakarta.validation.ConstraintViolationException;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -20,9 +22,20 @@ public class GlobalExceptionHandler {
         return Result.fail(ex.getMessage());
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
-    public Result<Void> handleValidation(Exception ex) {
-        return Result.fail("参数校验失败");
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result<Void> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(this::fieldErrorMessage)
+                .collect(Collectors.joining("；"));
+        return Result.fail(message.isBlank() ? "参数校验失败" : message);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Result<Void> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .map(violation -> violation.getPropertyPath() + "：" + violation.getMessage())
+                .collect(Collectors.joining("；"));
+        return Result.fail(message.isBlank() ? "参数校验失败" : message);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -58,5 +71,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception ex) {
         return Result.fail(ex.getMessage());
+    }
+
+    private String fieldErrorMessage(FieldError error) {
+        String message = error.getDefaultMessage();
+        return error.getField() + "：" + (message == null || message.isBlank() ? "参数不合法" : message);
     }
 }

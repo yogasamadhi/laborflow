@@ -6,6 +6,7 @@ import com.company.labor.module.employee.domain.dto.EmployeeWriteDTO;
 import com.company.labor.module.employee.domain.entity.DepartmentDO;
 import com.company.labor.module.employee.service.DepartmentService;
 import com.company.labor.security.RoleExpressions;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,12 +38,12 @@ public class DepartmentController {
     }
 
     @PostMapping
-    public Result<DepartmentDO> create(@RequestBody EmployeeWriteDTO.DepartmentRequest dto) {
+    public Result<DepartmentDO> create(@Valid @RequestBody EmployeeWriteDTO.DepartmentRequest dto) {
         return Result.success(service.createDepartment(copy(dto, DepartmentDO.class)));
     }
 
     @PutMapping("/{id}")
-    public Result<DepartmentDO> update(@PathVariable Long id, @RequestBody EmployeeWriteDTO.DepartmentRequest dto) {
+    public Result<DepartmentDO> update(@PathVariable Long id, @Valid @RequestBody EmployeeWriteDTO.DepartmentRequest dto) {
         return Result.success(service.updateDepartment(id, copy(dto, DepartmentDO.class)));
     }
 

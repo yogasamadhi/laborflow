@@ -41,7 +41,7 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public Result<EmployeeDO> create(@RequestBody EmployeeWriteDTO.EmployeeRequest dto) {
+    public Result<EmployeeDO> create(@Valid @RequestBody EmployeeWriteDTO.EmployeeRequest dto) {
         return Result.success(service.create(copy(dto, EmployeeDO.class)));
     }
 
@@ -51,7 +51,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
-    public Result<EmployeeDO> update(@PathVariable Long id, @RequestBody EmployeeWriteDTO.EmployeeRequest dto) {
+    public Result<EmployeeDO> update(@PathVariable Long id, @Valid @RequestBody EmployeeWriteDTO.EmployeeRequest dto) {
         return Result.success(service.updateEmployee(id, copy(dto, EmployeeDO.class)));
     }
 

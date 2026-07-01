@@ -31,6 +31,7 @@ import com.company.labor.module.project.service.ProjectAccessService;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.security.AccessControlSupport;
 import com.company.labor.security.RoleExpressions;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -65,7 +66,7 @@ public class ProjectManagementController {
 
     @PostMapping("/api/projects")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectDO> saveProject(@RequestBody ProjectWriteDTO.ProjectRequest dto) {
+    public Result<ProjectDO> saveProject(@Valid @RequestBody ProjectWriteDTO.ProjectRequest dto) {
         return Result.success(service.saveProject(copy(dto, ProjectDO.class)));
     }
 
@@ -77,7 +78,7 @@ public class ProjectManagementController {
 
     @PutMapping("/api/projects/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectDO> updateProject(@PathVariable Long id, @RequestBody ProjectWriteDTO.ProjectRequest dto) {
+    public Result<ProjectDO> updateProject(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectRequest dto) {
         return Result.success(service.updateProject(id, copy(dto, ProjectDO.class)));
     }
 
@@ -90,7 +91,7 @@ public class ProjectManagementController {
 
     @PostMapping("/api/projects/{id}/status")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> updateProjectStatus(@PathVariable Long id, @RequestBody ProjectActionDTO dto) {
+    public Result<Void> updateProjectStatus(@PathVariable Long id, @Valid @RequestBody ProjectActionDTO dto) {
         service.updateProjectStatus(id, dto.getStatus());
         return Result.success();
     }
@@ -109,7 +110,7 @@ public class ProjectManagementController {
 
     @PostMapping({"/api/project-sections", "/api/projects/{projectId}/sections"})
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectSectionDO> saveSection(@PathVariable(required = false) Long projectId, @RequestBody ProjectWriteDTO.SectionRequest dto) {
+    public Result<ProjectSectionDO> saveSection(@PathVariable(required = false) Long projectId, @Valid @RequestBody ProjectWriteDTO.SectionRequest dto) {
         ProjectSectionDO section = copy(dto, ProjectSectionDO.class);
         if (projectId != null) section.setProjectId(projectId);
         return Result.success(service.saveSection(section));
@@ -117,7 +118,7 @@ public class ProjectManagementController {
 
     @PutMapping("/api/project-sections/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectSectionDO> updateSection(@PathVariable Long id, @RequestBody ProjectWriteDTO.SectionRequest dto) {
+    public Result<ProjectSectionDO> updateSection(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.SectionRequest dto) {
         return Result.success(service.updateSection(id, copy(dto, ProjectSectionDO.class)));
     }
 
@@ -138,13 +139,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/work-processes")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<WorkProcessDO> saveWorkProcess(@RequestBody ProjectWriteDTO.WorkProcessRequest dto) {
+    public Result<WorkProcessDO> saveWorkProcess(@Valid @RequestBody ProjectWriteDTO.WorkProcessRequest dto) {
         return Result.success(service.saveWorkProcess(copy(dto, WorkProcessDO.class)));
     }
 
     @PutMapping("/api/work-processes/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<WorkProcessDO> updateWorkProcess(@PathVariable Long id, @RequestBody ProjectWriteDTO.WorkProcessRequest dto) {
+    public Result<WorkProcessDO> updateWorkProcess(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.WorkProcessRequest dto) {
         return Result.success(service.updateWorkProcess(id, copy(dto, WorkProcessDO.class)));
     }
 
@@ -165,13 +166,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/teams")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<TeamDO> saveTeam(@RequestBody ProjectWriteDTO.TeamRequest dto) {
+    public Result<TeamDO> saveTeam(@Valid @RequestBody ProjectWriteDTO.TeamRequest dto) {
         return Result.success(service.saveTeam(copy(dto, TeamDO.class)));
     }
 
     @PutMapping("/api/teams/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<TeamDO> updateTeam(@PathVariable Long id, @RequestBody ProjectWriteDTO.TeamRequest dto) {
+    public Result<TeamDO> updateTeam(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.TeamRequest dto) {
         return Result.success(service.updateTeam(id, copy(dto, TeamDO.class)));
     }
 
@@ -193,13 +194,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/team-unit-prices")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<TeamUnitPriceDO> saveTeamUnitPrice(@RequestBody ProjectWriteDTO.TeamUnitPriceRequest dto) {
+    public Result<TeamUnitPriceDO> saveTeamUnitPrice(@Valid @RequestBody ProjectWriteDTO.TeamUnitPriceRequest dto) {
         return Result.success(service.saveTeamUnitPrice(copy(dto, TeamUnitPriceDO.class)));
     }
 
     @PutMapping("/api/team-unit-prices/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<TeamUnitPriceDO> updateTeamUnitPrice(@PathVariable Long id, @RequestBody ProjectWriteDTO.TeamUnitPriceRequest dto) {
+    public Result<TeamUnitPriceDO> updateTeamUnitPrice(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.TeamUnitPriceRequest dto) {
         return Result.success(service.updateTeamUnitPrice(id, copy(dto, TeamUnitPriceDO.class)));
     }
 
@@ -213,13 +214,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/project-process-prices")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectProcessPriceDO> saveProjectProcessPrice(@RequestBody ProjectWriteDTO.ProjectProcessPriceRequest dto) {
+    public Result<ProjectProcessPriceDO> saveProjectProcessPrice(@Valid @RequestBody ProjectWriteDTO.ProjectProcessPriceRequest dto) {
         return Result.success(service.saveProjectProcessPrice(copy(dto, ProjectProcessPriceDO.class)));
     }
 
     @PutMapping("/api/project-process-prices/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectProcessPriceDO> updateProjectProcessPrice(@PathVariable Long id, @RequestBody ProjectWriteDTO.ProjectProcessPriceRequest dto) {
+    public Result<ProjectProcessPriceDO> updateProjectProcessPrice(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectProcessPriceRequest dto) {
         return Result.success(service.updateProjectProcessPrice(id, copy(dto, ProjectProcessPriceDO.class)));
     }
 
@@ -239,7 +240,7 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/daily-work-reports")
-    public Result<DailyWorkReportDO> saveDailyReport(@RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
+    public Result<DailyWorkReportDO> saveDailyReport(@Valid @RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
         DailyWorkReportDO report = copy(dto, DailyWorkReportDO.class);
         Long userId = currentUserId(authentication);
         report.setCreatedBy(userId);
@@ -248,7 +249,7 @@ public class ProjectManagementController {
     }
 
     @PutMapping("/api/daily-work-reports/{id}")
-    public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
+    public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
         requireDailyReportOwnerIfNeeded(id, authentication);
         DailyWorkReportDO report = copy(dto, DailyWorkReportDO.class);
         report.setUpdatedBy(currentUserId(authentication));
@@ -264,27 +265,27 @@ public class ProjectManagementController {
 
     @PostMapping("/api/daily-work-reports/{id}/pm-confirm")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> pmConfirmDailyReport(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
+    public Result<Void> pmConfirmDailyReport(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
         service.pmConfirmDailyReport(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/daily-work-reports/{id}/final-confirm")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> finalConfirmDailyReport(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
+    public Result<Void> finalConfirmDailyReport(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
         service.finalConfirmDailyReport(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/daily-work-reports/{id}/reject")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> rejectDailyReport(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
+    public Result<Void> rejectDailyReport(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
         service.rejectDailyReport(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/daily-work-reports/{id}/files")
-    public Result<Void> attachDailyReportFile(@PathVariable Long id, @RequestBody FileAttachDTO dto, Authentication authentication) {
+    public Result<Void> attachDailyReportFile(@PathVariable Long id, @Valid @RequestBody FileAttachDTO dto, Authentication authentication) {
         requireDailyReportOwnerIfNeeded(id, authentication);
         service.attachDailyReportFile(id, dto);
         return Result.success();
@@ -314,7 +315,7 @@ public class ProjectManagementController {
 
     @PostMapping("/api/team-settlements/generate")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<TeamSettlementDO> generateTeamSettlement(@RequestBody GenerateTeamSettlementDTO dto) {
+    public Result<TeamSettlementDO> generateTeamSettlement(@Valid @RequestBody GenerateTeamSettlementDTO dto) {
         return Result.success(service.generateTeamSettlement(dto));
     }
 
@@ -347,7 +348,7 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/variation-orders")
-    public Result<VariationOrderDO> saveVariationOrder(@RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
+    public Result<VariationOrderDO> saveVariationOrder(@Valid @RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
         VariationOrderDO order = copy(dto, VariationOrderDO.class);
         Long userId = currentUserId(authentication);
         order.setCreatedBy(userId);
@@ -356,7 +357,7 @@ public class ProjectManagementController {
     }
 
     @PutMapping("/api/variation-orders/{id}")
-    public Result<VariationOrderDO> updateVariationOrder(@PathVariable Long id, @RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
+    public Result<VariationOrderDO> updateVariationOrder(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
         requireVariationOrderOwnerIfNeeded(id, authentication);
         VariationOrderDO order = copy(dto, VariationOrderDO.class);
         order.setUpdatedBy(currentUserId(authentication));
@@ -372,20 +373,20 @@ public class ProjectManagementController {
 
     @PostMapping("/api/variation-orders/{id}/confirm")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> confirmVariationOrder(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
+    public Result<Void> confirmVariationOrder(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
         service.confirmVariationOrder(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/variation-orders/{id}/reject")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> rejectVariationOrder(@PathVariable Long id, @RequestBody(required = false) ProjectActionDTO dto) {
+    public Result<Void> rejectVariationOrder(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
         service.rejectVariationOrder(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/variation-orders/{id}/files")
-    public Result<Void> attachVariationOrderFile(@PathVariable Long id, @RequestBody FileAttachDTO dto, Authentication authentication) {
+    public Result<Void> attachVariationOrderFile(@PathVariable Long id, @Valid @RequestBody FileAttachDTO dto, Authentication authentication) {
         requireVariationOrderOwnerIfNeeded(id, authentication);
         service.attachVariationOrderFile(id, dto);
         return Result.success();
@@ -413,13 +414,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/project-cost-records")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<ProjectCostRecordDO> saveCostRecord(@RequestBody ProjectWriteDTO.ProjectCostRecordRequest dto) {
+    public Result<ProjectCostRecordDO> saveCostRecord(@Valid @RequestBody ProjectWriteDTO.ProjectCostRecordRequest dto) {
         return Result.success(service.saveCostRecord(copy(dto, ProjectCostRecordDO.class)));
     }
 
     @PutMapping("/api/project-cost-records/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<ProjectCostRecordDO> updateCostRecord(@PathVariable Long id, @RequestBody ProjectWriteDTO.ProjectCostRecordRequest dto) {
+    public Result<ProjectCostRecordDO> updateCostRecord(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectCostRecordRequest dto) {
         return Result.success(service.updateCostRecord(id, copy(dto, ProjectCostRecordDO.class)));
     }
 
@@ -434,13 +435,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/project-payment-records")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<ProjectPaymentRecordDO> savePaymentRecord(@RequestBody ProjectWriteDTO.ProjectPaymentRecordRequest dto) {
+    public Result<ProjectPaymentRecordDO> savePaymentRecord(@Valid @RequestBody ProjectWriteDTO.ProjectPaymentRecordRequest dto) {
         return Result.success(service.savePaymentRecord(copy(dto, ProjectPaymentRecordDO.class)));
     }
 
     @PutMapping("/api/project-payment-records/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<ProjectPaymentRecordDO> updatePaymentRecord(@PathVariable Long id, @RequestBody ProjectWriteDTO.ProjectPaymentRecordRequest dto) {
+    public Result<ProjectPaymentRecordDO> updatePaymentRecord(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectPaymentRecordRequest dto) {
         return Result.success(service.updatePaymentRecord(id, copy(dto, ProjectPaymentRecordDO.class)));
     }
 
@@ -454,13 +455,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/machinery-equipments")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<MachineryEquipmentDO> saveMachineryEquipment(@RequestBody ProjectWriteDTO.MachineryEquipmentRequest dto) {
+    public Result<MachineryEquipmentDO> saveMachineryEquipment(@Valid @RequestBody ProjectWriteDTO.MachineryEquipmentRequest dto) {
         return Result.success(service.saveMachineryEquipment(copy(dto, MachineryEquipmentDO.class)));
     }
 
     @PutMapping("/api/machinery-equipments/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<MachineryEquipmentDO> updateMachineryEquipment(@PathVariable Long id, @RequestBody ProjectWriteDTO.MachineryEquipmentRequest dto) {
+    public Result<MachineryEquipmentDO> updateMachineryEquipment(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.MachineryEquipmentRequest dto) {
         return Result.success(service.updateMachineryEquipment(id, copy(dto, MachineryEquipmentDO.class)));
     }
 
@@ -474,13 +475,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/machinery-work-records")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<MachineryWorkRecordDO> saveMachineryWorkRecord(@RequestBody ProjectWriteDTO.MachineryWorkRecordRequest dto) {
+    public Result<MachineryWorkRecordDO> saveMachineryWorkRecord(@Valid @RequestBody ProjectWriteDTO.MachineryWorkRecordRequest dto) {
         return Result.success(service.saveMachineryWorkRecord(copy(dto, MachineryWorkRecordDO.class)));
     }
 
     @PutMapping("/api/machinery-work-records/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<MachineryWorkRecordDO> updateMachineryWorkRecord(@PathVariable Long id, @RequestBody ProjectWriteDTO.MachineryWorkRecordRequest dto) {
+    public Result<MachineryWorkRecordDO> updateMachineryWorkRecord(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.MachineryWorkRecordRequest dto) {
         return Result.success(service.updateMachineryWorkRecord(id, copy(dto, MachineryWorkRecordDO.class)));
     }
 
@@ -494,13 +495,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/material-records")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<MaterialRecordDO> saveMaterialRecord(@RequestBody ProjectWriteDTO.MaterialRecordRequest dto) {
+    public Result<MaterialRecordDO> saveMaterialRecord(@Valid @RequestBody ProjectWriteDTO.MaterialRecordRequest dto) {
         return Result.success(service.saveMaterialRecord(copy(dto, MaterialRecordDO.class)));
     }
 
     @PutMapping("/api/material-records/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<MaterialRecordDO> updateMaterialRecord(@PathVariable Long id, @RequestBody ProjectWriteDTO.MaterialRecordRequest dto) {
+    public Result<MaterialRecordDO> updateMaterialRecord(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.MaterialRecordRequest dto) {
         return Result.success(service.updateMaterialRecord(id, copy(dto, MaterialRecordDO.class)));
     }
 
@@ -514,13 +515,13 @@ public class ProjectManagementController {
 
     @PostMapping("/api/project-document-archives")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectDocumentArchiveDO> saveDocumentArchive(@RequestBody ProjectWriteDTO.ProjectDocumentArchiveRequest dto) {
+    public Result<ProjectDocumentArchiveDO> saveDocumentArchive(@Valid @RequestBody ProjectWriteDTO.ProjectDocumentArchiveRequest dto) {
         return Result.success(service.saveDocumentArchive(copy(dto, ProjectDocumentArchiveDO.class)));
     }
 
     @PutMapping("/api/project-document-archives/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<ProjectDocumentArchiveDO> updateDocumentArchive(@PathVariable Long id, @RequestBody ProjectWriteDTO.ProjectDocumentArchiveRequest dto) {
+    public Result<ProjectDocumentArchiveDO> updateDocumentArchive(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectDocumentArchiveRequest dto) {
         return Result.success(service.updateDocumentArchive(id, copy(dto, ProjectDocumentArchiveDO.class)));
     }
 

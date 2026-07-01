@@ -59,7 +59,7 @@ public class SystemController {
     }
 
     @PostMapping("/users/{id}/roles")
-    public Result<Void> assignUserRoles(@PathVariable Long id, @RequestBody SysUserRoleAssignDTO dto, Authentication authentication) {
+    public Result<Void> assignUserRoles(@PathVariable Long id, @Valid @RequestBody SysUserRoleAssignDTO dto, Authentication authentication) {
         userAdminService.assignRoles(id, dto, loginUser(authentication));
         return Result.success();
     }

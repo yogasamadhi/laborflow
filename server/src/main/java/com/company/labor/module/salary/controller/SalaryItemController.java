@@ -7,6 +7,7 @@ import com.company.labor.module.salary.domain.dto.SalaryWriteDTO;
 import com.company.labor.module.salary.domain.entity.SalaryItemDO;
 import com.company.labor.module.salary.service.SalaryItemService;
 import com.company.labor.security.RoleExpressions;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,7 +35,7 @@ public class SalaryItemController {
     }
 
     @PostMapping
-    public Result<SalaryItemDO> create(@RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
+    public Result<SalaryItemDO> create(@Valid @RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
         SalaryItemDO item = copy(dto, SalaryItemDO.class);
         if (item.getStatus() == null) item.setStatus("active");
         if (item.getIsFixed() == null) item.setIsFixed(1);
@@ -43,7 +44,7 @@ public class SalaryItemController {
     }
 
     @PutMapping("/{id}")
-    public Result<SalaryItemDO> update(@PathVariable Long id, @RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
+    public Result<SalaryItemDO> update(@PathVariable Long id, @Valid @RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
         SalaryItemDO item = copy(dto, SalaryItemDO.class);
         item.setId(id);
         service.updateById(item);

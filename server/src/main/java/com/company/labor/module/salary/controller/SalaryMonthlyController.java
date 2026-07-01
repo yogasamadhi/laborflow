@@ -21,6 +21,7 @@ import com.company.labor.security.AccessControlSupport;
 import com.company.labor.security.LoginUser;
 import com.company.labor.security.RoleExpressions;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -68,7 +69,7 @@ public class SalaryMonthlyController {
 
     @PostMapping("/monthly")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDO> create(@RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
+    public Result<SalaryMonthlyDO> create(@Valid @RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
         return Result.success(service.createMonthly(copy(dto, SalaryMonthlyDO.class)));
     }
 
@@ -80,7 +81,7 @@ public class SalaryMonthlyController {
 
     @PutMapping("/monthly/{id}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDO> update(@PathVariable Long id, @RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
+    public Result<SalaryMonthlyDO> update(@PathVariable Long id, @Valid @RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
         return Result.success(service.updateMonthly(id, copy(dto, SalaryMonthlyDO.class)));
     }
 
@@ -120,7 +121,7 @@ public class SalaryMonthlyController {
 
     @PostMapping("/monthly/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN','BOSS')")
-    public Result<Void> approve(@PathVariable Long id, @RequestBody(required = false) SalaryApprovalDTO dto, Authentication authentication) {
+    public Result<Void> approve(@PathVariable Long id, @Valid @RequestBody(required = false) SalaryApprovalDTO dto, Authentication authentication) {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         service.approve(id, loginUser.getUser().getId(), dto == null ? null : dto.getRemark());
         return Result.success();
@@ -128,14 +129,14 @@ public class SalaryMonthlyController {
 
     @PostMapping("/monthly/{id}/reject")
     @PreAuthorize("hasAnyRole('ADMIN','BOSS')")
-    public Result<Void> reject(@PathVariable Long id, @RequestBody(required = false) SalaryApprovalDTO dto) {
+    public Result<Void> reject(@PathVariable Long id, @Valid @RequestBody(required = false) SalaryApprovalDTO dto) {
         service.reject(id, dto == null ? null : dto.getRemark());
         return Result.success();
     }
 
     @PostMapping("/monthly/{id}/mark-paid")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<Void> markMonthlyPaid(@PathVariable Long id, @RequestBody SalaryPaymentDTO dto) {
+    public Result<Void> markMonthlyPaid(@PathVariable Long id, @Valid @RequestBody SalaryPaymentDTO dto) {
         service.markMonthlyPaid(id, dto);
         return Result.success();
     }
@@ -148,7 +149,7 @@ public class SalaryMonthlyController {
 
     @PutMapping("/details/{detailId}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDetailDO> updateDetail(@PathVariable Long detailId, @RequestBody SalaryWriteDTO.SalaryMonthlyDetailRequest dto) {
+    public Result<SalaryMonthlyDetailDO> updateDetail(@PathVariable Long detailId, @Valid @RequestBody SalaryWriteDTO.SalaryMonthlyDetailRequest dto) {
         return Result.success(service.updateDetail(detailId, copy(dto, SalaryMonthlyDetailDO.class)));
     }
 
@@ -173,14 +174,14 @@ public class SalaryMonthlyController {
 
     @PostMapping("/details/{detailId}/mark-paid")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<Void> markDetailPaid(@PathVariable Long detailId, @RequestBody SalaryPaymentDTO dto) {
+    public Result<Void> markDetailPaid(@PathVariable Long detailId, @Valid @RequestBody SalaryPaymentDTO dto) {
         service.markDetailPaid(detailId, dto);
         return Result.success();
     }
 
     @PostMapping("/details/batch-mark-paid")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<Void> batchMarkPaid(@RequestBody BatchSalaryPaymentDTO dto) {
+    public Result<Void> batchMarkPaid(@Valid @RequestBody BatchSalaryPaymentDTO dto) {
         service.batchMarkPaid(dto);
         return Result.success();
     }

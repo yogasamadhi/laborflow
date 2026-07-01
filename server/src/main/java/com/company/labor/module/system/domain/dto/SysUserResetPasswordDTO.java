@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class SysUserResetPasswordDTO {
-    @NotBlank
+    @NotBlank(message = "新密码必填")
     private String newPassword;
 }

@@ -29,6 +29,22 @@ class RequestDtoBoundaryTest {
                 .isEmpty();
     }
 
+    @Test
+    void requestBodiesAreValidatedAtControllerBoundary() throws IOException {
+        Path moduleRoot = Path.of("src/main/java/com/company/labor/module");
+        List<String> violations;
+        try (var paths = Files.walk(moduleRoot)) {
+            violations = paths
+                    .filter(path -> path.getFileName().toString().endsWith("Controller.java"))
+                    .flatMap(path -> missingValidViolations(path).stream())
+                    .toList();
+        }
+
+        assertThat(violations)
+                .as("Controller request bodies should be annotated with @Valid")
+                .isEmpty();
+    }
+
     private String violation(Path path) {
         try {
             String source = Files.readString(path);
@@ -36,6 +52,18 @@ class RequestDtoBoundaryTest {
                 return path.toString();
             }
             return "";
+        } catch (IOException ex) {
+            throw new IllegalStateException("读取 Controller 源码失败: " + path, ex);
+        }
+    }
+
+    private List<String> missingValidViolations(Path path) {
+        try {
+            List<String> lines = Files.readAllLines(path);
+            return java.util.stream.IntStream.range(0, lines.size())
+                    .filter(index -> lines.get(index).contains("@RequestBody") && !lines.get(index).contains("@Valid @RequestBody"))
+                    .mapToObj(index -> path + ":" + (index + 1))
+                    .toList();
         } catch (IOException ex) {
             throw new IllegalStateException("读取 Controller 源码失败: " + path, ex);
         }

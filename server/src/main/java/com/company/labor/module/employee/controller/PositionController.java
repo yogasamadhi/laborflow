@@ -6,6 +6,7 @@ import com.company.labor.module.employee.domain.dto.EmployeeWriteDTO;
 import com.company.labor.module.employee.domain.entity.PositionDO;
 import com.company.labor.module.employee.service.PositionService;
 import com.company.labor.security.RoleExpressions;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,12 +39,12 @@ public class PositionController {
     }
 
     @PostMapping
-    public Result<PositionDO> create(@RequestBody EmployeeWriteDTO.PositionRequest dto) {
+    public Result<PositionDO> create(@Valid @RequestBody EmployeeWriteDTO.PositionRequest dto) {
         return Result.success(service.createPosition(copy(dto, PositionDO.class)));
     }
 
     @PutMapping("/{id}")
-    public Result<PositionDO> update(@PathVariable Long id, @RequestBody EmployeeWriteDTO.PositionRequest dto) {
+    public Result<PositionDO> update(@PathVariable Long id, @Valid @RequestBody EmployeeWriteDTO.PositionRequest dto) {
         return Result.success(service.updatePosition(id, copy(dto, PositionDO.class)));
     }
 

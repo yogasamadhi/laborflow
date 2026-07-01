@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class WechatSessionDTO {
-    @NotBlank
+    @NotBlank(message = "微信登录 code 必填")
     private String code;
 }
