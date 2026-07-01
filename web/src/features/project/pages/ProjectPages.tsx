@@ -23,6 +23,9 @@ type MachineryWorkRecord = { id: string; projectId: string; projectSectionId?: s
 type MaterialRecord = { id: string; projectId: string; projectSectionId?: string; materialName: string; recordType: string; recordDate: string; quantity: number; unit?: string; unitPrice: number; amount: number; supplierName?: string; impactNote?: string };
 type DocumentArchive = { id: string; projectId: string; projectSectionId?: string; workProcessId?: string; archiveDate: string; documentType: string; fileId: string; uploaderName?: string; remark?: string };
 type Dashboard = { projectName: string; contractAmount: number; completedOutputValue: number; confirmedQuantity: number; teamPayableAmount: number; otherCostAmount: number; machineryCostAmount: number; materialCostAmount: number; totalCostAmount: number; grossProfit: number; receivableAmount: number; pendingVariationAmount: number; receivedAmount: number; paymentProgress: number; risks: { type: string; level: string; message: string }[] };
+type ApprovalRecord = { id: string; confirmStage: string; confirmStatus: string; confirmerName?: string; statusBefore?: string; statusAfter?: string; remark?: string; createdAt?: string };
+type EvidenceFile = { id: string; fileId: string; fileType: string; createdAt?: string };
+type EvidenceTarget = { type: "daily" | "variation"; id: string; title: string };
 
 function useLookups() {
   const projects = useQuery({ queryKey: ["project-lookup"], queryFn: () => getData<PageResult<Project>>("/projects", { page: 1, pageSize: 500 }) });
@@ -140,18 +143,21 @@ export function DailyWorkReportPage() {
   const lookups = useLookups();
   const [form, setForm] = useState<Partial<DailyReport>>({});
   const [open, setOpen] = useState(false);
+  const [evidence, setEvidence] = useState<EvidenceTarget | null>(null);
   const { data } = useQuery({ queryKey: ["daily-work-reports"], queryFn: () => getData<PageResult<DailyReport>>("/daily-work-reports", { page: 1, pageSize: 200 }) });
-  const action = useMutation({ mutationFn: ({ id, op }: { id: string; op: string }) => postData(`/daily-work-reports/${id}/${op}`, {}), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["daily-work-reports"] }) });
+  const action = useMutation({ mutationFn: ({ id, op }: { id: string; op: string }) => postData(`/daily-work-reports/${id}/${op}`, {}), onSuccess: (_result, variables) => { queryClient.invalidateQueries({ queryKey: ["daily-work-reports"] }); queryClient.invalidateQueries({ queryKey: ["project-evidence", "daily", variables.id] }); } });
   const save = useMutation({ mutationFn: () => form.id ? putData(`/daily-work-reports/${form.id}`, form) : postData("/daily-work-reports", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["daily-work-reports"] }); } });
   async function attach(row: DailyReport, file?: File) {
     if (!file) return;
     const uploaded = await uploadFile(file);
     await postData(`/daily-work-reports/${row.id}/files`, { fileId: uploaded.id, fileType: "photo" });
+    await queryClient.invalidateQueries({ queryKey: ["project-evidence", "daily", row.id] });
   }
   return (
     <Page title="工程量日报" actions={<Button onClick={() => { setForm({ workDate: new Date().toISOString().slice(0, 10), completedQuantity: 0, workerCount: 0, projectId: lookups.projects[0]?.id, projectSectionId: lookups.sections[0]?.id, workProcessId: lookups.processes[0]?.id, teamId: lookups.teams[0]?.id, unit: lookups.processes[0]?.unit ?? "m" }); setOpen(true); }}>新增日报</Button>}>
-      <div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>施工段</th><th>工序</th><th>工程量</th><th>班组</th><th>状态</th><th>照片</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}<Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button></td></tr>)}</tbody></table></div>
+      <div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>施工段</th><th>工序</th><th>工程量</th><th>班组</th><th>状态</th><th>照片</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}<Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button>{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></td></tr>)}</tbody></table></div>
       <DailyReportModal open={open} form={form} setForm={setForm} lookups={lookups} onClose={() => setOpen(false)} onSave={() => save.mutate()} />
+      <ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} />
     </Page>
   );
 }
@@ -177,10 +183,11 @@ function DailyReportModal({ open, form, setForm, lookups, onClose, onSave }: { o
 export function WorkConfirmationPage() {
   const queryClient = useQueryClient();
   const lookups = useLookups();
+  const [evidence, setEvidence] = useState<EvidenceTarget | null>(null);
   const { data } = useQuery({ queryKey: ["work-confirmation"], queryFn: () => getData<PageResult<DailyReport>>("/daily-work-reports", { page: 1, pageSize: 200 }) });
   const rows = (data?.records ?? []).filter(row => ["submitted", "pm_confirmed", "rejected", "confirmed"].includes(row.status));
-  const action = useMutation({ mutationFn: ({ id, op }: { id: string; op: string }) => postData(`/daily-work-reports/${id}/${op}`, {}), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["work-confirmation"] }) });
-  return <Page title="工程量确认"><div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>工序</th><th>工程量</th><th>状态</th><th>操作</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "pm-confirm" })}>项目经理确认</Button>{" "}<Button onClick={() => action.mutate({ id: row.id, op: "final-confirm" })}>商务终审</Button>{" "}<Button variant="danger" onClick={() => action.mutate({ id: row.id, op: "reject" })}>驳回</Button></td></tr>)}</tbody></table></div></Page>;
+  const action = useMutation({ mutationFn: ({ id, op }: { id: string; op: string }) => postData(`/daily-work-reports/${id}/${op}`, {}), onSuccess: (_result, variables) => { queryClient.invalidateQueries({ queryKey: ["work-confirmation"] }); queryClient.invalidateQueries({ queryKey: ["project-evidence", "daily", variables.id] }); } });
+  return <Page title="工程量确认"><div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>工序</th><th>工程量</th><th>状态</th><th>操作</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "pm-confirm" })}>项目经理确认</Button>{" "}<Button onClick={() => action.mutate({ id: row.id, op: "final-confirm" })}>商务终审</Button>{" "}<Button variant="danger" onClick={() => action.mutate({ id: row.id, op: "reject" })}>驳回</Button>{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></td></tr>)}</tbody></table></div><ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} /></Page>;
 }
 
 export function TeamUnitPricePage() {
@@ -210,6 +217,60 @@ function LookupPriceFields({ lookups, value, onChange, includeTeam = false }: { 
   </>;
 }
 
+function ProjectEvidenceModal({ target, onClose }: { target: EvidenceTarget | null; onClose: () => void }) {
+  const confirmsUrl = target?.type === "daily" ? `/daily-work-reports/${target.id}/confirms` : `/variation-orders/${target?.id}/confirms`;
+  const filesUrl = target?.type === "daily" ? `/daily-work-reports/${target.id}/files` : `/variation-orders/${target?.id}/files`;
+  const confirms = useQuery({
+    queryKey: ["project-evidence", target?.type, target?.id, "confirms"],
+    queryFn: () => getData<ApprovalRecord[]>(confirmsUrl),
+    enabled: Boolean(target)
+  });
+  const files = useQuery({
+    queryKey: ["project-evidence", target?.type, target?.id, "files"],
+    queryFn: () => getData<EvidenceFile[]>(filesUrl),
+    enabled: Boolean(target)
+  });
+  return (
+    <Modal open={Boolean(target)} title={target?.title ?? "证据链"} onClose={onClose}>
+      <div className="grid">
+        <div>
+          <div className="section-heading"><h3>审批记录</h3><span className="muted">{confirms.data?.length ?? 0} 条</span></div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>动作</th><th>状态</th><th>操作者</th><th>意见</th></tr></thead>
+              <tbody>{(confirms.data ?? []).map(item => <tr key={item.id}><td>{timeText(item.createdAt)}</td><td>{approvalStageText(item.confirmStage, item.confirmStatus)}</td><td>{statusText(item.statusBefore)} → {statusText(item.statusAfter)}</td><td>{item.confirmerName ?? "-"}</td><td>{item.remark ?? "-"}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div className="section-heading"><h3>附件证据</h3><span className="muted">{files.data?.length ?? 0} 个</span></div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>文件 ID</th><th>类型</th></tr></thead>
+              <tbody>{(files.data ?? []).map(item => <tr key={item.id}><td>{timeText(item.createdAt)}</td><td>{item.fileId}</td><td>{item.fileType}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function approvalStageText(stage?: string, status?: string) {
+  const map: Record<string, string> = {
+    submit: "提交",
+    project_manager: "项目经理确认",
+    commercial: "商务确认",
+    reject: "驳回",
+    attachment: "附件"
+  };
+  return `${map[stage ?? ""] ?? stage ?? "-"} / ${statusText(status)}`;
+}
+
+function timeText(value?: string) {
+  return value ? value.replace("T", " ").slice(0, 16) : "-";
+}
+
 export function TeamSettlementPage() {
   const queryClient = useQueryClient();
   const lookups = useLookups();
@@ -228,20 +289,23 @@ export function VariationOrderPage() {
   const lookups = useLookups();
   const [form, setForm] = useState<Partial<Variation>>({});
   const [open, setOpen] = useState(false);
+  const [evidence, setEvidence] = useState<EvidenceTarget | null>(null);
   const { data } = useQuery({ queryKey: ["variation-orders"], queryFn: () => getData<PageResult<Variation>>("/variation-orders", { page: 1, pageSize: 200 }) });
   const save = useMutation({ mutationFn: () => form.id ? putData(`/variation-orders/${form.id}`, form) : postData("/variation-orders", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["variation-orders"] }); } });
-  const action = useMutation({ mutationFn: ({ id, op }: { id: string; op: string }) => postData(`/variation-orders/${id}/${op}`, {}), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["variation-orders"] }) });
+  const action = useMutation({ mutationFn: ({ id, op }: { id: string; op: string }) => postData(`/variation-orders/${id}/${op}`, {}), onSuccess: (_result, variables) => { queryClient.invalidateQueries({ queryKey: ["variation-orders"] }); queryClient.invalidateQueries({ queryKey: ["project-evidence", "variation", variables.id] }); } });
   async function attach(row: Variation, file?: File) {
     if (!file) return;
     const uploaded = await uploadFile(file);
     await postData(`/variation-orders/${row.id}/files`, { fileId: uploaded.id, fileType: "evidence" });
+    await queryClient.invalidateQueries({ queryKey: ["project-evidence", "variation", row.id] });
   }
   return <Page title="签证变更" actions={<Button onClick={() => { setForm({ occurrenceDate: new Date().toISOString().slice(0, 10), variationType: "工程量增加", projectId: lookups.projects[0]?.id, estimatedAmount: 0, increasedQuantity: 0 }); setOpen(true); }}>新增签证</Button>}>
-    <div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>类型</th><th>预计金额</th><th>状态</th><th>证据</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.occurrenceDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{row.variationType}</td><td>{money(row.estimatedAmount)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}<Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button>{" "}<Button onClick={() => action.mutate({ id: row.id, op: "confirm" })}>确认</Button>{" "}<Button variant="danger" onClick={() => action.mutate({ id: row.id, op: "reject" })}>驳回</Button></td></tr>)}</tbody></table></div>
+    <div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>类型</th><th>预计金额</th><th>状态</th><th>证据</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.occurrenceDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{row.variationType}</td><td>{money(row.estimatedAmount)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}<Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button>{" "}<Button onClick={() => action.mutate({ id: row.id, op: "confirm" })}>确认</Button>{" "}<Button variant="danger" onClick={() => action.mutate({ id: row.id, op: "reject" })}>驳回</Button>{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "variation", id: row.id, title: `签证 ${row.variationType}` })}>证据链</Button></td></tr>)}</tbody></table></div>
     <Modal open={open} title="签证变更" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
       <div className="grid grid-2"><Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="施工段"><SelectInput value={form.projectSectionId ?? ""} onChange={e => setForm({ ...form, projectSectionId: e.target.value || undefined })}><option value="">无</option>{lookups.sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field><Field label="发生日期"><TextInput type="date" value={form.occurrenceDate ?? ""} onChange={e => setForm({ ...form, occurrenceDate: e.target.value })} /></Field><Field label="签证类型"><SelectInput value={form.variationType ?? "工程量增加"} onChange={e => setForm({ ...form, variationType: e.target.value })}>{["设计变更","工程量增加","障碍物处理","管线迁改配合","返工","停工窝工","夜间施工","临时排水","二次倒运","零星用工","其他"].map(item => <option key={item} value={item}>{item}</option>)}</SelectInput></Field><Field label="增加工程量"><TextInput type="number" value={form.increasedQuantity ?? 0} onChange={e => setForm({ ...form, increasedQuantity: Number(e.target.value) })} /></Field><Field label="预计金额"><TextInput type="number" value={form.estimatedAmount ?? 0} onChange={e => setForm({ ...form, estimatedAmount: Number(e.target.value) })} /></Field><Field label="人工数量"><TextInput type="number" value={form.laborCount ?? 0} onChange={e => setForm({ ...form, laborCount: Number(e.target.value) })} /></Field><Field label="责任方"><TextInput value={form.responsibleParty ?? ""} onChange={e => setForm({ ...form, responsibleParty: e.target.value })} /></Field></div>
       <Field label="事件原因"><TextArea value={form.reason ?? ""} onChange={e => setForm({ ...form, reason: e.target.value })} /></Field>
     </Modal>
+    <ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} />
   </Page>;
 }
 

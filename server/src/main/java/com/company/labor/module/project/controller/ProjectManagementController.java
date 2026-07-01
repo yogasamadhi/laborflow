@@ -7,6 +7,7 @@ import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportDO;
+import com.company.labor.module.project.domain.entity.DailyWorkReportFileDO;
 import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
 import com.company.labor.module.project.domain.entity.MachineryWorkRecordDO;
 import com.company.labor.module.project.domain.entity.MaterialRecordDO;
@@ -19,13 +20,17 @@ import com.company.labor.module.project.domain.entity.ProjectSectionDO;
 import com.company.labor.module.project.domain.entity.TeamDO;
 import com.company.labor.module.project.domain.entity.TeamSettlementDO;
 import com.company.labor.module.project.domain.entity.TeamUnitPriceDO;
+import com.company.labor.module.project.domain.entity.VariationOrderConfirmDO;
 import com.company.labor.module.project.domain.entity.VariationOrderDO;
+import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
+import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectAccessService;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.security.AccessControlSupport;
 import com.company.labor.security.RoleExpressions;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -279,6 +284,18 @@ public class ProjectManagementController {
         return Result.success();
     }
 
+    @GetMapping("/api/daily-work-reports/{id}/confirms")
+    public Result<List<WorkQuantityConfirmDO>> dailyReportConfirms(@PathVariable Long id, Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
+        return Result.success(service.dailyReportConfirms(id));
+    }
+
+    @GetMapping("/api/daily-work-reports/{id}/files")
+    public Result<List<DailyWorkReportFileDO>> dailyReportFiles(@PathVariable Long id, Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
+        return Result.success(service.dailyReportFiles(id));
+    }
+
     @GetMapping("/api/team-settlements")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
     public Result<PageResult<TeamSettlementDO>> teamSettlements(@RequestParam(defaultValue = "1") long page,
@@ -364,6 +381,18 @@ public class ProjectManagementController {
         requireVariationOrderOwnerIfNeeded(id, authentication);
         service.attachVariationOrderFile(id, dto);
         return Result.success();
+    }
+
+    @GetMapping("/api/variation-orders/{id}/confirms")
+    public Result<List<VariationOrderConfirmDO>> variationOrderConfirms(@PathVariable Long id, Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
+        return Result.success(service.variationOrderConfirms(id));
+    }
+
+    @GetMapping("/api/variation-orders/{id}/files")
+    public Result<List<VariationOrderFileDO>> variationOrderFiles(@PathVariable Long id, Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
+        return Result.success(service.variationOrderFiles(id));
     }
 
     @GetMapping("/api/project-cost-records")

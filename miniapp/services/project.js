@@ -49,6 +49,14 @@ function attachDailyReportFile(id, fileId) {
   return request.post("/daily-work-reports/" + id + "/files", { fileId, fileType: "site_photo" });
 }
 
+function dailyReportConfirms(id) {
+  return request.get("/daily-work-reports/" + id + "/confirms");
+}
+
+function dailyReportFiles(id) {
+  return request.get("/daily-work-reports/" + id + "/files");
+}
+
 function variationOrders(params) {
   return request.get("/variation-orders", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
@@ -81,6 +89,14 @@ function attachVariationFile(id, fileId) {
   return request.post("/variation-orders/" + id + "/files", { fileId, fileType: "site_photo" });
 }
 
+function variationConfirms(id) {
+  return request.get("/variation-orders/" + id + "/confirms");
+}
+
+function variationFiles(id) {
+  return request.get("/variation-orders/" + id + "/files");
+}
+
 function settlements(params) {
   return request.get("/team-settlements", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
@@ -102,6 +118,8 @@ module.exports = {
   confirmDailyReport,
   rejectDailyReport,
   attachDailyReportFile,
+  dailyReportConfirms,
+  dailyReportFiles,
   variationOrders,
   myVariationOrders,
   createVariationOrder,
@@ -110,6 +128,8 @@ module.exports = {
   confirmVariationOrder,
   rejectVariationOrder,
   attachVariationFile,
+  variationConfirms,
+  variationFiles,
   settlements,
   confirmSettlement
 };

@@ -5,6 +5,7 @@ import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportDO;
+import com.company.labor.module.project.domain.entity.DailyWorkReportFileDO;
 import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
 import com.company.labor.module.project.domain.entity.MachineryWorkRecordDO;
 import com.company.labor.module.project.domain.entity.MaterialRecordDO;
@@ -17,9 +18,13 @@ import com.company.labor.module.project.domain.entity.ProjectSectionDO;
 import com.company.labor.module.project.domain.entity.TeamDO;
 import com.company.labor.module.project.domain.entity.TeamSettlementDO;
 import com.company.labor.module.project.domain.entity.TeamUnitPriceDO;
+import com.company.labor.module.project.domain.entity.VariationOrderConfirmDO;
 import com.company.labor.module.project.domain.entity.VariationOrderDO;
+import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
+import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
+import java.util.List;
 import java.util.Set;
 
 public interface ProjectManagementService {
@@ -61,6 +66,8 @@ public interface ProjectManagementService {
     void finalConfirmDailyReport(Long id, ProjectActionDTO dto);
     void rejectDailyReport(Long id, ProjectActionDTO dto);
     void attachDailyReportFile(Long id, FileAttachDTO dto);
+    List<WorkQuantityConfirmDO> dailyReportConfirms(Long id);
+    List<DailyWorkReportFileDO> dailyReportFiles(Long id);
     void requireDailyReportOwner(Long id, Long userId);
 
     Page<TeamSettlementDO> teamSettlements(long page, long pageSize, Long projectId, Long teamId, String settlementMonth);
@@ -75,6 +82,8 @@ public interface ProjectManagementService {
     void confirmVariationOrder(Long id, ProjectActionDTO dto);
     void rejectVariationOrder(Long id, ProjectActionDTO dto);
     void attachVariationOrderFile(Long id, FileAttachDTO dto);
+    List<VariationOrderConfirmDO> variationOrderConfirms(Long id);
+    List<VariationOrderFileDO> variationOrderFiles(Long id);
     void requireVariationOrderOwner(Long id, Long userId);
 
     Page<ProjectCostRecordDO> costRecords(long page, long pageSize, Long projectId);

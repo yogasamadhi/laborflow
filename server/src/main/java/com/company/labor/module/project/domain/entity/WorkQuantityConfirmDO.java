@@ -16,6 +16,8 @@ public class WorkQuantityConfirmDO {
     private String confirmStatus;
     private Long confirmerId;
     private String confirmerName;
+    private String statusBefore;
+    private String statusAfter;
     private String remark;
     private LocalDateTime createdAt;
 }

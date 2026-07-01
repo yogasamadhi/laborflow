@@ -21,6 +21,7 @@ import com.company.labor.module.project.domain.entity.TeamDO;
 import com.company.labor.module.project.domain.entity.TeamSettlementDO;
 import com.company.labor.module.project.domain.entity.TeamSettlementDetailDO;
 import com.company.labor.module.project.domain.entity.TeamUnitPriceDO;
+import com.company.labor.module.project.domain.entity.VariationOrderConfirmDO;
 import com.company.labor.module.project.domain.entity.VariationOrderDO;
 import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
@@ -42,12 +43,15 @@ import com.company.labor.module.project.mapper.TeamMapper;
 import com.company.labor.module.project.mapper.TeamSettlementDetailMapper;
 import com.company.labor.module.project.mapper.TeamSettlementMapper;
 import com.company.labor.module.project.mapper.TeamUnitPriceMapper;
+import com.company.labor.module.project.mapper.VariationOrderConfirmMapper;
 import com.company.labor.module.project.mapper.VariationOrderFileMapper;
 import com.company.labor.module.project.mapper.VariationOrderMapper;
 import com.company.labor.module.project.mapper.WorkProcessMapper;
 import com.company.labor.module.project.mapper.WorkQuantityConfirmMapper;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.module.system.service.OperationLogService;
+import com.company.labor.security.AuditUserProvider;
+import com.company.labor.security.LoginUser;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -77,6 +81,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final TeamSettlementMapper teamSettlementMapper;
     private final TeamSettlementDetailMapper teamSettlementDetailMapper;
     private final VariationOrderMapper variationOrderMapper;
+    private final VariationOrderConfirmMapper variationOrderConfirmMapper;
     private final VariationOrderFileMapper variationOrderFileMapper;
     private final ProjectCostRecordMapper costRecordMapper;
     private final ProjectPaymentRecordMapper paymentRecordMapper;
@@ -85,6 +90,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final MaterialRecordMapper materialRecordMapper;
     private final ProjectDocumentArchiveMapper documentArchiveMapper;
     private final OperationLogService operationLogService;
+    private final AuditUserProvider auditUserProvider;
 
     @Override
     public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds) {
@@ -340,9 +346,11 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void submitDailyReport(Long id) {
         DailyWorkReportDO report = requireDailyReport(id);
         requireAnyStatus(report.getStatus(), "draft", "rejected");
+        String statusBefore = report.getStatus();
         report.setStatus("submitted");
         report.setRejectedReason(null);
         dailyWorkReportMapper.updateById(report);
+        confirmLog(id, "submit", "submitted", statusBefore, report.getStatus(), null);
         operationLogService.record("project", id, "submit_daily_report", "提交工程量日报");
     }
 
@@ -351,9 +359,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void pmConfirmDailyReport(Long id, ProjectActionDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
         requireAnyStatus(report.getStatus(), "submitted");
+        String statusBefore = report.getStatus();
         report.setStatus("pm_confirmed");
         dailyWorkReportMapper.updateById(report);
-        confirmLog(id, "project_manager", "confirmed", dto);
+        confirmLog(id, "project_manager", "confirmed", statusBefore, report.getStatus(), dto);
         operationLogService.record("project", id, "pm_confirm_daily_report", "项目经理确认工程量日报");
     }
 
@@ -362,9 +371,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void finalConfirmDailyReport(Long id, ProjectActionDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
         requireAnyStatus(report.getStatus(), "pm_confirmed");
+        String statusBefore = report.getStatus();
         report.setStatus("confirmed");
         dailyWorkReportMapper.updateById(report);
-        confirmLog(id, "commercial", "confirmed", dto);
+        confirmLog(id, "commercial", "confirmed", statusBefore, report.getStatus(), dto);
         operationLogService.record("project", id, "final_confirm_daily_report", "商务终审确认工程量日报");
     }
 
@@ -373,10 +383,11 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void rejectDailyReport(Long id, ProjectActionDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
         requireAnyStatus(report.getStatus(), "submitted", "pm_confirmed");
+        String statusBefore = report.getStatus();
         report.setStatus("rejected");
         report.setRejectedReason(dto == null ? null : dto.getRemark());
         dailyWorkReportMapper.updateById(report);
-        confirmLog(id, "reject", "rejected", dto);
+        confirmLog(id, "reject", "rejected", statusBefore, report.getStatus(), dto);
         operationLogService.record("project", id, "reject_daily_report", "驳回工程量日报");
     }
 
@@ -390,6 +401,26 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         file.setFileType(defaultText(dto.getFileType(), "photo"));
         file.setCreatedAt(LocalDateTime.now());
         dailyWorkReportFileMapper.insert(file);
+        confirmLog(id, "attachment", "attached", reportStatus(id), reportStatus(id), remark("绑定日报附件", dto.getFileId(), file.getFileType()));
+        operationLogService.record("project", id, "attach_daily_report_file", "绑定工程量日报附件：" + dto.getFileId());
+    }
+
+    @Override
+    public List<WorkQuantityConfirmDO> dailyReportConfirms(Long id) {
+        requireDailyReport(id);
+        return workQuantityConfirmMapper.selectList(new LambdaQueryWrapper<WorkQuantityConfirmDO>()
+                .eq(WorkQuantityConfirmDO::getDailyWorkReportId, id)
+                .orderByDesc(WorkQuantityConfirmDO::getCreatedAt)
+                .orderByDesc(WorkQuantityConfirmDO::getId));
+    }
+
+    @Override
+    public List<DailyWorkReportFileDO> dailyReportFiles(Long id) {
+        requireDailyReport(id);
+        return dailyWorkReportFileMapper.selectList(new LambdaQueryWrapper<DailyWorkReportFileDO>()
+                .eq(DailyWorkReportFileDO::getDailyWorkReportId, id)
+                .orderByDesc(DailyWorkReportFileDO::getCreatedAt)
+                .orderByDesc(DailyWorkReportFileDO::getId));
     }
 
     @Override
@@ -541,9 +572,11 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void submitVariationOrder(Long id) {
         VariationOrderDO order = requireVariationOrder(id);
         requireAnyStatus(order.getStatus(), "draft", "rejected");
+        String statusBefore = order.getStatus();
         order.setStatus("submitted");
         order.setRejectedReason(null);
         variationOrderMapper.updateById(order);
+        variationConfirmLog(id, "submit", "submitted", statusBefore, order.getStatus(), null);
         operationLogService.record("project", id, "submit_variation_order", "提交签证变更");
     }
 
@@ -551,8 +584,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void confirmVariationOrder(Long id, ProjectActionDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
         requireAnyStatus(order.getStatus(), "submitted");
+        String statusBefore = order.getStatus();
         order.setStatus("confirmed");
         variationOrderMapper.updateById(order);
+        variationConfirmLog(id, "commercial", "confirmed", statusBefore, order.getStatus(), dto);
         operationLogService.record("project", id, "confirm_variation_order", "确认签证变更");
     }
 
@@ -560,9 +595,11 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void rejectVariationOrder(Long id, ProjectActionDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
         requireAnyStatus(order.getStatus(), "submitted");
+        String statusBefore = order.getStatus();
         order.setStatus("rejected");
         order.setRejectedReason(dto == null ? null : dto.getRemark());
         variationOrderMapper.updateById(order);
+        variationConfirmLog(id, "reject", "rejected", statusBefore, order.getStatus(), dto);
         operationLogService.record("project", id, "reject_variation_order", "驳回签证变更");
     }
 
@@ -576,6 +613,26 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         file.setFileType(defaultText(dto.getFileType(), "evidence"));
         file.setCreatedAt(LocalDateTime.now());
         variationOrderFileMapper.insert(file);
+        variationConfirmLog(id, "attachment", "attached", variationStatus(id), variationStatus(id), remark("绑定签证附件", dto.getFileId(), file.getFileType()));
+        operationLogService.record("project", id, "attach_variation_order_file", "绑定签证附件：" + dto.getFileId());
+    }
+
+    @Override
+    public List<VariationOrderConfirmDO> variationOrderConfirms(Long id) {
+        requireVariationOrder(id);
+        return variationOrderConfirmMapper.selectList(new LambdaQueryWrapper<VariationOrderConfirmDO>()
+                .eq(VariationOrderConfirmDO::getVariationOrderId, id)
+                .orderByDesc(VariationOrderConfirmDO::getCreatedAt)
+                .orderByDesc(VariationOrderConfirmDO::getId));
+    }
+
+    @Override
+    public List<VariationOrderFileDO> variationOrderFiles(Long id) {
+        requireVariationOrder(id);
+        return variationOrderFileMapper.selectList(new LambdaQueryWrapper<VariationOrderFileDO>()
+                .eq(VariationOrderFileDO::getVariationOrderId, id)
+                .orderByDesc(VariationOrderFileDO::getCreatedAt)
+                .orderByDesc(VariationOrderFileDO::getId));
     }
 
     @Override
@@ -934,18 +991,66 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 .last("LIMIT 1"));
     }
 
-    private void confirmLog(Long reportId, String stage, String status, ProjectActionDTO dto) {
+    private void confirmLog(Long reportId, String stage, String status, String statusBefore, String statusAfter, ProjectActionDTO dto) {
         WorkQuantityConfirmDO confirm = new WorkQuantityConfirmDO();
         confirm.setDailyWorkReportId(reportId);
         confirm.setConfirmStage(stage);
         confirm.setConfirmStatus(status);
-        if (dto != null) {
-            confirm.setConfirmerId(dto.getOperatorId());
-            confirm.setConfirmerName(dto.getOperatorName());
-            confirm.setRemark(dto.getRemark());
-        }
+        fillOperator(confirm, dto);
+        confirm.setStatusBefore(statusBefore);
+        confirm.setStatusAfter(statusAfter);
+        confirm.setRemark(dto == null ? null : dto.getRemark());
         confirm.setCreatedAt(LocalDateTime.now());
         workQuantityConfirmMapper.insert(confirm);
+    }
+
+    private void variationConfirmLog(Long orderId, String stage, String status, String statusBefore, String statusAfter, ProjectActionDTO dto) {
+        VariationOrderConfirmDO confirm = new VariationOrderConfirmDO();
+        confirm.setVariationOrderId(orderId);
+        confirm.setConfirmStage(stage);
+        confirm.setConfirmStatus(status);
+        fillOperator(confirm, dto);
+        confirm.setStatusBefore(statusBefore);
+        confirm.setStatusAfter(statusAfter);
+        confirm.setRemark(dto == null ? null : dto.getRemark());
+        confirm.setCreatedAt(LocalDateTime.now());
+        variationOrderConfirmMapper.insert(confirm);
+    }
+
+    private ProjectActionDTO remark(String text, Long fileId, String fileType) {
+        ProjectActionDTO dto = new ProjectActionDTO();
+        dto.setRemark(text + "：" + fileId + "（" + fileType + "）");
+        return dto;
+    }
+
+    private void fillOperator(WorkQuantityConfirmDO confirm, ProjectActionDTO dto) {
+        LoginUser loginUser = auditUserProvider.currentLoginUser();
+        if (loginUser != null) {
+            confirm.setConfirmerId(loginUser.getUser().getId());
+            confirm.setConfirmerName(loginUser.getUsername());
+        } else if (dto != null) {
+            confirm.setConfirmerId(dto.getOperatorId());
+            confirm.setConfirmerName(dto.getOperatorName());
+        }
+    }
+
+    private void fillOperator(VariationOrderConfirmDO confirm, ProjectActionDTO dto) {
+        LoginUser loginUser = auditUserProvider.currentLoginUser();
+        if (loginUser != null) {
+            confirm.setConfirmerId(loginUser.getUser().getId());
+            confirm.setConfirmerName(loginUser.getUsername());
+        } else if (dto != null) {
+            confirm.setConfirmerId(dto.getOperatorId());
+            confirm.setConfirmerName(dto.getOperatorName());
+        }
+    }
+
+    private String reportStatus(Long id) {
+        return requireDailyReport(id).getStatus();
+    }
+
+    private String variationStatus(Long id) {
+        return requireVariationOrder(id).getStatus();
     }
 
     private void normalizeMachineryWorkRecord(MachineryWorkRecordDO record) {
