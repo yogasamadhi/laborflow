@@ -17,6 +17,8 @@ public class TeamSettlementDO extends BaseDO {
     private Long id;
     private Long projectId;
     private Long teamId;
+    private String projectName;
+    private String teamName;
     private String settlementMonth;
     private BigDecimal confirmedQuantity;
     private BigDecimal settlementAmount;

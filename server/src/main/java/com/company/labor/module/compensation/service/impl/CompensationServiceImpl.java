@@ -182,8 +182,11 @@ public class CompensationServiceImpl implements CompensationService {
 
     @Override
     public ProjectBonusPoolDO updateBonusPool(Long id, ProjectBonusPoolDO pool) {
-        requireBonusPool(id);
+        ProjectBonusPoolDO old = requireBonusPool(id);
         pool.setId(id);
+        if (StringUtils.hasText(old.getDashboardSnapshot())) {
+            pool.setDashboardSnapshot(old.getDashboardSnapshot());
+        }
         normalizeBonusPool(pool);
         bonusPoolMapper.updateById(pool);
         return bonusPoolMapper.selectById(id);
@@ -301,10 +304,25 @@ public class CompensationServiceImpl implements CompensationService {
     private void normalizeBonusPool(ProjectBonusPoolDO pool) {
         if (pool.getProjectId() == null) throw new BusinessException("项目必填");
         pool.setBonusRatio(nvl(pool.getBonusRatio()));
+        ProjectDashboardVO dashboard = projectManagementService.dashboard(pool.getProjectId());
         if (pool.getFinalGrossProfit() == null || pool.getFinalGrossProfit().compareTo(BigDecimal.ZERO) == 0) {
-            pool.setFinalGrossProfit(projectManagementService.dashboard(pool.getProjectId()).getGrossProfit());
+            pool.setFinalGrossProfit(dashboard.getGrossProfit());
+        }
+        if (!StringUtils.hasText(pool.getDashboardSnapshot())) {
+            pool.setDashboardSnapshot(bonusPoolSnapshot(dashboard));
         }
         pool.setBonusPoolAmount(pool.getFinalGrossProfit().multiply(pool.getBonusRatio()));
+    }
+
+    private String bonusPoolSnapshot(ProjectDashboardVO dashboard) {
+        return "项目:" + dashboard.getProjectName()
+                + ";合同额:" + dashboard.getContractAmount()
+                + ";已完成产值:" + dashboard.getCompletedOutputValue()
+                + ";总成本:" + dashboard.getTotalCostAmount()
+                + ";毛利:" + dashboard.getGrossProfit()
+                + ";应收:" + dashboard.getReceivableAmount()
+                + ";已收:" + dashboard.getReceivedAmount()
+                + ";风险数:" + dashboard.getRisks().size();
     }
 
     private void normalizeBonusAllocation(ProjectBonusAllocationDO allocation) {

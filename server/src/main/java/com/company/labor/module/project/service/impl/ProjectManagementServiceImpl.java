@@ -446,8 +446,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public TeamSettlementDO generateTeamSettlement(GenerateTeamSettlementDTO dto) {
         if (dto == null) throw new BusinessException("结算参数必填");
-        requireProject(dto.getProjectId());
-        requireTeam(dto.getTeamId());
+        ProjectDO project = requireProject(dto.getProjectId());
+        TeamDO team = requireTeam(dto.getTeamId());
         requireText(dto.getSettlementMonth(), "结算月份必填");
         YearMonth month = YearMonth.parse(dto.getSettlementMonth());
         LocalDate start = month.atDay(1);
@@ -472,6 +472,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         TeamSettlementDO settlement = new TeamSettlementDO();
         settlement.setProjectId(dto.getProjectId());
         settlement.setTeamId(dto.getTeamId());
+        settlement.setProjectName(project.getName());
+        settlement.setTeamName(team.getName());
         settlement.setSettlementMonth(dto.getSettlementMonth());
         settlement.setCompensationAmount(nvl(dto.getCompensationAmount()));
         settlement.setDeductionAmount(nvl(dto.getDeductionAmount()));
@@ -488,6 +490,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             if (price == null) {
                 throw new BusinessException("缺少班组单价，日报ID：" + report.getId());
             }
+            WorkProcessDO process = requireWorkProcess(report.getWorkProcessId());
             BigDecimal lineQuantity = nvl(report.getCompletedQuantity());
             BigDecimal lineAmount = lineQuantity.multiply(nvl(price.getUnitPrice()));
             quantity = quantity.add(lineQuantity);
@@ -496,10 +499,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             TeamSettlementDetailDO detail = new TeamSettlementDetailDO();
             detail.setDailyWorkReportId(report.getId());
             detail.setWorkProcessId(report.getWorkProcessId());
+            detail.setWorkDate(report.getWorkDate());
+            detail.setWorkProcessName(process.getName());
             detail.setQuantity(lineQuantity);
             detail.setUnit(report.getUnit());
             detail.setUnitPrice(nvl(price.getUnitPrice()));
             detail.setAmount(lineAmount);
+            detail.setSourceSnapshot(settlementSourceSnapshot(report, process, price, lineQuantity, lineAmount));
             details.add(detail);
         }
         settlement.setConfirmedQuantity(quantity);
@@ -989,6 +995,16 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 .orderByDesc(ProjectProcessPriceDO::getEffectiveDate)
                 .orderByDesc(ProjectProcessPriceDO::getCreatedAt)
                 .last("LIMIT 1"));
+    }
+
+    private String settlementSourceSnapshot(DailyWorkReportDO report, WorkProcessDO process, TeamUnitPriceDO price, BigDecimal quantity, BigDecimal amount) {
+        return "日报ID:" + report.getId()
+                + ";日期:" + report.getWorkDate()
+                + ";工序:" + process.getName()
+                + ";工程量:" + quantity + report.getUnit()
+                + ";单价:" + nvl(price.getUnitPrice())
+                + ";金额:" + amount
+                + ";班组单价ID:" + price.getId();
     }
 
     private void confirmLog(Long reportId, String stage, String status, String statusBefore, String statusAfter, ProjectActionDTO dto) {

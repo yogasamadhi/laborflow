@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.Data;
 
 @Data
@@ -14,9 +15,12 @@ public class TeamSettlementDetailDO {
     private Long teamSettlementId;
     private Long dailyWorkReportId;
     private Long workProcessId;
+    private LocalDate workDate;
+    private String workProcessName;
     private BigDecimal quantity;
     private String unit;
     private BigDecimal unitPrice;
     private BigDecimal amount;
+    private String sourceSnapshot;
     private String remark;
 }

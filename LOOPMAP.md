@@ -62,7 +62,7 @@
 | L2-02 | backend | done | 标准化操作日志 | `operation_log`、日志服务、工资/项目/绩效 service | 关键操作记录操作者、模块、业务 ID、动作、摘要、时间；日志不可由普通用户篡改 |
 | L2-03 | backend/web/miniapp | done | 完善工资审批证据链 | 工资月表、明细、审核、驳回、发放、凭证上传 | 工资生成、修改、提交、审核、驳回、单人发放、批量发放、导出都有日志和操作者 |
 | L2-04 | backend/web/miniapp | done | 完善工程量与签证审批链 | 日报、工程量确认、签证确认、附件表、移动端待办 | 提交、项目经理确认、商务确认、驳回都有状态流、意见、操作者和附件证据 |
-| L2-05 | backend/web | todo | 关键业务快照固化 | 工资来源、结算详情、签证确认、项目看板 | 工资、结算、奖金池生成后保留来源快照；后续基础资料变化不破坏历史追溯 |
+| L2-05 | backend/web | done | 关键业务快照固化 | 工资来源、结算详情、签证确认、项目看板 | 工资、结算、奖金池生成后保留来源快照；后续基础资料变化不破坏历史追溯 |
 
 ### P3：数据模型、DTO 与校验加固
 
@@ -335,4 +335,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; node --check miniapp/services/project.js; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
 结果: passed
 备注: Added project approval evidence records for daily reports and variation orders, captured server-side operators and before/after statuses, exposed confirm/file evidence endpoints, added Web evidence-chain viewing, and added miniapp service accessors.
+```
+
+```text
+Loop: L2-05
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+结果: passed
+备注: Preserved generated business snapshots for team settlements and bonus pools, kept salary source snapshots through salary_source_record, displayed snapshot names/summaries in Web tables, and added a compensation snapshot unit test.
 ```

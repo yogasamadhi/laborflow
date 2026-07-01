@@ -21,5 +21,6 @@ public class ProjectBonusPoolDO extends BaseDO {
     private BigDecimal bonusPoolAmount;
     private String releaseCondition;
     private String releaseStatus;
+    private String dashboardSnapshot;
     private String remark;
 }
