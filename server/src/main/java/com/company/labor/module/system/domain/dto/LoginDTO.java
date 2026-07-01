@@ -9,5 +9,6 @@ public class LoginDTO {
     private String username;
     @NotBlank
     private String password;
+    private String wechatOpenid;
+    private String wechatNickname;
 }
-

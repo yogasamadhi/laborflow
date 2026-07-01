@@ -6,6 +6,7 @@ import com.company.labor.module.system.domain.dto.WechatSessionDTO;
 import com.company.labor.module.system.domain.vo.LoginVO;
 import com.company.labor.module.system.domain.vo.WechatSessionVO;
 import com.company.labor.module.system.service.LoginSecurityService;
+import com.company.labor.module.system.service.WechatBindingService;
 import com.company.labor.module.system.service.WechatAuthService;
 import com.company.labor.security.JwtTokenProvider;
 import com.company.labor.security.LoginUser;
@@ -31,6 +32,7 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSecurityService loginSecurityService;
     private final WechatAuthService wechatAuthService;
+    private final WechatBindingService wechatBindingService;
 
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
@@ -47,6 +49,7 @@ public class AuthController {
         }
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         loginSecurityService.recordLoginSuccess(loginUser, clientIp(request));
+        wechatBindingService.bindLoginUser(dto.getWechatOpenid(), dto.getWechatNickname(), loginUser);
         JwtTokenProvider.JwtToken token = jwtTokenProvider.createLoginToken(loginUser);
         return Result.success(new LoginVO(token.value(), token.expiresAt(), loginUser.getUser().getId(), loginUser.getUser().getEmployeeId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
     }

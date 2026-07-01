@@ -31,7 +31,8 @@ export function statusText(status?: string) {
     confirmed: "已确认",
     rejected: "已驳回",
     released: "已发布",
-    allocated: "已分配"
+    allocated: "已分配",
+    pending: "待绑定"
   };
   return status ? map[status] ?? status : "-";
 }

@@ -69,6 +69,7 @@ const groups = [
     title: "系统",
     links: [
       { to: "/system/users", label: "用户", roles: adminRoles },
+      { to: "/system/wechat-bindings", label: "微信绑定", roles: adminRoles },
       { to: "/system/roles", label: "角色", roles: adminRoles },
       { to: "/system/logs", label: "操作日志", roles: adminRoles }
     ]
