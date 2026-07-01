@@ -383,6 +383,14 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    public void requireDailyReportOwner(Long id, Long userId) {
+        DailyWorkReportDO report = requireDailyReport(id);
+        if (userId == null || report.getCreatedBy() == null || !userId.equals(report.getCreatedBy())) {
+            throw new BusinessException("无权操作该工程量日报");
+        }
+    }
+
+    @Override
     public Page<TeamSettlementDO> teamSettlements(long page, long pageSize, Long projectId, Long teamId, String settlementMonth) {
         return teamSettlementMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<TeamSettlementDO>()
                 .eq(TeamSettlementDO::getDeleted, 0)
@@ -552,6 +560,14 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         file.setFileType(defaultText(dto.getFileType(), "evidence"));
         file.setCreatedAt(LocalDateTime.now());
         variationOrderFileMapper.insert(file);
+    }
+
+    @Override
+    public void requireVariationOrderOwner(Long id, Long userId) {
+        VariationOrderDO order = requireVariationOrder(id);
+        if (userId == null || order.getCreatedBy() == null || !userId.equals(order.getCreatedBy())) {
+            throw new BusinessException("无权操作该签证变更");
+        }
     }
 
     @Override

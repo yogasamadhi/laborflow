@@ -22,7 +22,7 @@ import com.company.labor.module.project.domain.entity.VariationOrderDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectManagementService;
-import com.company.labor.security.LoginUser;
+import com.company.labor.security.AccessControlSupport;
 import com.company.labor.security.RoleExpressions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -213,7 +213,7 @@ public class ProjectManagementController {
                                                               @RequestParam(required = false) String status,
                                                               @RequestParam(required = false) Boolean mine,
                                                               Authentication authentication) {
-        Long createdBy = Boolean.TRUE.equals(mine) ? currentUserId(authentication) : null;
+        Long createdBy = scopedCreatedBy(authentication, mine);
         return Result.success(PageResult.of(service.dailyReports(page, pageSize, projectId, teamId, status, createdBy)));
     }
 
@@ -227,12 +227,14 @@ public class ProjectManagementController {
 
     @PutMapping("/api/daily-work-reports/{id}")
     public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @RequestBody DailyWorkReportDO report, Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
         report.setUpdatedBy(currentUserId(authentication));
         return Result.success(service.updateDailyReport(id, report));
     }
 
     @PostMapping("/api/daily-work-reports/{id}/submit")
-    public Result<Void> submitDailyReport(@PathVariable Long id) {
+    public Result<Void> submitDailyReport(@PathVariable Long id, Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
         service.submitDailyReport(id);
         return Result.success();
     }
@@ -259,7 +261,8 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/daily-work-reports/{id}/files")
-    public Result<Void> attachDailyReportFile(@PathVariable Long id, @RequestBody FileAttachDTO dto) {
+    public Result<Void> attachDailyReportFile(@PathVariable Long id, @RequestBody FileAttachDTO dto, Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
         service.attachDailyReportFile(id, dto);
         return Result.success();
     }
@@ -301,7 +304,7 @@ public class ProjectManagementController {
                                                                 @RequestParam(required = false) String status,
                                                                 @RequestParam(required = false) Boolean mine,
                                                                 Authentication authentication) {
-        Long createdBy = Boolean.TRUE.equals(mine) ? currentUserId(authentication) : null;
+        Long createdBy = scopedCreatedBy(authentication, mine);
         return Result.success(PageResult.of(service.variationOrders(page, pageSize, projectId, status, createdBy)));
     }
 
@@ -315,12 +318,14 @@ public class ProjectManagementController {
 
     @PutMapping("/api/variation-orders/{id}")
     public Result<VariationOrderDO> updateVariationOrder(@PathVariable Long id, @RequestBody VariationOrderDO order, Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
         order.setUpdatedBy(currentUserId(authentication));
         return Result.success(service.updateVariationOrder(id, order));
     }
 
     @PostMapping("/api/variation-orders/{id}/submit")
-    public Result<Void> submitVariationOrder(@PathVariable Long id) {
+    public Result<Void> submitVariationOrder(@PathVariable Long id, Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
         service.submitVariationOrder(id);
         return Result.success();
     }
@@ -340,7 +345,8 @@ public class ProjectManagementController {
     }
 
     @PostMapping("/api/variation-orders/{id}/files")
-    public Result<Void> attachVariationOrderFile(@PathVariable Long id, @RequestBody FileAttachDTO dto) {
+    public Result<Void> attachVariationOrderFile(@PathVariable Long id, @RequestBody FileAttachDTO dto, Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
         service.attachVariationOrderFile(id, dto);
         return Result.success();
     }
@@ -473,10 +479,25 @@ public class ProjectManagementController {
     }
 
     private Long currentUserId(Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
-            return null;
+        return AccessControlSupport.currentUserId(authentication);
+    }
+
+    private Long scopedCreatedBy(Authentication authentication, Boolean mine) {
+        if (!AccessControlSupport.hasProjectManageRole(authentication)) {
+            return currentUserId(authentication);
         }
-        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        return loginUser.getUser().getId();
+        return Boolean.TRUE.equals(mine) ? currentUserId(authentication) : null;
+    }
+
+    private void requireDailyReportOwnerIfNeeded(Long id, Authentication authentication) {
+        if (!AccessControlSupport.hasProjectManageRole(authentication)) {
+            service.requireDailyReportOwner(id, currentUserId(authentication));
+        }
+    }
+
+    private void requireVariationOrderOwnerIfNeeded(Long id, Authentication authentication) {
+        if (!AccessControlSupport.hasProjectManageRole(authentication)) {
+            service.requireVariationOrderOwner(id, currentUserId(authentication));
+        }
     }
 }

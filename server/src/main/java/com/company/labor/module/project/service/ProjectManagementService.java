@@ -60,6 +60,7 @@ public interface ProjectManagementService {
     void finalConfirmDailyReport(Long id, ProjectActionDTO dto);
     void rejectDailyReport(Long id, ProjectActionDTO dto);
     void attachDailyReportFile(Long id, FileAttachDTO dto);
+    void requireDailyReportOwner(Long id, Long userId);
 
     Page<TeamSettlementDO> teamSettlements(long page, long pageSize, Long projectId, Long teamId, String settlementMonth);
     TeamSettlementDO generateTeamSettlement(GenerateTeamSettlementDTO dto);
@@ -73,6 +74,7 @@ public interface ProjectManagementService {
     void confirmVariationOrder(Long id, ProjectActionDTO dto);
     void rejectVariationOrder(Long id, ProjectActionDTO dto);
     void attachVariationOrderFile(Long id, FileAttachDTO dto);
+    void requireVariationOrderOwner(Long id, Long userId);
 
     Page<ProjectCostRecordDO> costRecords(long page, long pageSize, Long projectId);
     ProjectCostRecordDO saveCostRecord(ProjectCostRecordDO record);

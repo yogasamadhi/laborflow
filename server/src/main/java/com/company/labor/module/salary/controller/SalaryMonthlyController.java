@@ -10,9 +10,11 @@ import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
+import com.company.labor.module.salary.mapper.SalaryMonthlyDetailMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.salary.service.SalaryExportService;
 import com.company.labor.module.salary.service.SalaryMonthlyService;
+import com.company.labor.security.AccessControlSupport;
 import com.company.labor.security.LoginUser;
 import com.company.labor.security.RoleExpressions;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +41,7 @@ public class SalaryMonthlyController {
     private final SalaryMonthlyService service;
     private final SalaryExportService exportService;
     private final SalaryDetailItemMapper detailItemMapper;
+    private final SalaryMonthlyDetailMapper detailMapper;
     private final SalaryMonthlyMapper monthlyMapper;
 
     @GetMapping("/monthly")
@@ -147,7 +150,8 @@ public class SalaryMonthlyController {
     }
 
     @GetMapping("/details/{detailId}/items")
-    public Result<List<SalaryDetailItemDO>> detailItems(@PathVariable Long detailId) {
+    public Result<List<SalaryDetailItemDO>> detailItems(@PathVariable Long detailId, Authentication authentication) {
+        requireSalaryDetailAccess(detailId, authentication);
         return Result.success(detailItemMapper.selectList(new LambdaQueryWrapper<SalaryDetailItemDO>()
                 .eq(SalaryDetailItemDO::getSalaryDetailId, detailId)));
     }
@@ -219,5 +223,19 @@ public class SalaryMonthlyController {
             throw new BusinessException("工资表不存在");
         }
         return monthly;
+    }
+
+    private void requireSalaryDetailAccess(Long detailId, Authentication authentication) {
+        if (AccessControlSupport.hasSalaryManageRole(authentication)) {
+            return;
+        }
+        SalaryMonthlyDetailDO detail = detailMapper.selectById(detailId);
+        if (detail == null || detail.getDeleted() != null && detail.getDeleted() == 1) {
+            throw new BusinessException("工资明细不存在");
+        }
+        Long currentEmployeeId = AccessControlSupport.currentEmployeeId(authentication);
+        if (currentEmployeeId == null || !currentEmployeeId.equals(detail.getEmployeeId())) {
+            throw new BusinessException("无权查看该工资明细");
+        }
     }
 }
