@@ -1,5 +1,6 @@
 package com.company.labor.config;
 
+import com.company.labor.security.ApiAuthenticationEntryPoint;
 import com.company.labor.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -21,12 +22,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SecurityExposurePolicy securityExposurePolicy;
+    private final ApiAuthenticationEntryPoint authenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/auth/login").permitAll();
                     if (securityExposurePolicy.isProduction()) {

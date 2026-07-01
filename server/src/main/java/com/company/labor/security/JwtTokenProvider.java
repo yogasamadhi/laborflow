@@ -1,6 +1,8 @@
 package com.company.labor.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -24,20 +26,42 @@ public class JwtTokenProvider {
         this.expirationMinutes = expirationMinutes;
     }
 
-    public String createToken(LoginUser user) {
+    public JwtToken createLoginToken(LoginUser user) {
         Instant now = Instant.now();
-        return Jwts.builder()
+        Instant expiresAt = now.plusSeconds(expirationMinutes * 60);
+        String value = Jwts.builder()
                 .subject(user.getUser().getId().toString())
                 .claim("username", user.getUsername())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusSeconds(expirationMinutes * 60)))
+                .expiration(Date.from(expiresAt))
                 .signWith(secretKey)
                 .compact();
+        return new JwtToken(value, expiresAt);
+    }
+
+    public String createToken(LoginUser user) {
+        return createLoginToken(user).value();
     }
 
     public Long parseUserId(String token) {
-        Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
-        return Long.valueOf(claims.getSubject());
+        Claims claims = parseClaims(token);
+        try {
+            return Long.valueOf(claims.getSubject());
+        } catch (NumberFormatException ex) {
+            throw new JwtAuthenticationException("登录凭证无效，请重新登录", ex);
+        }
+    }
+
+    private Claims parseClaims(String token) {
+        try {
+            return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
+        } catch (ExpiredJwtException ex) {
+            throw new JwtAuthenticationException("登录已过期，请重新登录", ex);
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new JwtAuthenticationException("登录凭证无效，请重新登录", ex);
+        }
+    }
+
+    public record JwtToken(String value, Instant expiresAt) {
     }
 }
-

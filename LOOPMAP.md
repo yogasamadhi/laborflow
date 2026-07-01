@@ -48,7 +48,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
-| L1-01 | backend | todo | 完善 JWT 生命周期 | `JwtTokenProvider`、`JwtAuthenticationFilter`、auth service | 支持 token 过期策略、刷新策略或重新登录策略；无效 token 有明确错误；停用用户 token 不可继续访问 |
+| L1-01 | backend | done | 完善 JWT 生命周期 | `JwtTokenProvider`、`JwtAuthenticationFilter`、auth service | 支持 token 过期策略、刷新策略或重新登录策略；无效 token 有明确错误；停用用户 token 不可继续访问 |
 | L1-02 | backend | todo | 增加登录安全控制 | auth controller/service、用户表迁移 | 登录失败计数、临时锁定、最后登录时间/IP、密码修改时间可记录；锁定账号不能登录 |
 | L1-03 | backend/miniapp | todo | 实现微信 code 换 session | 小程序登录接口、微信配置、用户绑定表迁移、`miniapp/services/auth.js` | 小程序可用 `wx.login` code 换取 openid/session；失败有明确提示；不把微信密钥提交到仓库 |
 | L1-04 | backend/miniapp/web | todo | 实现账号与员工、openid 绑定闭环 | `sys_user`、员工模块、小程序 profile/login 页面、Web 用户管理 | 小程序登录后能绑定平台账号和员工；员工解绑、换绑、停用流程可审计 |
@@ -245,4 +245,14 @@ Pushed: yes after loop push
 验证命令: rg -n "admin123456|admin /" README.md PROJECT_BRIEF.md ROADMAP.md server/src/main/resources/db/migration web/src miniapp; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build
 结果: passed
 备注: Removed Web login defaults, removed documented weak default credentials, and added a migration that disables the unchanged weak default admin account.
+```
+
+```text
+Loop: L1-01
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+结果: passed
+备注: Added explicit JWT expiry/invalid-token errors, returned token expiry metadata on login, and rejected tokens for missing, deleted, or inactive users.
 ```
