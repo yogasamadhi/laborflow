@@ -6,16 +6,47 @@ Page({
     username: "",
     password: "",
     wxCode: "",
+    wechatOpenid: "",
+    wechatBound: false,
     nickname: "",
     authButtonText: "微信授权",
     loading: false
   },
 
   onLoad() {
-    wx.login({
-      success: (res) => {
-        this.setData({ wxCode: res.code || "" });
-      }
+    this.refreshWechatSession(false);
+  },
+
+  refreshWechatSession(showError) {
+    return new Promise((resolve, reject) => {
+      wx.login({
+        success: async (res) => {
+          if (!res.code) {
+            const error = new Error("微信登录凭证获取失败");
+            if (showError) wx.showToast({ title: error.message, icon: "none" });
+            reject(error);
+            return;
+          }
+          this.setData({ wxCode: res.code });
+          try {
+            const session = await authService.wechatSession(res.code);
+            this.setData({
+              wechatOpenid: session.openid || "",
+              wechatBound: !!session.bound,
+              authButtonText: session.bound ? "微信已绑定" : this.data.authButtonText
+            });
+            resolve(session);
+          } catch (error) {
+            if (showError) wx.showToast({ title: error.message, icon: "none" });
+            reject(error);
+          }
+        },
+        fail: () => {
+          const error = new Error("微信登录凭证获取失败");
+          if (showError) wx.showToast({ title: error.message, icon: "none" });
+          reject(error);
+        }
+      });
     });
   },
 
@@ -31,6 +62,7 @@ Page({
       success: (res) => {
         const nickname = res.userInfo.nickName || "";
         this.setData({ nickname, authButtonText: nickname ? "已授权：" + nickname : "微信授权" });
+        this.refreshWechatSession(true).catch(() => {});
       }
     });
   },
@@ -44,10 +76,16 @@ Page({
     }
     this.setData({ loading: true });
     try {
+      try {
+        await this.refreshWechatSession(false);
+      } catch (error) {
+        wx.showToast({ title: error.message, icon: "none" });
+      }
       const data = await authService.login({
         username,
         password,
         wechatCode: this.data.wxCode,
+        wechatOpenid: this.data.wechatOpenid,
         wechatNickname: this.data.nickname
       });
       const user = auth.setLogin(data);

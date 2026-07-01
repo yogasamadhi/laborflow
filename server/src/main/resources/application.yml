@@ -31,4 +31,9 @@ laborflow:
   jwt:
     secret: ${JWT_SECRET:please-change-this-secret-to-at-least-32-characters}
     expiration-minutes: 720
+  wechat:
+    miniapp:
+      app-id: ${WECHAT_MINIAPP_APP_ID:}
+      app-secret: ${WECHAT_MINIAPP_APP_SECRET:}
+      code2-session-url: ${WECHAT_MINIAPP_CODE2SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
   upload-dir: ${UPLOAD_DIR:./uploads}

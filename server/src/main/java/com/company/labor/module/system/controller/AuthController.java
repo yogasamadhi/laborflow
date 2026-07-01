@@ -2,8 +2,11 @@ package com.company.labor.module.system.controller;
 
 import com.company.labor.common.result.Result;
 import com.company.labor.module.system.domain.dto.LoginDTO;
+import com.company.labor.module.system.domain.dto.WechatSessionDTO;
 import com.company.labor.module.system.domain.vo.LoginVO;
+import com.company.labor.module.system.domain.vo.WechatSessionVO;
 import com.company.labor.module.system.service.LoginSecurityService;
+import com.company.labor.module.system.service.WechatAuthService;
 import com.company.labor.security.JwtTokenProvider;
 import com.company.labor.security.LoginUser;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +30,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSecurityService loginSecurityService;
+    private final WechatAuthService wechatAuthService;
 
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
@@ -51,6 +55,11 @@ public class AuthController {
     public Result<LoginVO> me(Authentication authentication) {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         return Result.success(new LoginVO(null, null, loginUser.getUser().getId(), loginUser.getUser().getEmployeeId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
+    }
+
+    @PostMapping("/wechat/session")
+    public Result<WechatSessionVO> wechatSession(@Valid @RequestBody WechatSessionDTO dto) {
+        return Result.success(wechatAuthService.exchangeSession(dto.getCode()));
     }
 
     @PostMapping("/logout")
