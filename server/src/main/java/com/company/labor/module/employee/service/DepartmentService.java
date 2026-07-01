@@ -8,5 +8,6 @@ public interface DepartmentService extends IService<DepartmentDO> {
     Page<DepartmentDO> search(long page, long pageSize, String keyword, String status);
     DepartmentDO createDepartment(DepartmentDO department);
     DepartmentDO updateDepartment(Long id, DepartmentDO department);
-    void deactivate(Long id);
+    void deleteDepartment(Long id);
+    void restoreDepartment(Long id);
 }

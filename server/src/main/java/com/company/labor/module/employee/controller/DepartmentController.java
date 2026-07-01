@@ -49,7 +49,13 @@ public class DepartmentController {
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        service.deactivate(id);
+        service.deleteDepartment(id);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/restore")
+    public Result<Void> restore(@PathVariable Long id) {
+        service.restoreDepartment(id);
         return Result.success();
     }
 }

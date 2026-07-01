@@ -369,6 +369,40 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         return auditRecordMapper.selectByMonthlyId(monthlyId);
     }
 
+    @Override
+    @Transactional
+    public void deleteMonthly(Long monthlyId) {
+        SalaryMonthlyDO monthly = requireMonthly(monthlyId);
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
+        baseMapper.softDeleteById(monthlyId);
+        detailMapper.update(null, new LambdaUpdateWrapper<SalaryMonthlyDetailDO>()
+                .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthlyId)
+                .set(SalaryMonthlyDetailDO::getDeleted, 1));
+        log("delete_monthly", monthlyId, "删除工资表：" + monthly.getSalaryMonth());
+        audit(monthlyId, null, "delete_monthly", monthly.getStatus(), monthly.getStatus(), "删除工资表：" + monthly.getSalaryMonth(), null);
+    }
+
+    @Override
+    @Transactional
+    public void restoreMonthly(Long monthlyId) {
+        SalaryMonthlyDO monthly = baseMapper.selectByIdIncludingDeleted(monthlyId);
+        if (monthly == null) {
+            throw new BusinessException("工资表不存在");
+        }
+        if (monthly.getDeleted() == null || monthly.getDeleted() == 0) {
+            return;
+        }
+        if (baseMapper.countActiveByMonthExceptId(monthly.getSalaryMonth(), monthlyId) > 0) {
+            throw new BusinessException("同月份已存在正常工资表，不能恢复");
+        }
+        baseMapper.restoreById(monthlyId);
+        detailMapper.update(null, new LambdaUpdateWrapper<SalaryMonthlyDetailDO>()
+                .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthlyId)
+                .set(SalaryMonthlyDetailDO::getDeleted, 0));
+        log("restore_monthly", monthlyId, "恢复工资表：" + monthly.getSalaryMonth());
+        audit(monthlyId, null, "restore_monthly", monthly.getStatus(), monthly.getStatus(), "恢复工资表：" + monthly.getSalaryMonth(), null);
+    }
+
     private SalaryProfileDO latestProfile(Long employeeId) {
         return salaryProfileMapper.selectOne(new LambdaQueryWrapper<SalaryProfileDO>()
                 .eq(SalaryProfileDO::getEmployeeId, employeeId)

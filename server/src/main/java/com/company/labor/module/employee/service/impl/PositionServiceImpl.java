@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.common.softdelete.SoftDeleteGuard;
+import com.company.labor.common.softdelete.SoftDeleteGuard.Reference;
 import com.company.labor.module.employee.domain.entity.DepartmentDO;
 import com.company.labor.module.employee.domain.entity.PositionDO;
 import com.company.labor.module.employee.mapper.DepartmentMapper;
@@ -18,6 +20,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class PositionServiceImpl extends ServiceImpl<PositionMapper, PositionDO> implements PositionService {
     private final DepartmentMapper departmentMapper;
+    private final SoftDeleteGuard softDeleteGuard;
 
     @Override
     public Page<PositionDO> search(long page, long pageSize, String keyword, String status, Long departmentId) {
@@ -38,7 +41,7 @@ public class PositionServiceImpl extends ServiceImpl<PositionMapper, PositionDO>
     @Override
     @Transactional
     public PositionDO createPosition(PositionDO position) {
-        validate(position);
+        validate(position, null);
         if (position.getSortOrder() == null) position.setSortOrder(0);
         if (!StringUtils.hasText(position.getStatus())) position.setStatus("active");
         if (!save(position)) {
@@ -53,7 +56,7 @@ public class PositionServiceImpl extends ServiceImpl<PositionMapper, PositionDO>
         PositionDO old = getById(id);
         if (old == null) throw new BusinessException("岗位不存在");
         position.setId(id);
-        validate(position);
+        validate(position, id);
         if (position.getSortOrder() == null) position.setSortOrder(0);
         if (!StringUtils.hasText(position.getStatus())) position.setStatus(old.getStatus());
         if (!updateById(position)) {
@@ -64,14 +67,36 @@ public class PositionServiceImpl extends ServiceImpl<PositionMapper, PositionDO>
 
     @Override
     @Transactional
-    public void deactivate(Long id) {
+    public void deletePosition(Long id) {
         PositionDO position = getById(id);
         if (position == null) throw new BusinessException("岗位不存在");
-        position.setStatus("inactive");
-        updateById(position);
+        softDeleteGuard.requireNotReferenced("岗位", id,
+                Reference.active("employee", "position_id", "员工"),
+                Reference.active("salary_monthly_detail", "position_id", "工资明细"),
+                Reference.active("performance_indicator", "position_id", "绩效指标"),
+                Reference.active("performance_plan", "position_id", "绩效方案"),
+                Reference.active("performance_score", "position_id", "绩效评分"));
+        position.setDeleted(1);
+        if (!updateById(position)) {
+            throw new BusinessException("岗位删除失败");
+        }
     }
 
-    private void validate(PositionDO position) {
+    @Override
+    @Transactional
+    public void restorePosition(Long id) {
+        PositionDO position = baseMapper.selectByIdIncludingDeleted(id);
+        if (position == null) throw new BusinessException("岗位不存在");
+        if (!deleted(position.getDeleted())) {
+            return;
+        }
+        validate(position, id);
+        if (baseMapper.restoreById(id) <= 0) {
+            throw new BusinessException("岗位恢复失败");
+        }
+    }
+
+    private void validate(PositionDO position, Long selfId) {
         if (!StringUtils.hasText(position.getName())) {
             throw new BusinessException("岗位名称必填");
         }
@@ -81,5 +106,13 @@ public class PositionServiceImpl extends ServiceImpl<PositionMapper, PositionDO>
                 throw new BusinessException("所属部门不存在");
             }
         }
+        Long id = selfId == null ? -1L : selfId;
+        if (baseMapper.countActiveByNameAndDepartmentExceptId(position.getName(), position.getDepartmentId(), id) > 0) {
+            throw new BusinessException("同部门岗位名称已存在");
+        }
+    }
+
+    private boolean deleted(Integer deleted) {
+        return deleted != null && deleted == 1;
     }
 }

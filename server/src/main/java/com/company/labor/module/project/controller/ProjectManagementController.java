@@ -89,6 +89,13 @@ public class ProjectManagementController {
         return Result.success();
     }
 
+    @PostMapping("/api/projects/{id}/restore")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<Void> restoreProject(@PathVariable Long id) {
+        service.restoreProject(id);
+        return Result.success();
+    }
+
     @PostMapping("/api/projects/{id}/status")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<Void> updateProjectStatus(@PathVariable Long id, @Valid @RequestBody ProjectActionDTO dto) {
@@ -129,6 +136,13 @@ public class ProjectManagementController {
         return Result.success();
     }
 
+    @PostMapping("/api/project-sections/{id}/restore")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<Void> restoreSection(@PathVariable Long id) {
+        service.restoreSection(id);
+        return Result.success();
+    }
+
     @GetMapping("/api/work-processes")
     public Result<PageResult<WorkProcessDO>> workProcesses(@RequestParam(defaultValue = "1") long page,
                                                            @RequestParam(defaultValue = "20") long pageSize,
@@ -151,8 +165,15 @@ public class ProjectManagementController {
 
     @DeleteMapping("/api/work-processes/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> deactivateWorkProcess(@PathVariable Long id) {
-        service.deactivateWorkProcess(id);
+    public Result<Void> deleteWorkProcess(@PathVariable Long id) {
+        service.deleteWorkProcess(id);
+        return Result.success();
+    }
+
+    @PostMapping("/api/work-processes/{id}/restore")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<Void> restoreWorkProcess(@PathVariable Long id) {
+        service.restoreWorkProcess(id);
         return Result.success();
     }
 
@@ -178,8 +199,15 @@ public class ProjectManagementController {
 
     @DeleteMapping("/api/teams/{id}")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> deactivateTeam(@PathVariable Long id) {
-        service.deactivateTeam(id);
+    public Result<Void> deleteTeam(@PathVariable Long id) {
+        service.deleteTeam(id);
+        return Result.success();
+    }
+
+    @PostMapping("/api/teams/{id}/restore")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<Void> restoreTeam(@PathVariable Long id) {
+        service.restoreTeam(id);
         return Result.success();
     }
 

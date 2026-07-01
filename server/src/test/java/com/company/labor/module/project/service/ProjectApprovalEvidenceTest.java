@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.company.labor.common.softdelete.SoftDeleteGuard;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
 import com.company.labor.module.project.domain.entity.VariationOrderConfirmDO;
 import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
@@ -94,7 +95,8 @@ class ProjectApprovalEvidenceTest {
                 mock(MaterialRecordMapper.class),
                 mock(ProjectDocumentArchiveMapper.class),
                 mock(OperationLogService.class),
-                auditUserProvider);
+                auditUserProvider,
+                mock(SoftDeleteGuard.class));
     }
 
     private LoginUser loginUser() {

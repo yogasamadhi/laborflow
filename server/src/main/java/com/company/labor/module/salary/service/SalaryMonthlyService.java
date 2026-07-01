@@ -17,6 +17,8 @@ public interface SalaryMonthlyService extends IService<SalaryMonthlyDO> {
     void approve(Long monthlyId, Long userId, String remark);
     void reject(Long monthlyId, String remark);
     void markMonthlyPaid(Long monthlyId, SalaryPaymentDTO dto);
+    void deleteMonthly(Long monthlyId);
+    void restoreMonthly(Long monthlyId);
     Page<SalaryMonthlyDetailDO> details(Long monthlyId, long page, long pageSize);
     SalaryMonthlyDetailDO updateDetail(Long detailId, SalaryMonthlyDetailDO detail);
     void markDetailPaid(Long detailId, SalaryPaymentDTO dto);

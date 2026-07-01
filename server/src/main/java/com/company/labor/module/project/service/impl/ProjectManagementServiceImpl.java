@@ -3,6 +3,8 @@ package com.company.labor.module.project.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.common.softdelete.SoftDeleteGuard;
+import com.company.labor.common.softdelete.SoftDeleteGuard.Reference;
 import com.company.labor.common.statemachine.BusinessStateMachine;
 import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
@@ -93,6 +95,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final ProjectDocumentArchiveMapper documentArchiveMapper;
     private final OperationLogService operationLogService;
     private final AuditUserProvider auditUserProvider;
+    private final SoftDeleteGuard softDeleteGuard;
 
     @Override
     public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds) {
@@ -133,8 +136,41 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void deleteProject(Long id) {
         ProjectDO project = requireProject(id);
+        softDeleteGuard.requireNotReferenced("项目", id,
+                Reference.active("project_section", "project_id", "施工段"),
+                Reference.active("project_member", "project_id", "项目成员"),
+                Reference.active("team_unit_price", "project_id", "班组单价"),
+                Reference.active("project_process_price", "project_id", "项目工序单价"),
+                Reference.active("daily_work_report", "project_id", "工程量日报"),
+                Reference.active("team_settlement", "project_id", "班组结算"),
+                Reference.active("variation_order", "project_id", "签证变更"),
+                Reference.active("project_cost_record", "project_id", "成本记录"),
+                Reference.active("project_payment_record", "project_id", "回款记录"),
+                Reference.active("machinery_work_record", "project_id", "机械台班"),
+                Reference.active("material_record", "project_id", "材料记录"),
+                Reference.active("project_document_archive", "project_id", "资料归档"),
+                Reference.active("attendance_record", "project_id", "考勤记录"),
+                Reference.active("performance_plan", "project_id", "绩效方案"),
+                Reference.active("performance_score", "project_id", "绩效评分"),
+                Reference.active("project_bonus_pool", "project_id", "项目奖金池"),
+                Reference.active("project_bonus_allocation", "project_id", "奖金分配"),
+                Reference.active("salary_monthly_detail", "project_id", "工资明细"));
         project.setDeleted(1);
-        projectMapper.updateById(project);
+        if (projectMapper.updateById(project) <= 0) {
+            throw new BusinessException("项目删除失败");
+        }
+    }
+
+    @Override
+    public void restoreProject(Long id) {
+        ProjectDO project = projectMapper.selectByIdIncludingDeleted(id);
+        if (project == null) throw new BusinessException("项目不存在");
+        if (!deleted(project.getDeleted())) {
+            return;
+        }
+        if (projectMapper.restoreById(id) <= 0) {
+            throw new BusinessException("项目恢复失败");
+        }
     }
 
     @Override
@@ -158,6 +194,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public ProjectSectionDO saveSection(ProjectSectionDO section) {
         requireProject(section.getProjectId());
         requireText(section.getName(), "施工段名称必填");
+        ensureSectionNameAvailable(section.getProjectId(), section.getName(), null);
         section.setLength(nvl(section.getLength()));
         section.setDeleted(0);
         sectionMapper.insert(section);
@@ -169,6 +206,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectSectionDO old = requireSection(id);
         section.setId(id);
         section.setProjectId(old.getProjectId());
+        requireText(section.getName(), "施工段名称必填");
+        ensureSectionNameAvailable(section.getProjectId(), section.getName(), id);
         sectionMapper.updateById(section);
         return sectionMapper.selectById(id);
     }
@@ -176,8 +215,30 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public void deleteSection(Long id) {
         ProjectSectionDO section = requireSection(id);
+        softDeleteGuard.requireNotReferenced("施工段", id,
+                Reference.active("daily_work_report", "project_section_id", "工程量日报"),
+                Reference.active("variation_order", "project_section_id", "签证变更"),
+                Reference.active("machinery_work_record", "project_section_id", "机械台班"),
+                Reference.active("material_record", "project_section_id", "材料记录"),
+                Reference.active("project_document_archive", "project_section_id", "资料归档"));
         section.setDeleted(1);
-        sectionMapper.updateById(section);
+        if (sectionMapper.updateById(section) <= 0) {
+            throw new BusinessException("施工段删除失败");
+        }
+    }
+
+    @Override
+    public void restoreSection(Long id) {
+        ProjectSectionDO section = sectionMapper.selectByIdIncludingDeleted(id);
+        if (section == null) throw new BusinessException("施工段不存在");
+        if (!deleted(section.getDeleted())) {
+            return;
+        }
+        requireProject(section.getProjectId());
+        ensureSectionNameAvailable(section.getProjectId(), section.getName(), id);
+        if (sectionMapper.restoreById(id) <= 0) {
+            throw new BusinessException("施工段恢复失败");
+        }
     }
 
     @Override
@@ -193,6 +254,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public WorkProcessDO saveWorkProcess(WorkProcessDO process) {
         requireText(process.getName(), "工序名称必填");
+        ensureWorkProcessNameAvailable(process.getName(), null);
         process.setUnit(defaultText(process.getUnit(), "m"));
         process.setStatus(defaultText(process.getStatus(), "active"));
         process.setSortOrder(process.getSortOrder() == null ? 0 : process.getSortOrder());
@@ -205,15 +267,38 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public WorkProcessDO updateWorkProcess(Long id, WorkProcessDO process) {
         requireWorkProcess(id);
         process.setId(id);
+        requireText(process.getName(), "工序名称必填");
+        ensureWorkProcessNameAvailable(process.getName(), id);
         workProcessMapper.updateById(process);
         return workProcessMapper.selectById(id);
     }
 
     @Override
-    public void deactivateWorkProcess(Long id) {
+    public void deleteWorkProcess(Long id) {
         WorkProcessDO process = requireWorkProcess(id);
-        process.setStatus("inactive");
-        workProcessMapper.updateById(process);
+        softDeleteGuard.requireNotReferenced("工序", id,
+                Reference.active("team_unit_price", "work_process_id", "班组单价"),
+                Reference.active("project_process_price", "work_process_id", "项目工序单价"),
+                Reference.active("daily_work_report", "work_process_id", "工程量日报"),
+                Reference.all("team_settlement_detail", "work_process_id", "班组结算明细"),
+                Reference.active("project_document_archive", "work_process_id", "资料归档"));
+        process.setDeleted(1);
+        if (workProcessMapper.updateById(process) <= 0) {
+            throw new BusinessException("工序删除失败");
+        }
+    }
+
+    @Override
+    public void restoreWorkProcess(Long id) {
+        WorkProcessDO process = workProcessMapper.selectByIdIncludingDeleted(id);
+        if (process == null) throw new BusinessException("工序不存在");
+        if (!deleted(process.getDeleted())) {
+            return;
+        }
+        ensureWorkProcessNameAvailable(process.getName(), id);
+        if (workProcessMapper.restoreById(id) <= 0) {
+            throw new BusinessException("工序恢复失败");
+        }
     }
 
     @Override
@@ -228,6 +313,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public TeamDO saveTeam(TeamDO team) {
         requireText(team.getName(), "班组名称必填");
+        ensureTeamNameAvailable(team.getName(), null);
         team.setStatus(defaultText(team.getStatus(), "active"));
         team.setSettlementMethod(defaultText(team.getSettlementMethod(), "quantity"));
         team.setDeleted(0);
@@ -239,15 +325,36 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public TeamDO updateTeam(Long id, TeamDO team) {
         requireTeam(id);
         team.setId(id);
+        requireText(team.getName(), "班组名称必填");
+        ensureTeamNameAvailable(team.getName(), id);
         teamMapper.updateById(team);
         return teamMapper.selectById(id);
     }
 
     @Override
-    public void deactivateTeam(Long id) {
+    public void deleteTeam(Long id) {
         TeamDO team = requireTeam(id);
-        team.setStatus("inactive");
-        teamMapper.updateById(team);
+        softDeleteGuard.requireNotReferenced("班组", id,
+                Reference.active("team_unit_price", "team_id", "班组单价"),
+                Reference.active("daily_work_report", "team_id", "工程量日报"),
+                Reference.active("team_settlement", "team_id", "班组结算"));
+        team.setDeleted(1);
+        if (teamMapper.updateById(team) <= 0) {
+            throw new BusinessException("班组删除失败");
+        }
+    }
+
+    @Override
+    public void restoreTeam(Long id) {
+        TeamDO team = teamMapper.selectByIdIncludingDeleted(id);
+        if (team == null) throw new BusinessException("班组不存在");
+        if (!deleted(team.getDeleted())) {
+            return;
+        }
+        ensureTeamNameAvailable(team.getName(), id);
+        if (teamMapper.restoreById(id) <= 0) {
+            throw new BusinessException("班组恢复失败");
+        }
     }
 
     @Override
@@ -1188,6 +1295,31 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectDocumentArchiveDO row = documentArchiveMapper.selectById(id);
         if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("资料归档不存在");
         return row;
+    }
+
+    private void ensureSectionNameAvailable(Long projectId, String name, Long selfId) {
+        Long id = selfId == null ? -1L : selfId;
+        if (sectionMapper.countActiveByProjectAndNameExceptId(projectId, name, id) > 0) {
+            throw new BusinessException("同项目施工段名称已存在");
+        }
+    }
+
+    private void ensureWorkProcessNameAvailable(String name, Long selfId) {
+        Long id = selfId == null ? -1L : selfId;
+        if (workProcessMapper.countActiveByNameExceptId(name, id) > 0) {
+            throw new BusinessException("工序名称已存在");
+        }
+    }
+
+    private void ensureTeamNameAvailable(String name, Long selfId) {
+        Long id = selfId == null ? -1L : selfId;
+        if (teamMapper.countActiveByNameExceptId(name, id) > 0) {
+            throw new BusinessException("班组名称已存在");
+        }
+    }
+
+    private boolean deleted(Integer deleted) {
+        return deleted != null && deleted == 1;
     }
 
     private void requireText(String value, String message) {

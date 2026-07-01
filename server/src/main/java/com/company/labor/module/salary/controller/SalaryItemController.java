@@ -36,24 +36,23 @@ public class SalaryItemController {
 
     @PostMapping
     public Result<SalaryItemDO> create(@Valid @RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
-        SalaryItemDO item = copy(dto, SalaryItemDO.class);
-        if (item.getStatus() == null) item.setStatus("active");
-        if (item.getIsFixed() == null) item.setIsFixed(1);
-        service.save(item);
-        return Result.success(item);
+        return Result.success(service.createItem(copy(dto, SalaryItemDO.class)));
     }
 
     @PutMapping("/{id}")
     public Result<SalaryItemDO> update(@PathVariable Long id, @Valid @RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
-        SalaryItemDO item = copy(dto, SalaryItemDO.class);
-        item.setId(id);
-        service.updateById(item);
-        return Result.success(service.getById(id));
+        return Result.success(service.updateItem(id, copy(dto, SalaryItemDO.class)));
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        service.removeById(id);
+        service.deleteItem(id);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/restore")
+    public Result<Void> restore(@PathVariable Long id) {
+        service.restoreItem(id);
         return Result.success();
     }
 }

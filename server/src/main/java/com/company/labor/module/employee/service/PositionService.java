@@ -8,5 +8,6 @@ public interface PositionService extends IService<PositionDO> {
     Page<PositionDO> search(long page, long pageSize, String keyword, String status, Long departmentId);
     PositionDO createPosition(PositionDO position);
     PositionDO updatePosition(Long id, PositionDO position);
-    void deactivate(Long id);
+    void deletePosition(Long id);
+    void restorePosition(Long id);
 }

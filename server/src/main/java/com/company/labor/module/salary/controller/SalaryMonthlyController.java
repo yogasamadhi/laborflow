@@ -88,20 +88,14 @@ public class SalaryMonthlyController {
     @PostMapping("/monthly/{id}/delete")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> deleteMonthly(@PathVariable Long id) {
-        requireMonthly(id);
-        monthlyMapper.softDeleteById(id);
+        service.deleteMonthly(id);
         return Result.success();
     }
 
     @PostMapping("/monthly/{id}/restore")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<Void> restoreMonthly(@PathVariable Long id) {
-        SalaryMonthlyDO monthly = requireMonthly(id);
-        long activeCount = monthlyMapper.countActiveByMonthExceptId(monthly.getSalaryMonth(), id);
-        if (activeCount > 0) {
-            throw new BusinessException("同月份已存在正常工资表，不能恢复");
-        }
-        monthlyMapper.restoreById(id);
+        service.restoreMonthly(id);
         return Result.success();
     }
 
@@ -225,14 +219,6 @@ public class SalaryMonthlyController {
         String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFilename);
-    }
-
-    private SalaryMonthlyDO requireMonthly(Long id) {
-        SalaryMonthlyDO monthly = monthlyMapper.selectByIdIncludingDeleted(id);
-        if (monthly == null) {
-            throw new BusinessException("工资表不存在");
-        }
-        return monthly;
     }
 
     private void requireSalaryDetailAccess(Long detailId, Authentication authentication) {

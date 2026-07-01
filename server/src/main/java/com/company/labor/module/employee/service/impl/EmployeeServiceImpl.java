@@ -4,15 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.common.softdelete.SoftDeleteGuard;
+import com.company.labor.common.softdelete.SoftDeleteGuard.Reference;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.employee.service.EmployeeService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
+@RequiredArgsConstructor
 public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, EmployeeDO> implements EmployeeService {
+    private final SoftDeleteGuard softDeleteGuard;
+
     @Override
     public Page<EmployeeDO> search(long page, long pageSize, String keyword, String status, Long departmentId, Long positionId) {
         LambdaQueryWrapper<EmployeeDO> wrapper = new LambdaQueryWrapper<>();
@@ -74,6 +80,47 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, EmployeeDO>
         updateById(employee);
     }
 
+    @Override
+    @Transactional
+    public void deleteEmployee(Long id) {
+        EmployeeDO employee = getById(id);
+        if (employee == null) {
+            throw new BusinessException("员工不存在");
+        }
+        softDeleteGuard.requireNotReferenced("员工", id,
+                Reference.active("sys_user", "employee_id", "平台账号"),
+                Reference.active("wechat_user_binding", "employee_id", "微信绑定"),
+                Reference.active("salary_profile", "employee_id", "工资档案"),
+                Reference.active("salary_monthly_detail", "employee_id", "工资明细"),
+                Reference.active("attendance_record", "employee_id", "考勤记录"),
+                Reference.active("performance_score", "employee_id", "绩效评分"),
+                Reference.active("project_bonus_allocation", "employee_id", "奖金分配"),
+                Reference.active("project_member", "employee_id", "项目成员"),
+                Reference.all("salary_source_record", "employee_id", "工资来源"));
+        employee.setDeleted(1);
+        if (!updateById(employee)) {
+            throw new BusinessException("员工删除失败");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void restoreEmployee(Long id) {
+        EmployeeDO employee = baseMapper.selectByIdIncludingDeleted(id);
+        if (employee == null) {
+            throw new BusinessException("员工不存在");
+        }
+        if (!deleted(employee.getDeleted())) {
+            return;
+        }
+        if (StringUtils.hasText(employee.getPhone()) && baseMapper.countActiveByPhoneExceptId(employee.getPhone(), id) > 0) {
+            throw new BusinessException("手机号已存在，不能恢复员工");
+        }
+        if (baseMapper.restoreById(id) <= 0) {
+            throw new BusinessException("员工恢复失败");
+        }
+    }
+
     private void checkPhone(String phone, Long selfId) {
         if (!StringUtils.hasText(phone)) {
             return;
@@ -88,5 +135,8 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, EmployeeDO>
             throw new BusinessException("手机号已存在");
         }
     }
-}
 
+    private boolean deleted(Integer deleted) {
+        return deleted != null && deleted == 1;
+    }
+}

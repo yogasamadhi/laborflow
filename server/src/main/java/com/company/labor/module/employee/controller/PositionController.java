@@ -50,7 +50,13 @@ public class PositionController {
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        service.deactivate(id);
+        service.deletePosition(id);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/restore")
+    public Result<Void> restore(@PathVariable Long id) {
+        service.restorePosition(id);
         return Result.success();
     }
 }

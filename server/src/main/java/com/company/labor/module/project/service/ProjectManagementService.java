@@ -34,21 +34,25 @@ public interface ProjectManagementService {
     ProjectDO updateProject(Long id, ProjectDO project);
     void updateProjectStatus(Long id, String status);
     void deleteProject(Long id);
+    void restoreProject(Long id);
 
     Page<ProjectSectionDO> sections(long page, long pageSize, Long projectId, String keyword);
     ProjectSectionDO saveSection(ProjectSectionDO section);
     ProjectSectionDO updateSection(Long id, ProjectSectionDO section);
     void deleteSection(Long id);
+    void restoreSection(Long id);
 
     Page<WorkProcessDO> workProcesses(long page, long pageSize, String keyword, String status);
     WorkProcessDO saveWorkProcess(WorkProcessDO process);
     WorkProcessDO updateWorkProcess(Long id, WorkProcessDO process);
-    void deactivateWorkProcess(Long id);
+    void deleteWorkProcess(Long id);
+    void restoreWorkProcess(Long id);
 
     Page<TeamDO> teams(long page, long pageSize, String keyword, String status);
     TeamDO saveTeam(TeamDO team);
     TeamDO updateTeam(Long id, TeamDO team);
-    void deactivateTeam(Long id);
+    void deleteTeam(Long id);
+    void restoreTeam(Long id);
 
     Page<TeamUnitPriceDO> teamUnitPrices(long page, long pageSize, Long projectId, Long teamId);
     TeamUnitPriceDO saveTeamUnitPrice(TeamUnitPriceDO price);
