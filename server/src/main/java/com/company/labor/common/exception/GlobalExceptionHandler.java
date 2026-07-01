@@ -5,6 +5,8 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +28,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public Result<Void> handleDataIntegrity(DataIntegrityViolationException ex) {
         return Result.fail("数据已存在或不符合约束，请检查后重试");
+    }
+
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(LockedException.class)
+    public Result<Void> handleLocked(LockedException ex) {
+        return Result.fail(ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(DisabledException.class)
+    public Result<Void> handleDisabled(DisabledException ex) {
+        return Result.fail(ex.getMessage());
     }
 
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
