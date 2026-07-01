@@ -2,6 +2,7 @@ package com.company.labor.module.employee.controller;
 
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.employee.domain.dto.EmployeeWriteDTO;
 import com.company.labor.module.employee.domain.entity.PositionDO;
 import com.company.labor.module.employee.service.PositionService;
 import com.company.labor.security.RoleExpressions;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.company.labor.common.util.RequestCopyUtils.copy;
 
 @RestController
 @RequestMapping("/api/positions")
@@ -35,13 +38,13 @@ public class PositionController {
     }
 
     @PostMapping
-    public Result<PositionDO> create(@RequestBody PositionDO position) {
-        return Result.success(service.createPosition(position));
+    public Result<PositionDO> create(@RequestBody EmployeeWriteDTO.PositionRequest dto) {
+        return Result.success(service.createPosition(copy(dto, PositionDO.class)));
     }
 
     @PutMapping("/{id}")
-    public Result<PositionDO> update(@PathVariable Long id, @RequestBody PositionDO position) {
-        return Result.success(service.updatePosition(id, position));
+    public Result<PositionDO> update(@PathVariable Long id, @RequestBody EmployeeWriteDTO.PositionRequest dto) {
+        return Result.success(service.updatePosition(id, copy(dto, PositionDO.class)));
     }
 
     @DeleteMapping("/{id}")

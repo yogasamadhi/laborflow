@@ -68,7 +68,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
-| L3-01 | backend | todo | 拆分请求 DTO 与响应 VO | 员工、工资、项目、绩效、系统 controller/domain | Controller 不再直接接收核心 DO 作为写入请求；内部字段不能被前端覆盖 |
+| L3-01 | backend | done | 拆分请求 DTO 与响应 VO | 员工、工资、项目、绩效、系统 controller/domain | Controller 不再直接接收核心 DO 作为写入请求；内部字段不能被前端覆盖；已通过 `rg @RequestBody.*DO`、`git diff --check`、`mvn test` |
 | L3-02 | backend | todo | 补齐参数校验 | DTO、Controller、GlobalExceptionHandler | 必填、金额、日期、月份、手机号、身份证、状态枚举有明确校验；错误信息可读 |
 | L3-03 | database/backend | todo | 增加数据库约束 | Flyway migration、mapper/service | 外键、唯一索引、状态 check、月份格式 check、金额范围约束覆盖核心表 |
 | L3-04 | backend | todo | 统一状态机校验 | 工资、日报、签证、班组结算、奖金池、绩效评分 | 非法状态跳转被拒绝；状态变更有统一入口和日志 |

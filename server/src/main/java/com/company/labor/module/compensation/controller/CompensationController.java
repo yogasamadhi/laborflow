@@ -2,6 +2,7 @@ package com.company.labor.module.compensation.controller;
 
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.compensation.domain.dto.CompensationWriteDTO;
 import com.company.labor.module.compensation.domain.entity.AttendanceRecordDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceIndicatorDO;
 import com.company.labor.module.compensation.domain.entity.PerformancePlanDO;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.company.labor.common.util.RequestCopyUtils.copy;
+
 @RestController
 @RequestMapping("/api/compensation")
 @RequiredArgsConstructor
@@ -38,13 +41,13 @@ public class CompensationController {
     }
 
     @PostMapping("/attendance")
-    public Result<AttendanceRecordDO> saveAttendance(@RequestBody AttendanceRecordDO record) {
-        return Result.success(service.saveAttendance(record));
+    public Result<AttendanceRecordDO> saveAttendance(@RequestBody CompensationWriteDTO.AttendanceRecordRequest dto) {
+        return Result.success(service.saveAttendance(copy(dto, AttendanceRecordDO.class)));
     }
 
     @PutMapping("/attendance/{id}")
-    public Result<AttendanceRecordDO> updateAttendance(@PathVariable Long id, @RequestBody AttendanceRecordDO record) {
-        return Result.success(service.updateAttendance(id, record));
+    public Result<AttendanceRecordDO> updateAttendance(@PathVariable Long id, @RequestBody CompensationWriteDTO.AttendanceRecordRequest dto) {
+        return Result.success(service.updateAttendance(id, copy(dto, AttendanceRecordDO.class)));
     }
 
     @GetMapping("/indicators")
@@ -56,13 +59,13 @@ public class CompensationController {
     }
 
     @PostMapping("/indicators")
-    public Result<PerformanceIndicatorDO> saveIndicator(@RequestBody PerformanceIndicatorDO indicator) {
-        return Result.success(service.saveIndicator(indicator));
+    public Result<PerformanceIndicatorDO> saveIndicator(@RequestBody CompensationWriteDTO.PerformanceIndicatorRequest dto) {
+        return Result.success(service.saveIndicator(copy(dto, PerformanceIndicatorDO.class)));
     }
 
     @PutMapping("/indicators/{id}")
-    public Result<PerformanceIndicatorDO> updateIndicator(@PathVariable Long id, @RequestBody PerformanceIndicatorDO indicator) {
-        return Result.success(service.updateIndicator(id, indicator));
+    public Result<PerformanceIndicatorDO> updateIndicator(@PathVariable Long id, @RequestBody CompensationWriteDTO.PerformanceIndicatorRequest dto) {
+        return Result.success(service.updateIndicator(id, copy(dto, PerformanceIndicatorDO.class)));
     }
 
     @GetMapping("/plans")
@@ -74,13 +77,13 @@ public class CompensationController {
     }
 
     @PostMapping("/plans")
-    public Result<PerformancePlanDO> savePlan(@RequestBody PerformancePlanDO plan) {
-        return Result.success(service.savePlan(plan));
+    public Result<PerformancePlanDO> savePlan(@RequestBody CompensationWriteDTO.PerformancePlanRequest dto) {
+        return Result.success(service.savePlan(copy(dto, PerformancePlanDO.class)));
     }
 
     @PutMapping("/plans/{id}")
-    public Result<PerformancePlanDO> updatePlan(@PathVariable Long id, @RequestBody PerformancePlanDO plan) {
-        return Result.success(service.updatePlan(id, plan));
+    public Result<PerformancePlanDO> updatePlan(@PathVariable Long id, @RequestBody CompensationWriteDTO.PerformancePlanRequest dto) {
+        return Result.success(service.updatePlan(id, copy(dto, PerformancePlanDO.class)));
     }
 
     @GetMapping("/scores")
@@ -93,13 +96,13 @@ public class CompensationController {
     }
 
     @PostMapping("/scores")
-    public Result<PerformanceScoreDO> saveScore(@RequestBody PerformanceScoreDO score) {
-        return Result.success(service.saveScore(score));
+    public Result<PerformanceScoreDO> saveScore(@RequestBody CompensationWriteDTO.PerformanceScoreRequest dto) {
+        return Result.success(service.saveScore(copy(dto, PerformanceScoreDO.class)));
     }
 
     @PutMapping("/scores/{id}")
-    public Result<PerformanceScoreDO> updateScore(@PathVariable Long id, @RequestBody PerformanceScoreDO score) {
-        return Result.success(service.updateScore(id, score));
+    public Result<PerformanceScoreDO> updateScore(@PathVariable Long id, @RequestBody CompensationWriteDTO.PerformanceScoreRequest dto) {
+        return Result.success(service.updateScore(id, copy(dto, PerformanceScoreDO.class)));
     }
 
     @PostMapping("/scores/{id}/confirm")
@@ -117,13 +120,13 @@ public class CompensationController {
     }
 
     @PostMapping("/bonus-pools")
-    public Result<ProjectBonusPoolDO> saveBonusPool(@RequestBody ProjectBonusPoolDO pool) {
-        return Result.success(service.saveBonusPool(pool));
+    public Result<ProjectBonusPoolDO> saveBonusPool(@RequestBody CompensationWriteDTO.ProjectBonusPoolRequest dto) {
+        return Result.success(service.saveBonusPool(copy(dto, ProjectBonusPoolDO.class)));
     }
 
     @PutMapping("/bonus-pools/{id}")
-    public Result<ProjectBonusPoolDO> updateBonusPool(@PathVariable Long id, @RequestBody ProjectBonusPoolDO pool) {
-        return Result.success(service.updateBonusPool(id, pool));
+    public Result<ProjectBonusPoolDO> updateBonusPool(@PathVariable Long id, @RequestBody CompensationWriteDTO.ProjectBonusPoolRequest dto) {
+        return Result.success(service.updateBonusPool(id, copy(dto, ProjectBonusPoolDO.class)));
     }
 
     @PostMapping("/bonus-pools/{id}/release")
@@ -141,13 +144,13 @@ public class CompensationController {
     }
 
     @PostMapping("/bonus-allocations")
-    public Result<ProjectBonusAllocationDO> saveBonusAllocation(@RequestBody ProjectBonusAllocationDO allocation) {
-        return Result.success(service.saveBonusAllocation(allocation));
+    public Result<ProjectBonusAllocationDO> saveBonusAllocation(@RequestBody CompensationWriteDTO.ProjectBonusAllocationRequest dto) {
+        return Result.success(service.saveBonusAllocation(copy(dto, ProjectBonusAllocationDO.class)));
     }
 
     @PutMapping("/bonus-allocations/{id}")
-    public Result<ProjectBonusAllocationDO> updateBonusAllocation(@PathVariable Long id, @RequestBody ProjectBonusAllocationDO allocation) {
-        return Result.success(service.updateBonusAllocation(id, allocation));
+    public Result<ProjectBonusAllocationDO> updateBonusAllocation(@PathVariable Long id, @RequestBody CompensationWriteDTO.ProjectBonusAllocationRequest dto) {
+        return Result.success(service.updateBonusAllocation(id, copy(dto, ProjectBonusAllocationDO.class)));
     }
 
     @PostMapping("/bonus-allocations/{id}/confirm")

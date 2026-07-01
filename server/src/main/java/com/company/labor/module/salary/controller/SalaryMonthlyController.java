@@ -5,10 +5,11 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.salary.domain.dto.SalaryApprovalDTO;
-import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
+import com.company.labor.module.salary.domain.dto.SalaryWriteDTO;
 import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
+import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
@@ -35,6 +36,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.company.labor.common.util.RequestCopyUtils.copy;
 
 @RestController
 @RequestMapping("/api/salary")
@@ -65,8 +68,8 @@ public class SalaryMonthlyController {
 
     @PostMapping("/monthly")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDO> create(@RequestBody SalaryMonthlyDO monthly) {
-        return Result.success(service.createMonthly(monthly));
+    public Result<SalaryMonthlyDO> create(@RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
+        return Result.success(service.createMonthly(copy(dto, SalaryMonthlyDO.class)));
     }
 
     @GetMapping("/monthly/{id}")
@@ -77,8 +80,8 @@ public class SalaryMonthlyController {
 
     @PutMapping("/monthly/{id}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDO> update(@PathVariable Long id, @RequestBody SalaryMonthlyDO monthly) {
-        return Result.success(service.updateMonthly(id, monthly));
+    public Result<SalaryMonthlyDO> update(@PathVariable Long id, @RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
+        return Result.success(service.updateMonthly(id, copy(dto, SalaryMonthlyDO.class)));
     }
 
     @PostMapping("/monthly/{id}/delete")
@@ -145,8 +148,8 @@ public class SalaryMonthlyController {
 
     @PutMapping("/details/{detailId}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDetailDO> updateDetail(@PathVariable Long detailId, @RequestBody SalaryMonthlyDetailDO detail) {
-        return Result.success(service.updateDetail(detailId, detail));
+    public Result<SalaryMonthlyDetailDO> updateDetail(@PathVariable Long detailId, @RequestBody SalaryWriteDTO.SalaryMonthlyDetailRequest dto) {
+        return Result.success(service.updateDetail(detailId, copy(dto, SalaryMonthlyDetailDO.class)));
     }
 
     @GetMapping("/details/{detailId}/items")

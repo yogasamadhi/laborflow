@@ -2,6 +2,7 @@ package com.company.labor.module.employee.controller;
 
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.employee.domain.dto.EmployeeWriteDTO;
 import com.company.labor.module.employee.domain.dto.StatusUpdateDTO;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.service.EmployeeService;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.company.labor.common.util.RequestCopyUtils.copy;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -38,8 +41,8 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public Result<EmployeeDO> create(@RequestBody EmployeeDO employee) {
-        return Result.success(service.create(employee));
+    public Result<EmployeeDO> create(@RequestBody EmployeeWriteDTO.EmployeeRequest dto) {
+        return Result.success(service.create(copy(dto, EmployeeDO.class)));
     }
 
     @GetMapping("/{id}")
@@ -48,8 +51,8 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
-    public Result<EmployeeDO> update(@PathVariable Long id, @RequestBody EmployeeDO employee) {
-        return Result.success(service.updateEmployee(id, employee));
+    public Result<EmployeeDO> update(@PathVariable Long id, @RequestBody EmployeeWriteDTO.EmployeeRequest dto) {
+        return Result.success(service.updateEmployee(id, copy(dto, EmployeeDO.class)));
     }
 
     @DeleteMapping("/{id}")

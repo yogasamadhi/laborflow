@@ -2,6 +2,7 @@ package com.company.labor.module.employee.controller;
 
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.employee.domain.dto.EmployeeWriteDTO;
 import com.company.labor.module.employee.domain.entity.DepartmentDO;
 import com.company.labor.module.employee.service.DepartmentService;
 import com.company.labor.security.RoleExpressions;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.company.labor.common.util.RequestCopyUtils.copy;
 
 @RestController
 @RequestMapping("/api/departments")
@@ -34,13 +37,13 @@ public class DepartmentController {
     }
 
     @PostMapping
-    public Result<DepartmentDO> create(@RequestBody DepartmentDO department) {
-        return Result.success(service.createDepartment(department));
+    public Result<DepartmentDO> create(@RequestBody EmployeeWriteDTO.DepartmentRequest dto) {
+        return Result.success(service.createDepartment(copy(dto, DepartmentDO.class)));
     }
 
     @PutMapping("/{id}")
-    public Result<DepartmentDO> update(@PathVariable Long id, @RequestBody DepartmentDO department) {
-        return Result.success(service.updateDepartment(id, department));
+    public Result<DepartmentDO> update(@PathVariable Long id, @RequestBody EmployeeWriteDTO.DepartmentRequest dto) {
+        return Result.success(service.updateDepartment(id, copy(dto, DepartmentDO.class)));
     }
 
     @DeleteMapping("/{id}")

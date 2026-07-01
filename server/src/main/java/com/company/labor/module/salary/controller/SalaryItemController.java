@@ -3,6 +3,7 @@ package com.company.labor.module.salary.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.salary.domain.dto.SalaryWriteDTO;
 import com.company.labor.module.salary.domain.entity.SalaryItemDO;
 import com.company.labor.module.salary.service.SalaryItemService;
 import com.company.labor.security.RoleExpressions;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.company.labor.common.util.RequestCopyUtils.copy;
+
 @RestController
 @RequestMapping("/api/salary/items")
 @RequiredArgsConstructor
@@ -31,7 +34,8 @@ public class SalaryItemController {
     }
 
     @PostMapping
-    public Result<SalaryItemDO> create(@RequestBody SalaryItemDO item) {
+    public Result<SalaryItemDO> create(@RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
+        SalaryItemDO item = copy(dto, SalaryItemDO.class);
         if (item.getStatus() == null) item.setStatus("active");
         if (item.getIsFixed() == null) item.setIsFixed(1);
         service.save(item);
@@ -39,7 +43,8 @@ public class SalaryItemController {
     }
 
     @PutMapping("/{id}")
-    public Result<SalaryItemDO> update(@PathVariable Long id, @RequestBody SalaryItemDO item) {
+    public Result<SalaryItemDO> update(@PathVariable Long id, @RequestBody SalaryWriteDTO.SalaryItemRequest dto) {
+        SalaryItemDO item = copy(dto, SalaryItemDO.class);
         item.setId(id);
         service.updateById(item);
         return Result.success(service.getById(id));
