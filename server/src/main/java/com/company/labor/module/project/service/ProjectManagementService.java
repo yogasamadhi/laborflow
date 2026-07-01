@@ -20,9 +20,10 @@ import com.company.labor.module.project.domain.entity.TeamUnitPriceDO;
 import com.company.labor.module.project.domain.entity.VariationOrderDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
+import java.util.Set;
 
 public interface ProjectManagementService {
-    Page<ProjectDO> projects(long page, long pageSize, String keyword, String status);
+    Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds);
     ProjectDO project(Long id);
     ProjectDO saveProject(ProjectDO project);
     ProjectDO updateProject(Long id, ProjectDO project);

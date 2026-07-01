@@ -85,9 +85,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final ProjectDocumentArchiveMapper documentArchiveMapper;
 
     @Override
-    public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status) {
+    public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds) {
+        if (scopedProjectIds != null && scopedProjectIds.isEmpty()) {
+            return new Page<>(page, pageSize);
+        }
         return projectMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<ProjectDO>()
                 .eq(ProjectDO::getDeleted, 0)
+                .in(scopedProjectIds != null, ProjectDO::getId, scopedProjectIds)
                 .like(StringUtils.hasText(keyword), ProjectDO::getName, keyword)
                 .eq(StringUtils.hasText(status), ProjectDO::getStatus, status)
                 .orderByDesc(ProjectDO::getCreatedAt));

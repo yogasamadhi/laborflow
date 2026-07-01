@@ -1,5 +1,6 @@
 package com.company.labor.module.project.controller;
 
+import com.company.labor.common.exception.BusinessException;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
@@ -21,9 +22,11 @@ import com.company.labor.module.project.domain.entity.TeamUnitPriceDO;
 import com.company.labor.module.project.domain.entity.VariationOrderDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
+import com.company.labor.module.project.service.ProjectAccessService;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.security.AccessControlSupport;
 import com.company.labor.security.RoleExpressions;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -41,13 +44,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProjectManagementController {
     private final ProjectManagementService service;
+    private final ProjectAccessService projectAccessService;
 
     @GetMapping("/api/projects")
     public Result<PageResult<ProjectDO>> projects(@RequestParam(defaultValue = "1") long page,
                                                   @RequestParam(defaultValue = "20") long pageSize,
                                                   @RequestParam(required = false) String keyword,
-                                                  @RequestParam(required = false) String status) {
-        return Result.success(PageResult.of(service.projects(page, pageSize, keyword, status)));
+                                                  @RequestParam(required = false) String status,
+                                                  Authentication authentication) {
+        return Result.success(PageResult.of(service.projects(page, pageSize, keyword, status, scopedProjectIds(authentication))));
     }
 
     @PostMapping("/api/projects")
@@ -57,7 +62,8 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/projects/{id}")
-    public Result<ProjectDO> project(@PathVariable Long id) {
+    public Result<ProjectDO> project(@PathVariable Long id, Authentication authentication) {
+        projectAccessService.requireProjectAccess(id, authentication);
         return Result.success(service.project(id));
     }
 
@@ -86,8 +92,11 @@ public class ProjectManagementController {
                                                          @RequestParam(defaultValue = "1") long page,
                                                          @RequestParam(defaultValue = "20") long pageSize,
                                                          @RequestParam(required = false) Long filterProjectId,
-                                                         @RequestParam(required = false) String keyword) {
-        return Result.success(PageResult.of(service.sections(page, pageSize, projectId == null ? filterProjectId : projectId, keyword)));
+                                                         @RequestParam(required = false) String keyword,
+                                                         Authentication authentication) {
+        Long scopedProjectId = projectId == null ? filterProjectId : projectId;
+        requireProjectFilterAccess(scopedProjectId, authentication);
+        return Result.success(PageResult.of(service.sections(page, pageSize, scopedProjectId, keyword)));
     }
 
     @PostMapping({"/api/project-sections", "/api/projects/{projectId}/sections"})
@@ -213,6 +222,9 @@ public class ProjectManagementController {
                                                               @RequestParam(required = false) String status,
                                                               @RequestParam(required = false) Boolean mine,
                                                               Authentication authentication) {
+        if (projectId != null) {
+            projectAccessService.requireProjectAccess(projectId, authentication);
+        }
         Long createdBy = scopedCreatedBy(authentication, mine);
         return Result.success(PageResult.of(service.dailyReports(page, pageSize, projectId, teamId, status, createdBy)));
     }
@@ -304,6 +316,9 @@ public class ProjectManagementController {
                                                                 @RequestParam(required = false) String status,
                                                                 @RequestParam(required = false) Boolean mine,
                                                                 Authentication authentication) {
+        if (projectId != null) {
+            projectAccessService.requireProjectAccess(projectId, authentication);
+        }
         Long createdBy = scopedCreatedBy(authentication, mine);
         return Result.success(PageResult.of(service.variationOrders(page, pageSize, projectId, status, createdBy)));
     }
@@ -487,6 +502,23 @@ public class ProjectManagementController {
             return currentUserId(authentication);
         }
         return Boolean.TRUE.equals(mine) ? currentUserId(authentication) : null;
+    }
+
+    private Set<Long> scopedProjectIds(Authentication authentication) {
+        if (projectAccessService.hasProjectWideAccess(authentication)) {
+            return null;
+        }
+        return projectAccessService.authorizedProjectIds(authentication);
+    }
+
+    private void requireProjectFilterAccess(Long projectId, Authentication authentication) {
+        if (projectAccessService.hasProjectWideAccess(authentication)) {
+            return;
+        }
+        if (projectId == null) {
+            throw new BusinessException("请选择授权项目");
+        }
+        projectAccessService.requireProjectAccess(projectId, authentication);
     }
 
     private void requireDailyReportOwnerIfNeeded(Long id, Authentication authentication) {
