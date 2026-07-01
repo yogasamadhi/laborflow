@@ -42,7 +42,7 @@
 | L0-02 | backend | done | 收紧 OpenAPI 与静态上传访问 | `SecurityConfig`、`OpenApiConfig`、`WebMvcConfig` | 生产环境 Swagger/OpenAPI 默认关闭或仅管理员可见；上传文件不能无鉴权公开读取 |
 | L0-03 | backend/web | done | 补齐接口级 RBAC 权限 | `server/src/main/java/com/company/labor/module/**/controller`、`web/src/components/layout/AppLayout.tsx` | 工资、系统、项目利润、审批、发放等敏感接口有角色限制；无权限菜单不展示；无权限请求返回 403 |
 | L0-04 | backend | done | 增加数据范围权限 | 员工、工资、项目、日报、签证、统计相关 service/controller | 普通员工只能看本人数据；项目人员只能看授权项目；财务/老板/管理员按角色看到对应范围 |
-| L0-05 | backend/web | todo | 移除演示账号和弱默认行为 | `README.md`、`PROJECT_BRIEF.md`、`LoginPage.tsx`、seed migration | 登录页不再默认填充 `admin/admin123456`；文档标注初始化后必须改密；生产 seed 不保留弱口令 |
+| L0-05 | backend/web | done | 移除演示账号和弱默认行为 | `README.md`、`PROJECT_BRIEF.md`、`LoginPage.tsx`、seed migration | 登录页不再默认填充 `admin/admin123456`；文档标注初始化后必须改密；生产 seed 不保留弱口令 |
 
 ### P1：认证、微信绑定与账号治理
 
@@ -235,4 +235,14 @@ Pushed: yes after loop push
 验证命令: JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
 结果: passed
 备注: Added project_member authorization model and scoped non-management project list/detail/section access to authorized projects.
+```
+
+```text
+Loop: L0-05
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: rg -n "admin123456|admin /" README.md PROJECT_BRIEF.md ROADMAP.md server/src/main/resources/db/migration web/src miniapp; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build
+结果: passed
+备注: Removed Web login defaults, removed documented weak default credentials, and added a migration that disables the unchanged weak default admin account.
 ```

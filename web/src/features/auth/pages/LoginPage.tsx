@@ -13,8 +13,8 @@ type LoginResponse = LoginUser & {
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123456");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const mutation = useMutation({
     mutationFn: () => postData<LoginResponse>("/auth/login", { username, password }),
     onSuccess: (data) => {

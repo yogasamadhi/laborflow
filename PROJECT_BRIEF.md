@@ -952,7 +952,7 @@ EMPLOYEE：普通员工
 
 ```text
 username：admin
-password：admin123456
+password：生产环境不提供固定默认密码，首次部署必须通过安全初始化流程设置管理员密码。
 ```
 
 密码必须 BCrypt 加密入库。
