@@ -21,6 +21,7 @@ import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
+import com.company.labor.module.system.service.OperationLogService;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class CompensationServiceImpl implements CompensationService {
     private final ProjectBonusAllocationMapper bonusAllocationMapper;
     private final ProjectManagementService projectManagementService;
     private final SalaryMonthlyMapper salaryMonthlyMapper;
+    private final OperationLogService operationLogService;
 
     @Override
     public Page<AttendanceRecordDO> attendanceRecords(long page, long pageSize, Long employeeId, String month) {
@@ -157,6 +159,7 @@ public class CompensationServiceImpl implements CompensationService {
         PerformanceScoreDO score = requireScore(id);
         score.setStatus("confirmed");
         scoreMapper.updateById(score);
+        operationLogService.record("compensation", id, "confirm_score", "确认绩效评分");
     }
 
     @Override
@@ -191,6 +194,7 @@ public class CompensationServiceImpl implements CompensationService {
         ProjectBonusPoolDO pool = requireBonusPool(id);
         pool.setReleaseStatus("released");
         bonusPoolMapper.updateById(pool);
+        operationLogService.record("compensation", id, "release_bonus_pool", "发布项目奖金池");
     }
 
     @Override
@@ -226,6 +230,7 @@ public class CompensationServiceImpl implements CompensationService {
         ProjectBonusAllocationDO allocation = requireBonusAllocation(id);
         allocation.setStatus("confirmed");
         bonusAllocationMapper.updateById(allocation);
+        operationLogService.record("compensation", id, "confirm_bonus_allocation", "确认奖金分配");
     }
 
     @Override

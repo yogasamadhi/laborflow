@@ -7,12 +7,10 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.system.domain.dto.SysUserResetPasswordDTO;
 import com.company.labor.module.system.domain.dto.SysUserRoleAssignDTO;
 import com.company.labor.module.system.domain.dto.SysUserSaveDTO;
-import com.company.labor.module.system.domain.entity.OperationLogDO;
 import com.company.labor.module.system.domain.entity.SysRoleDO;
 import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.domain.entity.SysUserRoleDO;
 import com.company.labor.module.system.domain.vo.SysUserVO;
-import com.company.labor.module.system.mapper.OperationLogMapper;
 import com.company.labor.module.system.mapper.SysRoleMapper;
 import com.company.labor.module.system.mapper.SysUserMapper;
 import com.company.labor.module.system.mapper.SysUserRoleMapper;
@@ -46,7 +44,7 @@ public class SystemUserAdminService {
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
     private final SysUserRoleMapper userRoleMapper;
-    private final OperationLogMapper operationLogMapper;
+    private final OperationLogService operationLogService;
     private final PasswordEncoder passwordEncoder;
 
     public Page<SysUserVO> page(long page, long pageSize, String keyword, String status) {
@@ -217,16 +215,6 @@ public class SystemUserAdminService {
     }
 
     private void log(String action, Long userId, LoginUser operator, String content) {
-        OperationLogDO log = new OperationLogDO();
-        log.setModule("system_user");
-        log.setBusinessId(userId);
-        log.setAction(action);
-        if (operator != null) {
-            log.setOperatorId(operator.getUser().getId());
-            log.setOperatorName(operator.getUsername());
-        }
-        log.setContent(content);
-        log.setCreatedAt(LocalDateTime.now());
-        operationLogMapper.insert(log);
+        operationLogService.record("system_user", userId, action, operator, content);
     }
 }

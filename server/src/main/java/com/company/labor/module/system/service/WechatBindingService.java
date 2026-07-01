@@ -7,10 +7,8 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.system.domain.dto.WechatBindingUpdateDTO;
-import com.company.labor.module.system.domain.entity.OperationLogDO;
 import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.domain.entity.WechatUserBindingDO;
-import com.company.labor.module.system.mapper.OperationLogMapper;
 import com.company.labor.module.system.mapper.SysUserMapper;
 import com.company.labor.module.system.mapper.WechatUserBindingMapper;
 import com.company.labor.security.LoginUser;
@@ -35,7 +33,7 @@ public class WechatBindingService {
     private final WechatUserBindingMapper bindingMapper;
     private final SysUserMapper userMapper;
     private final EmployeeMapper employeeMapper;
-    private final OperationLogMapper operationLogMapper;
+    private final OperationLogService operationLogService;
 
     public Page<WechatUserBindingDO> page(long page, long pageSize, String status, String keyword) {
         QueryWrapper<WechatUserBindingDO> query = new QueryWrapper<WechatUserBindingDO>()
@@ -145,16 +143,6 @@ public class WechatBindingService {
     }
 
     private void log(String action, Long bindingId, LoginUser operator, String content) {
-        OperationLogDO log = new OperationLogDO();
-        log.setModule("wechat_binding");
-        log.setBusinessId(bindingId);
-        log.setAction(action);
-        if (operator != null) {
-            log.setOperatorId(operator.getUser().getId());
-            log.setOperatorName(operator.getUsername());
-        }
-        log.setContent(content);
-        log.setCreatedAt(LocalDateTime.now());
-        operationLogMapper.insert(log);
+        operationLogService.record("wechat_binding", bindingId, action, operator, content);
     }
 }

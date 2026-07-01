@@ -47,6 +47,7 @@ import com.company.labor.module.project.mapper.VariationOrderMapper;
 import com.company.labor.module.project.mapper.WorkProcessMapper;
 import com.company.labor.module.project.mapper.WorkQuantityConfirmMapper;
 import com.company.labor.module.project.service.ProjectManagementService;
+import com.company.labor.module.system.service.OperationLogService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -83,6 +84,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final MachineryWorkRecordMapper machineryWorkRecordMapper;
     private final MaterialRecordMapper materialRecordMapper;
     private final ProjectDocumentArchiveMapper documentArchiveMapper;
+    private final OperationLogService operationLogService;
 
     @Override
     public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds) {
@@ -341,6 +343,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         report.setStatus("submitted");
         report.setRejectedReason(null);
         dailyWorkReportMapper.updateById(report);
+        operationLogService.record("project", id, "submit_daily_report", "提交工程量日报");
     }
 
     @Override
@@ -351,6 +354,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         report.setStatus("pm_confirmed");
         dailyWorkReportMapper.updateById(report);
         confirmLog(id, "project_manager", "confirmed", dto);
+        operationLogService.record("project", id, "pm_confirm_daily_report", "项目经理确认工程量日报");
     }
 
     @Override
@@ -361,6 +365,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         report.setStatus("confirmed");
         dailyWorkReportMapper.updateById(report);
         confirmLog(id, "commercial", "confirmed", dto);
+        operationLogService.record("project", id, "final_confirm_daily_report", "商务终审确认工程量日报");
     }
 
     @Override
@@ -372,6 +377,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         report.setRejectedReason(dto == null ? null : dto.getRemark());
         dailyWorkReportMapper.updateById(report);
         confirmLog(id, "reject", "rejected", dto);
+        operationLogService.record("project", id, "reject_daily_report", "驳回工程量日报");
     }
 
     @Override
@@ -473,6 +479,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             detail.setTeamSettlementId(settlement.getId());
             teamSettlementDetailMapper.insert(detail);
         }
+        operationLogService.record("project", settlement.getId(), "generate_team_settlement", "生成班组结算");
         return settlement;
     }
 
@@ -481,6 +488,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         TeamSettlementDO settlement = requireTeamSettlement(id);
         settlement.setSettlementStatus("confirmed");
         teamSettlementMapper.updateById(settlement);
+        operationLogService.record("project", id, "confirm_team_settlement", "确认班组结算");
     }
 
     @Override
@@ -489,6 +497,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         settlement.setPaymentStatus("paid");
         settlement.setPaidDate(LocalDate.now());
         teamSettlementMapper.updateById(settlement);
+        operationLogService.record("project", id, "mark_team_settlement_paid", "标记班组结算已支付");
     }
 
     @Override
@@ -535,6 +544,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         order.setStatus("submitted");
         order.setRejectedReason(null);
         variationOrderMapper.updateById(order);
+        operationLogService.record("project", id, "submit_variation_order", "提交签证变更");
     }
 
     @Override
@@ -543,6 +553,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         requireAnyStatus(order.getStatus(), "submitted");
         order.setStatus("confirmed");
         variationOrderMapper.updateById(order);
+        operationLogService.record("project", id, "confirm_variation_order", "确认签证变更");
     }
 
     @Override
@@ -552,6 +563,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         order.setStatus("rejected");
         order.setRejectedReason(dto == null ? null : dto.getRemark());
         variationOrderMapper.updateById(order);
+        operationLogService.record("project", id, "reject_variation_order", "驳回签证变更");
     }
 
     @Override

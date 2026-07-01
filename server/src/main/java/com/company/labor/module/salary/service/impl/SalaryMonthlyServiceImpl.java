@@ -28,8 +28,7 @@ import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.salary.mapper.SalaryProfileItemMapper;
 import com.company.labor.module.salary.mapper.SalaryProfileMapper;
 import com.company.labor.module.salary.service.SalaryMonthlyService;
-import com.company.labor.module.system.domain.entity.OperationLogDO;
-import com.company.labor.module.system.mapper.OperationLogMapper;
+import com.company.labor.module.system.service.OperationLogService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -51,7 +50,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     private final SalaryProfileItemMapper salaryProfileItemMapper;
     private final SalaryMonthlyDetailMapper detailMapper;
     private final SalaryDetailItemMapper detailItemMapper;
-    private final OperationLogMapper operationLogMapper;
+    private final OperationLogService operationLogService;
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final PerformanceScoreMapper performanceScoreMapper;
     private final ProjectBonusAllocationMapper bonusAllocationMapper;
@@ -417,12 +416,6 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     }
 
     private void log(String action, Long businessId, String content) {
-        OperationLogDO log = new OperationLogDO();
-        log.setModule("salary");
-        log.setBusinessId(businessId);
-        log.setAction(action);
-        log.setContent(content);
-        log.setCreatedAt(LocalDateTime.now());
-        operationLogMapper.insert(log);
+        operationLogService.record("salary", businessId, action, content);
     }
 }

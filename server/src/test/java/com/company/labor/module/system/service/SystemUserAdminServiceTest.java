@@ -11,11 +11,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.company.labor.module.system.domain.dto.SysUserResetPasswordDTO;
 import com.company.labor.module.system.domain.dto.SysUserSaveDTO;
-import com.company.labor.module.system.domain.entity.OperationLogDO;
 import com.company.labor.module.system.domain.entity.SysRoleDO;
 import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.domain.entity.SysUserRoleDO;
-import com.company.labor.module.system.mapper.OperationLogMapper;
 import com.company.labor.module.system.mapper.SysRoleMapper;
 import com.company.labor.module.system.mapper.SysUserMapper;
 import com.company.labor.module.system.mapper.SysUserRoleMapper;
@@ -30,7 +28,7 @@ class SystemUserAdminServiceTest {
         SysUserMapper userMapper = mock(SysUserMapper.class);
         SysRoleMapper roleMapper = mock(SysRoleMapper.class);
         SysUserRoleMapper userRoleMapper = mock(SysUserRoleMapper.class);
-        OperationLogMapper logMapper = mock(OperationLogMapper.class);
+        OperationLogService logService = mock(OperationLogService.class);
         when(userMapper.insert(org.mockito.ArgumentMatchers.<SysUserDO>any())).thenAnswer(invocation -> {
             SysUserDO user = invocation.getArgument(0);
             user.setId(2L);
@@ -38,20 +36,20 @@ class SystemUserAdminServiceTest {
         });
         when(roleMapper.selectBatchIds(List.of(1001L))).thenReturn(List.of(role(1001L)));
         when(userRoleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of());
-        SystemUserAdminService service = service(userMapper, roleMapper, userRoleMapper, logMapper);
+        SystemUserAdminService service = service(userMapper, roleMapper, userRoleMapper, logService);
 
         service.create(saveDto(), loginUser(1L));
 
         verify(userMapper).insert(any(SysUserDO.class));
         verify(userRoleMapper).insert(org.mockito.ArgumentMatchers.<SysUserRoleDO>any());
-        verify(logMapper).insert(any(OperationLogDO.class));
+        verify(logService).record(any(), any(), any(), any(LoginUser.class), any());
     }
 
     @Test
     void resetsPasswordAndClearsLockState() {
         SysUserMapper userMapper = mock(SysUserMapper.class);
         when(userMapper.selectById(2L)).thenReturn(user(2L));
-        SystemUserAdminService service = service(userMapper, mock(SysRoleMapper.class), mock(SysUserRoleMapper.class), mock(OperationLogMapper.class));
+        SystemUserAdminService service = service(userMapper, mock(SysRoleMapper.class), mock(SysUserRoleMapper.class), mock(OperationLogService.class));
         SysUserResetPasswordDTO dto = new SysUserResetPasswordDTO();
         dto.setNewPassword("new-password");
 
@@ -62,13 +60,13 @@ class SystemUserAdminServiceTest {
 
     @Test
     void refusesToDisableCurrentUser() {
-        SystemUserAdminService service = service(mock(SysUserMapper.class), mock(SysRoleMapper.class), mock(SysUserRoleMapper.class), mock(OperationLogMapper.class));
+        SystemUserAdminService service = service(mock(SysUserMapper.class), mock(SysRoleMapper.class), mock(SysUserRoleMapper.class), mock(OperationLogService.class));
 
         assertThrows(RuntimeException.class, () -> service.disable(1L, loginUser(1L)));
     }
 
-    private SystemUserAdminService service(SysUserMapper userMapper, SysRoleMapper roleMapper, SysUserRoleMapper userRoleMapper, OperationLogMapper logMapper) {
-        return new SystemUserAdminService(userMapper, roleMapper, userRoleMapper, logMapper, new BCryptPasswordEncoder());
+    private SystemUserAdminService service(SysUserMapper userMapper, SysRoleMapper roleMapper, SysUserRoleMapper userRoleMapper, OperationLogService logService) {
+        return new SystemUserAdminService(userMapper, roleMapper, userRoleMapper, logService, new BCryptPasswordEncoder());
     }
 
     private SysUserSaveDTO saveDto() {

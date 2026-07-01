@@ -15,8 +15,7 @@ import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyDetailMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.salary.service.SalaryExportService;
-import com.company.labor.module.system.domain.entity.OperationLogDO;
-import com.company.labor.module.system.mapper.OperationLogMapper;
+import com.company.labor.module.system.service.OperationLogService;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
@@ -44,7 +43,7 @@ public class SalaryExportServiceImpl implements SalaryExportService {
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
     private final PositionMapper positionMapper;
-    private final OperationLogMapper operationLogMapper;
+    private final OperationLogService operationLogService;
 
     @Override
     public void exportMonthly(Long monthlyId, OutputStream outputStream) throws IOException {
@@ -246,13 +245,7 @@ public class SalaryExportServiceImpl implements SalaryExportService {
     }
 
     private void log(String action, Long businessId, String content) {
-        OperationLogDO log = new OperationLogDO();
-        log.setModule("salary");
-        log.setBusinessId(businessId);
-        log.setAction(action);
-        log.setContent(content);
-        log.setCreatedAt(LocalDateTime.now());
-        operationLogMapper.insert(log);
+        operationLogService.record("salary", businessId, action, content);
     }
 
     private static class DepartmentSummary {
