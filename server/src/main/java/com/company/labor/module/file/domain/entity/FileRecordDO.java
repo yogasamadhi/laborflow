@@ -1,6 +1,8 @@
 package com.company.labor.module.file.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
@@ -16,7 +18,8 @@ public class FileRecordDO {
     private String filePath;
     private Long fileSize;
     private String contentType;
+    @TableField(fill = FieldFill.INSERT)
     private Long createdBy;
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }
-
