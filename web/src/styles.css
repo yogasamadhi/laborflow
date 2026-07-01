@@ -230,6 +230,24 @@ textarea {
   min-width: 240px;
 }
 
+.checkbox-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.checkbox-chip {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #d8dee8;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 6px;
+  min-height: 38px;
+  padding: 7px 10px;
+}
+
 .field {
   display: grid;
   gap: 6px;

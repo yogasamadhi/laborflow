@@ -47,6 +47,7 @@ import {
   WorkProcessPage
 } from "../features/project/pages/ProjectPages";
 import { WechatBindingPage } from "../features/system/pages/WechatBindingPage";
+import { SystemUserPage } from "../features/system/pages/SystemUserPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -97,7 +98,7 @@ export const router = createBrowserRouter([
       { path: "compensation/bonus-allocations", element: <BonusAllocationPage /> },
       { path: "compensation/salary", element: <CompensationSalaryPage /> },
       { path: "compensation/dashboard", element: <CompensationDashboardPage /> },
-      { path: "system/users", element: <SimpleCrudPage title="用户管理" resource="system/users" readonly /> },
+      { path: "system/users", element: <SystemUserPage /> },
       { path: "system/wechat-bindings", element: <WechatBindingPage /> },
       { path: "system/roles", element: <SimpleCrudPage title="角色管理" resource="system/roles" readonly /> },
       { path: "system/logs", element: <SimpleCrudPage title="操作日志" resource="system/logs" readonly /> }

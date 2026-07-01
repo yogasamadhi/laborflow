@@ -52,7 +52,7 @@
 | L1-02 | backend | done | 增加登录安全控制 | auth controller/service、用户表迁移 | 登录失败计数、临时锁定、最后登录时间/IP、密码修改时间可记录；锁定账号不能登录 |
 | L1-03 | backend/miniapp | done | 实现微信 code 换 session | 小程序登录接口、微信配置、用户绑定表迁移、`miniapp/services/auth.js` | 小程序可用 `wx.login` code 换取 openid/session；失败有明确提示；不把微信密钥提交到仓库 |
 | L1-04 | backend/miniapp/web | done | 实现账号与员工、openid 绑定闭环 | `sys_user`、员工模块、小程序 profile/login 页面、Web 用户管理 | 小程序登录后能绑定平台账号和员工；员工解绑、换绑、停用流程可审计 |
-| L1-05 | backend/web | todo | 补全用户和角色管理 | `SystemController`、system service、Web 系统页面 | 管理员可创建/停用用户、分配角色、重置密码；非管理员不可访问系统管理 |
+| L1-05 | backend/web | done | 补全用户和角色管理 | `SystemController`、system service、Web 系统页面 | 管理员可创建/停用用户、分配角色、重置密码；非管理员不可访问系统管理 |
 
 ### P2：审计、审批与证据链
 
@@ -285,4 +285,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in web/)
 结果: passed
 备注: Bound miniapp openid sessions to platform users/employees after login, added admin bind/unbind/disable APIs with operation logs, and added a Web system page for WeChat binding management.
+```
+
+```text
+Loop: L1-05
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in web/)
+结果: passed
+备注: Added admin user create/update/disable, role assignment, password reset APIs, audit logging, and a Web system user management page. System routes remain protected by ADMIN method security.
 ```
