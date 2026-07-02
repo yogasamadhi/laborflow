@@ -745,6 +745,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         if (order.getOccurrenceDate() == null) throw new BusinessException("发生日期必填");
         order.setIncreasedQuantity(nvl(order.getIncreasedQuantity()));
         order.setEstimatedAmount(nvl(order.getEstimatedAmount()));
+        order.setConfirmedAmount(BigDecimal.ZERO);
         order.setLaborCount(order.getLaborCount() == null ? 0 : order.getLaborCount());
         order.setStatus("draft");
         order.setDeleted(0);
@@ -782,6 +783,11 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         String statusBefore = order.getStatus();
         BusinessStateMachine.requireTransition(Flow.VARIATION_ORDER, statusBefore, "confirmed");
         order.setStatus("confirmed");
+        order.setConfirmedAmount(dto != null && dto.getConfirmedAmount() != null ? dto.getConfirmedAmount() : nvl(order.getEstimatedAmount()));
+        order.setConfirmedAt(LocalDateTime.now());
+        fillVariationOrderConfirmer(order, dto);
+        order.setConfirmRemark(dto == null ? null : dto.getRemark());
+        order.setRejectedReason(null);
         variationOrderMapper.updateById(order);
         variationConfirmLog(id, "commercial", "confirmed", statusBefore, order.getStatus(), dto);
         operationLogService.record("project", id, "confirm_variation_order", "确认签证变更");
@@ -1068,17 +1074,26 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
         BigDecimal receivableAmount = BigDecimal.ZERO;
         BigDecimal receivedAmount = BigDecimal.ZERO;
+        boolean hasExplicitReceivable = false;
         for (ProjectPaymentRecordDO record : paymentRecordMapper.selectList(new LambdaQueryWrapper<ProjectPaymentRecordDO>()
                 .eq(ProjectPaymentRecordDO::getDeleted, 0)
                 .eq(ProjectPaymentRecordDO::getProjectId, projectId))) {
             if ("receivable".equals(record.getRecordType())) {
+                hasExplicitReceivable = true;
                 receivableAmount = receivableAmount.add(nvl(record.getAmount()));
             } else {
                 receivedAmount = receivedAmount.add(nvl(record.getAmount()));
             }
         }
-        if (receivableAmount.compareTo(BigDecimal.ZERO) == 0) {
-            receivableAmount = nvl(project.getContractAmount());
+        BigDecimal confirmedVariation = BigDecimal.ZERO;
+        for (VariationOrderDO order : variationOrderMapper.selectList(new LambdaQueryWrapper<VariationOrderDO>()
+                .eq(VariationOrderDO::getDeleted, 0)
+                .eq(VariationOrderDO::getProjectId, projectId)
+                .eq(VariationOrderDO::getStatus, "confirmed"))) {
+            confirmedVariation = confirmedVariation.add(nvl(order.getConfirmedAmount()));
+        }
+        if (!hasExplicitReceivable) {
+            receivableAmount = nvl(project.getContractAmount()).add(confirmedVariation);
         }
         BigDecimal totalCost = teamPayable.add(otherCost).add(machineryCost).add(materialCost);
         BigDecimal paymentProgress = receivableAmount.compareTo(BigDecimal.ZERO) == 0
@@ -1154,8 +1169,9 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         vo.setMachineryCostAmount(machineryCost);
         vo.setMaterialCostAmount(materialCost);
         vo.setTotalCostAmount(totalCost);
-        vo.setGrossProfit(outputValue.subtract(totalCost));
+        vo.setGrossProfit(outputValue.add(confirmedVariation).subtract(totalCost));
         vo.setReceivableAmount(receivableAmount);
+        vo.setConfirmedVariationAmount(confirmedVariation);
         vo.setPendingVariationAmount(pendingVariation);
         vo.setReceivedAmount(receivedAmount);
         vo.setPaymentProgress(paymentProgress);
@@ -1359,6 +1375,17 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         } else if (dto != null) {
             confirm.setConfirmerId(dto.getOperatorId());
             confirm.setConfirmerName(dto.getOperatorName());
+        }
+    }
+
+    private void fillVariationOrderConfirmer(VariationOrderDO order, ProjectActionDTO dto) {
+        LoginUser loginUser = auditUserProvider.currentLoginUser();
+        if (loginUser != null) {
+            order.setConfirmerId(loginUser.getUser().getId());
+            order.setConfirmerName(loginUser.getUsername());
+        } else if (dto != null) {
+            order.setConfirmerId(dto.getOperatorId());
+            order.setConfirmerName(dto.getOperatorName());
         }
     }
 

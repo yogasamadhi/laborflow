@@ -18,6 +18,7 @@ public class ProjectDashboardVO {
     private BigDecimal totalCostAmount;
     private BigDecimal grossProfit;
     private BigDecimal receivableAmount;
+    private BigDecimal confirmedVariationAmount;
     private BigDecimal pendingVariationAmount;
     private BigDecimal receivedAmount;
     private BigDecimal paymentProgress;

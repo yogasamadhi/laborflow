@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.company.labor.module.common.domain.entity.BaseDO;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -23,6 +24,11 @@ public class VariationOrderDO extends BaseDO {
     private String responsibleParty;
     private BigDecimal increasedQuantity;
     private BigDecimal estimatedAmount;
+    private BigDecimal confirmedAmount;
+    private LocalDateTime confirmedAt;
+    private Long confirmerId;
+    private String confirmerName;
+    private String confirmRemark;
     private Integer laborCount;
     private String machineryShift;
     private String materialNote;

@@ -99,7 +99,7 @@
 | --- | --- | --- | --- | --- | --- |
 | L6-01 | backend/web | done | 项目合同清单与计量口径 | 项目、工序、施工段、合同清单、项目单价 | 合同清单能定义工程量、单位、单价；日报产值按合同清单优先、项目工序单价兜底并固化计价口径；已通过 `git diff --check`、`ProjectContractItemPricingTest`、`pnpm build`、`mvn test` |
 | L6-02 | backend/web/miniapp | done | 工程量确认与班组结算闭环 | 日报、确认、班组单价、结算、移动端待办 | 已确认工程量才能结算；同一日报不能重复结算；结算可审核、驳回、支付；已通过 `git diff --check`、`TeamSettlementReviewFlowTest`、`node --check`、`pnpm build`、`mvn test` |
-| L6-03 | backend/web/miniapp | todo | 签证变更收入闭环 | 签证、附件、确认金额、项目看板 | 签证从提交到确认金额有状态流；确认金额进入项目经营统计 |
+| L6-03 | backend/web/miniapp | done | 签证变更收入闭环 | 签证、附件、确认金额、项目看板 | 签证从提交到确认金额有状态流；确认金额进入项目经营统计；已通过 `git diff --check`、`VariationOrderIncomeFlowTest`、`node --check`、`pnpm build`、`mvn test` |
 | L6-04 | backend/web | todo | 项目回款、发票、质保金 | 回款记录、发票记录、质保金、项目看板 | 项目能展示合同额、已开票、已回款、应收、质保金和回款进度 |
 | L6-05 | backend/web | todo | 成本归集与利润分析 | 成本、材料、机械、班组结算、工资分摊 | 项目毛利、成本构成、现金流、风险预警口径稳定，并可追溯来源 |
 
@@ -445,4 +445,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; node --check miniapp/services/project.js; node --check miniapp/services/todo.js; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=TeamSettlementReviewFlowTest,BusinessStateMachineTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Added team settlement review rejection, reviewer/payment audit fields, duplicate same-month settlement guard, Web reject/payment action states, and miniapp settlement approval/rejection todo actions.
+```
+
+```text
+Loop: L6-03
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; node --check miniapp/services/project.js; node --check miniapp/services/todo.js; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=VariationOrderIncomeFlowTest,ProjectApprovalEvidenceTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+结果: passed
+备注: Added confirmed variation amount/operator fields, made variation confirmation persist confirmed income, included confirmed variation income in project dashboard receivable and gross profit defaults, and exposed confirmed amount in the Web variation/dashboard views.
 ```
