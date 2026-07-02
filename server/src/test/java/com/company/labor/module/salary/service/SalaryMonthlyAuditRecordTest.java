@@ -10,6 +10,7 @@ import com.company.labor.module.compensation.mapper.PerformanceScoreMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper;
 import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
+import com.company.labor.module.file.service.FileBindingGuard;
 import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
 import com.company.labor.module.salary.mapper.SalaryAuditRecordMapper;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
@@ -44,7 +45,8 @@ class SalaryMonthlyAuditRecordTest {
                 mock(AttendanceRecordMapper.class),
                 mock(PerformanceScoreMapper.class),
                 mock(ProjectBonusAllocationMapper.class),
-                mock(SalarySourceRecordMapper.class));
+                mock(SalarySourceRecordMapper.class),
+                mock(FileBindingGuard.class));
 
         ReflectionTestUtils.invokeMethod(service, "audit", 1L, 2L, "approve", "pending_approval", "approved", "审核通过", "proof.xlsx");
 

@@ -5,7 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, postData } from "../../../lib/axios";
+import { getData, PageResult, postData, uploadFile } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import type { Employee } from "../../employee/types";
 
@@ -43,6 +43,8 @@ export function SalaryMonthlyPaymentPage() {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [form, setForm] = useState<PaymentForm>({ paymentDate: today(), paymentMethod: "bank_transfer", paymentProofUrl: "" });
+  const [proofName, setProofName] = useState("");
+  const [proofUploading, setProofUploading] = useState(false);
   const [error, setError] = useState("");
 
   const { data: monthly } = useQuery({
@@ -101,6 +103,21 @@ export function SalaryMonthlyPaymentPage() {
     setSelectedIds(unpaidDetails.map((detail) => detail.id));
   }
 
+  async function attachProof(file?: File) {
+    if (!file) return;
+    setProofUploading(true);
+    try {
+      const uploaded = await uploadFile(file);
+      setForm((current) => ({ ...current, paymentProofUrl: `/api/files/${uploaded.id}/download` }));
+      setProofName(uploaded.originalName ?? file.name);
+      setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "凭证上传失败");
+    } finally {
+      setProofUploading(false);
+    }
+  }
+
   return (
     <Page
       title="工资发放"
@@ -138,8 +155,9 @@ export function SalaryMonthlyPaymentPage() {
               <option value="other">其他</option>
             </SelectInput>
           </Field>
-          <Field label="凭证地址">
-            <TextInput value={form.paymentProofUrl} onChange={(event) => setForm({ ...form, paymentProofUrl: event.target.value })} placeholder="可填上传后的凭证 URL" />
+          <Field label="发放凭证">
+            <input type="file" disabled={!canPay || proofUploading} onChange={(event) => void attachProof(event.target.files?.[0])} />
+            {form.paymentProofUrl && <span className="muted">{proofName || "已上传"}</span>}
           </Field>
         </div>
         <div className="summary-strip">

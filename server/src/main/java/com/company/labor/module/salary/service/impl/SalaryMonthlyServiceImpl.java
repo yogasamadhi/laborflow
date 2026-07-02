@@ -17,6 +17,7 @@ import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper
 import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
+import com.company.labor.module.file.service.FileBindingGuard;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
 import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
@@ -63,6 +64,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     private final PerformanceScoreMapper performanceScoreMapper;
     private final ProjectBonusAllocationMapper bonusAllocationMapper;
     private final SalarySourceRecordMapper salarySourceRecordMapper;
+    private final FileBindingGuard fileBindingGuard;
 
     @Override
     @Transactional
@@ -314,11 +316,12 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         applyPayment(detail, dto);
         detailMapper.updateById(detail);
         refreshPaidStatus(monthly.getId());
+        String proofUrl = detail.getPaymentProofUrl();
         log("single_payment", detail.getSalaryMonthlyId(), "单人发放：" + detailId);
-        audit(detail.getSalaryMonthlyId(), detailId, "single_payment", beforePaymentStatus, detail.getPaymentStatus(), "单人发放：" + detailId, dto.getPaymentProofUrl());
-        if (StringUtils.hasText(dto.getPaymentProofUrl())) {
+        audit(detail.getSalaryMonthlyId(), detailId, "single_payment", beforePaymentStatus, detail.getPaymentStatus(), "单人发放：" + detailId, proofUrl);
+        if (StringUtils.hasText(proofUrl)) {
             log("upload_proof", detail.getSalaryMonthlyId(), "上传凭证：" + detailId);
-            audit(detail.getSalaryMonthlyId(), detailId, "upload_proof", null, null, "上传凭证：" + detailId, dto.getPaymentProofUrl());
+            audit(detail.getSalaryMonthlyId(), detailId, "upload_proof", null, null, "上传凭证：" + detailId, proofUrl);
         }
     }
 
@@ -337,28 +340,30 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                     .eq(SalaryMonthlyDetailDO::getDeleted, 0)));
         }
         Set<Long> affectedMonthlyIds = new HashSet<>();
+        String normalizedProofUrl = null;
         for (SalaryMonthlyDetailDO detail : details) {
             SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
             BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved");
             String beforePaymentStatus = detail.getPaymentStatus();
             applyPayment(detail, dto);
+            normalizedProofUrl = detail.getPaymentProofUrl();
             detailMapper.updateById(detail);
             refreshPaidStatus(detail.getSalaryMonthlyId());
             affectedMonthlyIds.add(detail.getSalaryMonthlyId());
-            audit(detail.getSalaryMonthlyId(), detail.getId(), "batch_payment", beforePaymentStatus, detail.getPaymentStatus(), "批量发放", dto.getPaymentProofUrl());
-            if (StringUtils.hasText(dto.getPaymentProofUrl())) {
-                audit(detail.getSalaryMonthlyId(), detail.getId(), "upload_proof", null, null, "批量上传凭证", dto.getPaymentProofUrl());
+            audit(detail.getSalaryMonthlyId(), detail.getId(), "batch_payment", beforePaymentStatus, detail.getPaymentStatus(), "批量发放", normalizedProofUrl);
+            if (StringUtils.hasText(normalizedProofUrl)) {
+                audit(detail.getSalaryMonthlyId(), detail.getId(), "upload_proof", null, null, "批量上传凭证", normalizedProofUrl);
             }
         }
         Long businessId = dto.getMonthlyId() == null && !details.isEmpty() ? details.get(0).getSalaryMonthlyId() : dto.getMonthlyId();
         log("batch_payment", businessId, "批量发放：" + details.size() + " 人");
         for (Long monthlyId : affectedMonthlyIds) {
-            audit(monthlyId, null, "batch_payment", null, null, "批量发放：" + countByMonthly(details, monthlyId) + " 人", dto.getPaymentProofUrl());
+            audit(monthlyId, null, "batch_payment", null, null, "批量发放：" + countByMonthly(details, monthlyId) + " 人", normalizedProofUrl);
         }
-        if (StringUtils.hasText(dto.getPaymentProofUrl())) {
+        if (StringUtils.hasText(normalizedProofUrl)) {
             log("upload_proof", businessId, "批量上传凭证：" + details.size() + " 人");
             for (Long monthlyId : affectedMonthlyIds) {
-                audit(monthlyId, null, "upload_proof", null, null, "批量上传凭证：" + countByMonthly(details, monthlyId) + " 人", dto.getPaymentProofUrl());
+                audit(monthlyId, null, "upload_proof", null, null, "批量上传凭证：" + countByMonthly(details, monthlyId) + " 人", normalizedProofUrl);
             }
         }
     }
@@ -443,7 +448,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         detail.setPaymentStatus("paid");
         detail.setPaymentDate(dto.getPaymentDate() == null ? LocalDate.now() : dto.getPaymentDate());
         detail.setPaymentMethod(StringUtils.hasText(dto.getPaymentMethod()) ? dto.getPaymentMethod() : "bank_transfer");
-        detail.setPaymentProofUrl(dto.getPaymentProofUrl());
+        detail.setPaymentProofUrl(fileBindingGuard.normalizeSalaryProofUrl(dto.getPaymentProofUrl()));
     }
 
     private SalaryDetailItemDO detailItem(Long detailId, Long itemId, String name, String type, BigDecimal amount, String remark) {

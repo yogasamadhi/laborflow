@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, RefreshCw, Save } from "lucide-react";
+import { Download, Eye, RefreshCw, Save } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, postData, putData } from "../../../lib/axios";
+import { downloadFile, getData, PageResult, postData, putData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import type { Employee } from "../../employee/types";
 
@@ -167,6 +167,16 @@ export function SalaryMonthlyDetailPage() {
     setEditing((current) => current ? { ...current, ...patch } : current);
   }
 
+  function openProof(proofUrl: string) {
+    const privatePath = proofUrl.match(/^\/(?:api\/)?files\/\d+\/download$/);
+    if (privatePath) {
+      const url = proofUrl.startsWith("/api/") ? proofUrl.slice(4) : proofUrl;
+      void downloadFile(url, "工资凭证");
+      return;
+    }
+    window.open(proofUrl, "_blank", "noreferrer");
+  }
+
   return (
     <Page
       title={monthly?.title ?? "工资明细"}
@@ -209,7 +219,12 @@ export function SalaryMonthlyDetailPage() {
                   <div className="audit-meta">
                     {(item.statusBefore || item.statusAfter) && <span>{statusText(item.statusBefore)} → {statusText(item.statusAfter)}</span>}
                     {item.remark && <span>{item.remark}</span>}
-                    {item.proofUrl && <a href={item.proofUrl} target="_blank" rel="noreferrer">查看凭证</a>}
+                    {item.proofUrl && (
+                      <Button type="button" variant="secondary" onClick={() => openProof(item.proofUrl!)}>
+                        <Download size={14} />
+                        查看凭证
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

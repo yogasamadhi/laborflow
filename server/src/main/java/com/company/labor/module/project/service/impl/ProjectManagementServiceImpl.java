@@ -7,6 +7,7 @@ import com.company.labor.common.softdelete.SoftDeleteGuard;
 import com.company.labor.common.softdelete.SoftDeleteGuard.Reference;
 import com.company.labor.common.statemachine.BusinessStateMachine;
 import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
+import com.company.labor.module.file.service.FileBindingGuard;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
@@ -96,6 +97,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final OperationLogService operationLogService;
     private final AuditUserProvider auditUserProvider;
     private final SoftDeleteGuard softDeleteGuard;
+    private final FileBindingGuard fileBindingGuard;
 
     @Override
     public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds) {
@@ -502,8 +504,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     @Override
     public void attachDailyReportFile(Long id, FileAttachDTO dto) {
-        requireDailyReport(id);
+        DailyWorkReportDO report = requireDailyReport(id);
         if (dto == null || dto.getFileId() == null) throw new BusinessException("附件必填");
+        fileBindingGuard.requireProjectFileBindable(dto.getFileId(), report.getProjectId());
+        requireDailyReportFileNotBound(id, dto.getFileId());
         DailyWorkReportFileDO file = new DailyWorkReportFileDO();
         file.setDailyWorkReportId(id);
         file.setFileId(dto.getFileId());
@@ -725,8 +729,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     @Override
     public void attachVariationOrderFile(Long id, FileAttachDTO dto) {
-        requireVariationOrder(id);
+        VariationOrderDO order = requireVariationOrder(id);
         if (dto == null || dto.getFileId() == null) throw new BusinessException("附件必填");
+        fileBindingGuard.requireProjectFileBindable(dto.getFileId(), order.getProjectId());
+        requireVariationOrderFileNotBound(id, dto.getFileId());
         VariationOrderFileDO file = new VariationOrderFileDO();
         file.setVariationOrderId(id);
         file.setFileId(dto.getFileId());
@@ -809,6 +815,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         if (record.getPaymentDate() == null) record.setPaymentDate(LocalDate.now());
         record.setRecordType(defaultText(record.getRecordType(), "received"));
         record.setAmount(nvl(record.getAmount()));
+        validatePaymentVoucher(record.getVoucherFileId(), record.getProjectId(), null);
         record.setDeleted(0);
         paymentRecordMapper.insert(record);
         return record;
@@ -819,6 +826,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectPaymentRecordDO old = requirePaymentRecord(id);
         record.setId(id);
         record.setProjectId(old.getProjectId());
+        validatePaymentVoucher(record.getVoucherFileId(), record.getProjectId(), id);
         paymentRecordMapper.updateById(record);
         return paymentRecordMapper.selectById(id);
     }
@@ -925,6 +933,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         if (archive.getArchiveDate() == null) archive.setArchiveDate(LocalDate.now());
         requireText(archive.getDocumentType(), "资料类型必填");
         if (archive.getFileId() == null) throw new BusinessException("附件必填");
+        fileBindingGuard.requireProjectFileBindable(archive.getFileId(), archive.getProjectId());
+        requireDocumentArchiveFileNotUsed(archive.getFileId(), null);
         archive.setDeleted(0);
         documentArchiveMapper.insert(archive);
         return archive;
@@ -935,6 +945,9 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectDocumentArchiveDO old = requireDocumentArchive(id);
         archive.setId(id);
         archive.setProjectId(old.getProjectId());
+        if (archive.getFileId() == null) throw new BusinessException("附件必填");
+        fileBindingGuard.requireProjectFileBindable(archive.getFileId(), archive.getProjectId());
+        requireDocumentArchiveFileNotUsed(archive.getFileId(), id);
         documentArchiveMapper.updateById(archive);
         return documentArchiveMapper.selectById(id);
     }
@@ -1295,6 +1308,44 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectDocumentArchiveDO row = documentArchiveMapper.selectById(id);
         if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("资料归档不存在");
         return row;
+    }
+
+    private void validatePaymentVoucher(Long fileId, Long projectId, Long selfId) {
+        if (fileId == null) {
+            return;
+        }
+        fileBindingGuard.requireProjectFileBindable(fileId, projectId);
+        if (paymentRecordMapper.selectCount(new LambdaQueryWrapper<ProjectPaymentRecordDO>()
+                .eq(ProjectPaymentRecordDO::getDeleted, 0)
+                .eq(ProjectPaymentRecordDO::getVoucherFileId, fileId)
+                .ne(selfId != null, ProjectPaymentRecordDO::getId, selfId)) > 0) {
+            throw new BusinessException("回款凭证已被使用");
+        }
+    }
+
+    private void requireDailyReportFileNotBound(Long dailyReportId, Long fileId) {
+        if (dailyWorkReportFileMapper.selectCount(new LambdaQueryWrapper<DailyWorkReportFileDO>()
+                .eq(DailyWorkReportFileDO::getDailyWorkReportId, dailyReportId)
+                .eq(DailyWorkReportFileDO::getFileId, fileId)) > 0) {
+            throw new BusinessException("附件已绑定该日报");
+        }
+    }
+
+    private void requireVariationOrderFileNotBound(Long variationOrderId, Long fileId) {
+        if (variationOrderFileMapper.selectCount(new LambdaQueryWrapper<VariationOrderFileDO>()
+                .eq(VariationOrderFileDO::getVariationOrderId, variationOrderId)
+                .eq(VariationOrderFileDO::getFileId, fileId)) > 0) {
+            throw new BusinessException("附件已绑定该签证");
+        }
+    }
+
+    private void requireDocumentArchiveFileNotUsed(Long fileId, Long selfId) {
+        if (documentArchiveMapper.selectCount(new LambdaQueryWrapper<ProjectDocumentArchiveDO>()
+                .eq(ProjectDocumentArchiveDO::getDeleted, 0)
+                .eq(ProjectDocumentArchiveDO::getFileId, fileId)
+                .ne(selfId != null, ProjectDocumentArchiveDO::getId, selfId)) > 0) {
+            throw new BusinessException("附件已被归档");
+        }
     }
 
     private void ensureSectionNameAvailable(Long projectId, String name, Long selfId) {
