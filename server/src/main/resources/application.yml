@@ -37,3 +37,5 @@ laborflow:
       app-secret: ${WECHAT_MINIAPP_APP_SECRET:}
       code2-session-url: ${WECHAT_MINIAPP_CODE2SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
   upload-dir: ${UPLOAD_DIR:./uploads}
+  file:
+    max-size-bytes: ${UPLOAD_MAX_SIZE_BYTES:10485760}

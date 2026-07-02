@@ -78,7 +78,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
-| L4-01 | backend | todo | 上传文件安全校验 | `FileRecordServiceImpl`、文件配置、异常处理 | 文件大小、扩展名、MIME、空文件、危险文件名有校验；非法文件不能入库落盘 |
+| L4-01 | backend | done | 上传文件安全校验 | `FileRecordServiceImpl`、文件配置、异常处理 | 文件大小、扩展名、MIME、空文件、危险文件名均由 service 入库/落盘前校验；非法文件拒绝写入；已通过 `FileRecordServiceSecurityTest`、`git diff --check`、`mvn test` |
 | L4-02 | backend | todo | 私有文件访问与下载授权 | 文件 controller/service、WebMvc 静态资源配置 | 文件下载必须鉴权；只能访问本人或授权业务关联文件；不再直接公开 `/uploads/**` |
 | L4-03 | backend | todo | 凭证和附件归属校验 | 工资凭证、日报照片、签证附件、资料归档 | 附件绑定业务前校验文件存在、上传者或权限合法；同一附件重复绑定有规则 |
 | L4-04 | infra/backend | todo | 支持对象存储适配 | 文件存储接口、本地存储实现、对象存储实现配置 | 本地和对象存储可切换；生产配置不依赖应用容器本地磁盘 |
