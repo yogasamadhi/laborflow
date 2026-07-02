@@ -17,6 +17,7 @@ import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
 import com.company.labor.module.project.domain.entity.MachineryWorkRecordDO;
 import com.company.labor.module.project.domain.entity.MaterialRecordDO;
 import com.company.labor.module.project.domain.entity.ProjectCostRecordDO;
+import com.company.labor.module.project.domain.entity.ProjectContractItemDO;
 import com.company.labor.module.project.domain.entity.ProjectDocumentArchiveDO;
 import com.company.labor.module.project.domain.entity.ProjectDO;
 import com.company.labor.module.project.domain.entity.ProjectPaymentRecordDO;
@@ -39,6 +40,7 @@ import com.company.labor.module.project.mapper.MachineryEquipmentMapper;
 import com.company.labor.module.project.mapper.MachineryWorkRecordMapper;
 import com.company.labor.module.project.mapper.MaterialRecordMapper;
 import com.company.labor.module.project.mapper.ProjectCostRecordMapper;
+import com.company.labor.module.project.mapper.ProjectContractItemMapper;
 import com.company.labor.module.project.mapper.ProjectDocumentArchiveMapper;
 import com.company.labor.module.project.mapper.ProjectMapper;
 import com.company.labor.module.project.mapper.ProjectPaymentRecordMapper;
@@ -80,6 +82,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final TeamMapper teamMapper;
     private final TeamUnitPriceMapper teamUnitPriceMapper;
     private final ProjectProcessPriceMapper projectProcessPriceMapper;
+    private final ProjectContractItemMapper contractItemMapper;
     private final DailyWorkReportMapper dailyWorkReportMapper;
     private final DailyWorkReportFileMapper dailyWorkReportFileMapper;
     private final WorkQuantityConfirmMapper workQuantityConfirmMapper;
@@ -143,6 +146,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 Reference.active("project_member", "project_id", "项目成员"),
                 Reference.active("team_unit_price", "project_id", "班组单价"),
                 Reference.active("project_process_price", "project_id", "项目工序单价"),
+                Reference.active("project_contract_item", "project_id", "项目合同清单"),
                 Reference.active("daily_work_report", "project_id", "工程量日报"),
                 Reference.active("team_settlement", "project_id", "班组结算"),
                 Reference.active("variation_order", "project_id", "签证变更"),
@@ -218,6 +222,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     public void deleteSection(Long id) {
         ProjectSectionDO section = requireSection(id);
         softDeleteGuard.requireNotReferenced("施工段", id,
+                Reference.active("project_contract_item", "project_section_id", "项目合同清单"),
                 Reference.active("daily_work_report", "project_section_id", "工程量日报"),
                 Reference.active("variation_order", "project_section_id", "签证变更"),
                 Reference.active("machinery_work_record", "project_section_id", "机械台班"),
@@ -281,6 +286,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         softDeleteGuard.requireNotReferenced("工序", id,
                 Reference.active("team_unit_price", "work_process_id", "班组单价"),
                 Reference.active("project_process_price", "work_process_id", "项目工序单价"),
+                Reference.active("project_contract_item", "work_process_id", "项目合同清单"),
                 Reference.active("daily_work_report", "work_process_id", "工程量日报"),
                 Reference.all("team_settlement_detail", "work_process_id", "班组结算明细"),
                 Reference.active("project_document_archive", "work_process_id", "资料归档"));
@@ -418,6 +424,45 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    public Page<ProjectContractItemDO> contractItems(long page, long pageSize, Long projectId, Long sectionId, Long processId, String status) {
+        return contractItemMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<ProjectContractItemDO>()
+                .eq(ProjectContractItemDO::getDeleted, 0)
+                .eq(projectId != null, ProjectContractItemDO::getProjectId, projectId)
+                .eq(sectionId != null, ProjectContractItemDO::getProjectSectionId, sectionId)
+                .eq(processId != null, ProjectContractItemDO::getWorkProcessId, processId)
+                .eq(StringUtils.hasText(status), ProjectContractItemDO::getStatus, status)
+                .orderByDesc(ProjectContractItemDO::getCreatedAt));
+    }
+
+    @Override
+    public ProjectContractItemDO saveContractItem(ProjectContractItemDO item) {
+        normalizeContractItem(item);
+        item.setDeleted(0);
+        contractItemMapper.insert(item);
+        return item;
+    }
+
+    @Override
+    public ProjectContractItemDO updateContractItem(Long id, ProjectContractItemDO item) {
+        requireContractItem(id);
+        item.setId(id);
+        normalizeContractItem(item);
+        contractItemMapper.updateById(item);
+        return contractItemMapper.selectById(id);
+    }
+
+    @Override
+    public void deleteContractItem(Long id) {
+        ProjectContractItemDO item = requireContractItem(id);
+        softDeleteGuard.requireNotReferenced("项目合同清单", id,
+                Reference.active("daily_work_report", "contract_item_id", "工程量日报"));
+        item.setDeleted(1);
+        if (contractItemMapper.updateById(item) <= 0) {
+            throw new BusinessException("项目合同清单删除失败");
+        }
+    }
+
+    @Override
     public Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status, Long createdBy) {
         return dailyWorkReportMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<DailyWorkReportDO>()
                 .eq(DailyWorkReportDO::getDeleted, 0)
@@ -434,6 +479,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         validateDailyReport(report);
         report.setCompletedQuantity(nvl(report.getCompletedQuantity()));
         report.setWorkerCount(report.getWorkerCount() == null ? 0 : report.getWorkerCount());
+        applyDailyReportPricing(report);
         report.setStatus("draft");
         report.setDeleted(0);
         dailyWorkReportMapper.insert(report);
@@ -449,6 +495,9 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         validateDailyReport(report);
         report.setId(id);
         report.setStatus(old.getStatus());
+        report.setCompletedQuantity(nvl(report.getCompletedQuantity()));
+        report.setWorkerCount(report.getWorkerCount() == null ? 0 : report.getWorkerCount());
+        applyDailyReportPricing(report);
         dailyWorkReportMapper.updateById(report);
         return dailyWorkReportMapper.selectById(id);
     }
@@ -963,8 +1012,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 .eq(DailyWorkReportDO::getStatus, "confirmed"))) {
             BigDecimal quantity = nvl(report.getCompletedQuantity());
             confirmedQuantity = confirmedQuantity.add(quantity);
-            ProjectProcessPriceDO price = latestProjectProcessPrice(projectId, report.getWorkProcessId());
-            outputValue = outputValue.add(quantity.multiply(price == null ? BigDecimal.ZERO : nvl(price.getUnitPrice())));
+            outputValue = outputValue.add(dailyReportOutputValue(report));
         }
 
         BigDecimal teamPayable = BigDecimal.ZERO;
@@ -1095,10 +1143,113 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private void validateDailyReport(DailyWorkReportDO report) {
         if (report.getWorkDate() == null) throw new BusinessException("施工日期必填");
         requireProject(report.getProjectId());
-        requireSection(report.getProjectSectionId());
+        ProjectSectionDO section = requireSection(report.getProjectSectionId());
+        if (!report.getProjectId().equals(section.getProjectId())) {
+            throw new BusinessException("施工段不属于所选项目");
+        }
         requireWorkProcess(report.getWorkProcessId());
         requireText(report.getUnit(), "单位必填");
         if (report.getTeamId() != null) requireTeam(report.getTeamId());
+    }
+
+    private void normalizeContractItem(ProjectContractItemDO item) {
+        requireProject(item.getProjectId());
+        if (item.getProjectSectionId() != null) {
+            ProjectSectionDO section = requireSection(item.getProjectSectionId());
+            if (!item.getProjectId().equals(section.getProjectId())) {
+                throw new BusinessException("合同清单施工段不属于所选项目");
+            }
+        }
+        requireWorkProcess(item.getWorkProcessId());
+        requireText(item.getItemName(), "清单名称必填");
+        requireText(item.getUnit(), "单位必填");
+        item.setContractQuantity(nvl(item.getContractQuantity()));
+        item.setUnitPrice(nvl(item.getUnitPrice()));
+        item.setContractAmount(item.getContractQuantity().multiply(item.getUnitPrice()).setScale(2, RoundingMode.HALF_UP));
+        item.setStatus(defaultText(item.getStatus(), "active"));
+    }
+
+    private void applyDailyReportPricing(DailyWorkReportDO report) {
+        DailyReportPricing pricing = resolveDailyReportPricing(report);
+        BigDecimal outputValue = nvl(report.getCompletedQuantity()).multiply(pricing.unitPrice()).setScale(2, RoundingMode.HALF_UP);
+        report.setContractItemId(pricing.contractItemId());
+        report.setOutputValue(outputValue);
+        report.setPricingBasis(pricing.basis());
+    }
+
+    private DailyReportPricing resolveDailyReportPricing(DailyWorkReportDO report) {
+        if (report.getContractItemId() != null) {
+            ProjectContractItemDO item = requireContractItem(report.getContractItemId());
+            if (!"active".equals(item.getStatus())) {
+                throw new BusinessException("合同清单已停用");
+            }
+            requireContractItemMatchesReport(report, item);
+            return contractItemPricing(item);
+        }
+        ProjectContractItemDO item = latestContractItem(report.getProjectId(), report.getProjectSectionId(), report.getWorkProcessId());
+        if (item == null) {
+            item = latestContractItem(report.getProjectId(), null, report.getWorkProcessId());
+        }
+        if (item != null) {
+            requireContractItemMatchesReport(report, item);
+            return contractItemPricing(item);
+        }
+        ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId());
+        if (price != null) {
+            return new DailyReportPricing(null, nvl(price.getUnitPrice()), "项目工序产值单价ID:" + price.getId()
+                    + ";单位:" + price.getUnit()
+                    + ";单价:" + nvl(price.getUnitPrice()));
+        }
+        return new DailyReportPricing(null, BigDecimal.ZERO, "未配置合同清单或项目工序产值单价，产值按0计算");
+    }
+
+    private DailyReportPricing contractItemPricing(ProjectContractItemDO item) {
+        String code = StringUtils.hasText(item.getItemCode()) ? item.getItemCode() + "/" : "";
+        return new DailyReportPricing(item.getId(), nvl(item.getUnitPrice()), "合同清单ID:" + item.getId()
+                + ";清单:" + code + item.getItemName()
+                + ";单位:" + item.getUnit()
+                + ";单价:" + nvl(item.getUnitPrice()));
+    }
+
+    private void requireContractItemMatchesReport(DailyWorkReportDO report, ProjectContractItemDO item) {
+        if (!report.getProjectId().equals(item.getProjectId())) {
+            throw new BusinessException("合同清单不属于所选项目");
+        }
+        if (item.getProjectSectionId() != null && !item.getProjectSectionId().equals(report.getProjectSectionId())) {
+            throw new BusinessException("合同清单不属于所选施工段");
+        }
+        if (!report.getWorkProcessId().equals(item.getWorkProcessId())) {
+            throw new BusinessException("合同清单不属于所选工序");
+        }
+        if (!item.getUnit().equals(report.getUnit())) {
+            throw new BusinessException("合同清单单位与日报单位不一致");
+        }
+    }
+
+    private BigDecimal dailyReportOutputValue(DailyWorkReportDO report) {
+        if (StringUtils.hasText(report.getPricingBasis())) {
+            return nvl(report.getOutputValue());
+        }
+        ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId());
+        return nvl(report.getCompletedQuantity()).multiply(price == null ? BigDecimal.ZERO : nvl(price.getUnitPrice()))
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private ProjectContractItemDO latestContractItem(Long projectId, Long sectionId, Long processId) {
+        LambdaQueryWrapper<ProjectContractItemDO> wrapper = new LambdaQueryWrapper<ProjectContractItemDO>()
+                .eq(ProjectContractItemDO::getDeleted, 0)
+                .eq(ProjectContractItemDO::getStatus, "active")
+                .eq(ProjectContractItemDO::getProjectId, projectId)
+                .eq(ProjectContractItemDO::getWorkProcessId, processId)
+                .orderByDesc(ProjectContractItemDO::getCreatedAt)
+                .orderByDesc(ProjectContractItemDO::getId)
+                .last("LIMIT 1");
+        if (sectionId == null) {
+            wrapper.isNull(ProjectContractItemDO::getProjectSectionId);
+        } else {
+            wrapper.eq(ProjectContractItemDO::getProjectSectionId, sectionId);
+        }
+        return contractItemMapper.selectOne(wrapper);
     }
 
     private TeamUnitPriceDO latestTeamUnitPrice(Long projectId, Long teamId, Long processId) {
@@ -1261,6 +1412,12 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         return row;
     }
 
+    private ProjectContractItemDO requireContractItem(Long id) {
+        ProjectContractItemDO row = contractItemMapper.selectById(id);
+        if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("项目合同清单不存在");
+        return row;
+    }
+
     private DailyWorkReportDO requireDailyReport(Long id) {
         DailyWorkReportDO row = dailyWorkReportMapper.selectById(id);
         if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("工程量日报不存在");
@@ -1383,5 +1540,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     private BigDecimal nvl(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private record DailyReportPricing(Long contractItemId, BigDecimal unitPrice, String basis) {
     }
 }

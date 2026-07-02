@@ -97,7 +97,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
-| L6-01 | backend/web | todo | 项目合同清单与计量口径 | 项目、工序、施工段、合同清单、项目单价 | 合同清单能定义工程量、单位、单价；日报产值计算有明确口径 |
+| L6-01 | backend/web | done | 项目合同清单与计量口径 | 项目、工序、施工段、合同清单、项目单价 | 合同清单能定义工程量、单位、单价；日报产值按合同清单优先、项目工序单价兜底并固化计价口径；已通过 `git diff --check`、`ProjectContractItemPricingTest`、`pnpm build`、`mvn test` |
 | L6-02 | backend/web/miniapp | todo | 工程量确认与班组结算闭环 | 日报、确认、班组单价、结算、移动端待办 | 已确认工程量才能结算；同一日报不能重复结算；结算可审核、驳回、支付 |
 | L6-03 | backend/web/miniapp | todo | 签证变更收入闭环 | 签证、附件、确认金额、项目看板 | 签证从提交到确认金额有状态流；确认金额进入项目经营统计 |
 | L6-04 | backend/web | todo | 项目回款、发票、质保金 | 回款记录、发票记录、质保金、项目看板 | 项目能展示合同额、已开票、已回款、应收、质保金和回款进度 |
@@ -425,4 +425,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; mvn -q -Dtest=SalaryAnomalyHandlingTest,SalaryGenerationRulesTest test (in server/); pnpm build (in web/); mvn test (in server/)
 结果: passed
 备注: Added auditable salary anomaly handling records, merged handling status into anomaly statistics, exposed a handle API for processed/ignored/adjustment outcomes, and added Web actions to process salary anomalies.
+```
+
+```text
+Loop: L6-01
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectContractItemPricingTest,ProjectApprovalEvidenceTest,ProjectAttachmentBindingValidationTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+结果: passed
+备注: Added project contract item maintenance, stored daily report output value and pricing basis snapshots, made dashboard output value use the stored snapshot, and exposed a Web contract-item page plus daily report pricing display.
 ```

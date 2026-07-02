@@ -10,6 +10,7 @@ import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
 import com.company.labor.module.project.domain.entity.MachineryWorkRecordDO;
 import com.company.labor.module.project.domain.entity.MaterialRecordDO;
 import com.company.labor.module.project.domain.entity.ProjectCostRecordDO;
+import com.company.labor.module.project.domain.entity.ProjectContractItemDO;
 import com.company.labor.module.project.domain.entity.ProjectDocumentArchiveDO;
 import com.company.labor.module.project.domain.entity.ProjectDO;
 import com.company.labor.module.project.domain.entity.ProjectPaymentRecordDO;
@@ -61,6 +62,11 @@ public interface ProjectManagementService {
     Page<ProjectProcessPriceDO> projectProcessPrices(long page, long pageSize, Long projectId);
     ProjectProcessPriceDO saveProjectProcessPrice(ProjectProcessPriceDO price);
     ProjectProcessPriceDO updateProjectProcessPrice(Long id, ProjectProcessPriceDO price);
+
+    Page<ProjectContractItemDO> contractItems(long page, long pageSize, Long projectId, Long sectionId, Long processId, String status);
+    ProjectContractItemDO saveContractItem(ProjectContractItemDO item);
+    ProjectContractItemDO updateContractItem(Long id, ProjectContractItemDO item);
+    void deleteContractItem(Long id);
 
     Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status, Long createdBy);
     DailyWorkReportDO saveDailyReport(DailyWorkReportDO report);

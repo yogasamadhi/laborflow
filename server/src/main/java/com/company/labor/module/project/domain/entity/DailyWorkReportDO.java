@@ -18,9 +18,12 @@ public class DailyWorkReportDO extends BaseDO {
     private LocalDate workDate;
     private Long projectId;
     private Long projectSectionId;
+    private Long contractItemId;
     private Long workProcessId;
     private BigDecimal completedQuantity;
     private String unit;
+    private BigDecimal outputValue;
+    private String pricingBasis;
     private Long teamId;
     private Integer workerCount;
     private String machineryUsage;

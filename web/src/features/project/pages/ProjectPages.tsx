@@ -11,9 +11,10 @@ type Project = { id: string; name: string; clientName?: string; contractAmount?:
 type Section = { id: string; projectId: string; name: string; bidSectionName?: string; startStakeNo?: string; endStakeNo?: string; startWellNo?: string; endWellNo?: string; length?: number; remark?: string };
 type Process = { id: string; name: string; unit: string; sortOrder?: number; status?: string };
 type Team = { id: string; name: string; leaderName?: string; phone?: string; workType?: string; settlementMethod?: string; status?: string };
-type DailyReport = { id: string; workDate: string; projectId: string; projectSectionId: string; workProcessId: string; completedQuantity: number; unit: string; teamId?: string; workerCount?: number; machineryUsage?: string; reporterName?: string; status: string; exceptionNote?: string; rejectedReason?: string };
+type DailyReport = { id: string; workDate: string; projectId: string; projectSectionId: string; contractItemId?: string; workProcessId: string; completedQuantity: number; unit: string; outputValue?: number; pricingBasis?: string; teamId?: string; workerCount?: number; machineryUsage?: string; reporterName?: string; status: string; exceptionNote?: string; rejectedReason?: string };
 type TeamUnitPrice = { id: string; projectId: string; teamId: string; workProcessId: string; unit: string; unitPrice: number; effectiveDate?: string; status?: string };
 type ProcessPrice = { id: string; projectId: string; workProcessId: string; unit: string; unitPrice: number; effectiveDate?: string; status?: string };
+type ContractItem = { id: string; projectId: string; projectSectionId?: string; workProcessId: string; itemCode?: string; itemName: string; unit: string; contractQuantity: number; unitPrice: number; contractAmount: number; status?: string; remark?: string };
 type Settlement = { id: string; projectId: string; teamId: string; projectName?: string; teamName?: string; settlementMonth: string; confirmedQuantity: number; settlementAmount: number; compensationAmount: number; deductionAmount: number; actualPayAmount: number; settlementStatus: string; paymentStatus: string };
 type Variation = { id: string; projectId: string; projectSectionId?: string; occurrenceDate: string; variationType: string; reason?: string; responsibleParty?: string; increasedQuantity?: number; estimatedAmount?: number; laborCount?: number; status: string; rejectedReason?: string };
 type CostRecord = { id: string; projectId: string; costDate: string; costType: string; amount: number; description?: string };
@@ -44,6 +45,11 @@ function useLookups() {
 
 function nameOf<T extends { id: string; name: string }>(rows: T[], id?: string) {
   return rows.find((item) => item.id === id)?.name ?? id ?? "-";
+}
+
+function contractItemText(item?: ContractItem) {
+  if (!item) return "-";
+  return item.itemCode ? `${item.itemCode} / ${item.itemName}` : item.itemName;
 }
 
 function Badge({ status }: { status?: string }) {
@@ -155,7 +161,7 @@ export function DailyWorkReportPage() {
   }
   return (
     <Page title="工程量日报" actions={<Button onClick={() => { setForm({ workDate: new Date().toISOString().slice(0, 10), completedQuantity: 0, workerCount: 0, projectId: lookups.projects[0]?.id, projectSectionId: lookups.sections[0]?.id, workProcessId: lookups.processes[0]?.id, teamId: lookups.teams[0]?.id, unit: lookups.processes[0]?.unit ?? "m" }); setOpen(true); }}>新增日报</Button>}>
-      <div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>施工段</th><th>工序</th><th>工程量</th><th>班组</th><th>状态</th><th>照片</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}<Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button>{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></td></tr>)}</tbody></table></div>
+      <div className="panel table-wrap"><table><thead><tr><th>日期</th><th>项目</th><th>施工段</th><th>工序</th><th>工程量</th><th>产值</th><th>计价口径</th><th>班组</th><th>状态</th><th>照片</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td>{money(row.outputValue)}</td><td title={row.pricingBasis ?? ""}>{row.pricingBasis ?? "-"}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}<Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button>{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></td></tr>)}</tbody></table></div>
       <DailyReportModal open={open} form={form} setForm={setForm} lookups={lookups} onClose={() => setOpen(false)} onSave={() => save.mutate()} />
       <ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} />
     </Page>
@@ -163,11 +169,14 @@ export function DailyWorkReportPage() {
 }
 
 function DailyReportModal({ open, form, setForm, lookups, onClose, onSave }: { open: boolean; form: Partial<DailyReport>; setForm: (form: Partial<DailyReport>) => void; lookups: ReturnType<typeof useLookups>; onClose: () => void; onSave: () => void }) {
+  const contractItems = useQuery({ queryKey: ["daily-contract-items", form.projectId], enabled: Boolean(form.projectId), queryFn: () => getData<PageResult<ContractItem>>("/project-contract-items", { page: 1, pageSize: 200, projectId: form.projectId, status: "active" }) });
+  const availableContractItems = contractItems.data?.records ?? [];
   return <Modal open={open} title="工程量日报" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>取消</Button><Button onClick={onSave}>保存</Button></>}>
     <div className="grid grid-2">
       <Field label="施工日期"><TextInput type="date" value={form.workDate ?? ""} onChange={e => setForm({ ...form, workDate: e.target.value })} /></Field>
       <Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
       <Field label="施工段"><SelectInput value={form.projectSectionId ?? ""} onChange={e => setForm({ ...form, projectSectionId: e.target.value })}>{lookups.sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field>
+      <Field label="合同清单"><SelectInput value={form.contractItemId ?? ""} onChange={e => { const item = availableContractItems.find(row => row.id === e.target.value); setForm({ ...form, contractItemId: e.target.value || undefined, projectSectionId: item?.projectSectionId ?? form.projectSectionId, workProcessId: item?.workProcessId ?? form.workProcessId, unit: item?.unit ?? form.unit }); }}><option value="">自动匹配</option>{availableContractItems.map(item => <option key={item.id} value={item.id}>{contractItemText(item)}</option>)}</SelectInput></Field>
       <Field label="工序"><SelectInput value={form.workProcessId ?? ""} onChange={e => { const p = lookups.processes.find(item => item.id === e.target.value); setForm({ ...form, workProcessId: e.target.value, unit: p?.unit ?? form.unit }); }}>{lookups.processes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
       <Field label="完成工程量"><TextInput type="number" value={form.completedQuantity ?? 0} onChange={e => setForm({ ...form, completedQuantity: Number(e.target.value) })} /></Field>
       <Field label="单位"><TextInput value={form.unit ?? ""} onChange={e => setForm({ ...form, unit: e.target.value })} /></Field>
@@ -204,6 +213,44 @@ export function TeamUnitPricePage() {
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>班组</th><th>工序</th><th>单位</th><th>单价</th><th>状态</th></tr></thead><tbody>{(teamPrices.data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.unit}</td><td>{money(row.unitPrice)}</td><td><Badge status={row.status} /></td></tr>)}</tbody></table></div>
     <div className="panel toolbar" style={{ marginTop: 16 }}><LookupPriceFields lookups={lookups} value={processPrice} onChange={setProcessPrice} /><Button onClick={() => saveProcessPrice.mutate()}>保存产值单价</Button></div>
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>工序</th><th>单位</th><th>产值单价</th><th>状态</th></tr></thead><tbody>{(processPrices.data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.unit}</td><td>{money(row.unitPrice)}</td><td><Badge status={row.status} /></td></tr>)}</tbody></table></div>
+  </Page>;
+}
+
+export function ProjectContractItemPage() {
+  const queryClient = useQueryClient();
+  const lookups = useLookups();
+  const [projectId, setProjectId] = useState("");
+  const [form, setForm] = useState<Partial<ContractItem>>({});
+  const [open, setOpen] = useState(false);
+  const { data } = useQuery({ queryKey: ["project-contract-items", projectId], queryFn: () => getData<PageResult<ContractItem>>("/project-contract-items", { page: 1, pageSize: 300, projectId: projectId || undefined }) });
+  const save = useMutation({
+    mutationFn: () => form.id ? putData(`/project-contract-items/${form.id}`, form) : postData("/project-contract-items", form),
+    onSuccess: () => {
+      setOpen(false);
+      setForm({});
+      queryClient.invalidateQueries({ queryKey: ["project-contract-items"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-contract-items"] });
+    }
+  });
+  const defaultProjectId = projectId || lookups.projects[0]?.id;
+  const defaultProcess = lookups.processes[0];
+  return <Page title="合同清单" actions={<Button onClick={() => { setForm({ projectId: defaultProjectId, workProcessId: defaultProcess?.id, unit: defaultProcess?.unit ?? "m", contractQuantity: 0, unitPrice: 0, status: "active" }); setOpen(true); }}>新增清单</Button>}>
+    <div className="panel toolbar"><Field label="项目"><SelectInput value={projectId} onChange={e => setProjectId(e.target.value)}><option value="">全部项目</option>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field></div>
+    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>工序</th><th>清单</th><th>工程量</th><th>单位</th><th>单价</th><th>合同额</th><th>状态</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{contractItemText(row)}</td><td>{row.contractQuantity}</td><td>{row.unit}</td><td>{money(row.unitPrice)}</td><td>{money(row.contractAmount)}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button></td></tr>)}</tbody></table></div>
+    <Modal open={open} title="合同清单" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
+      <div className="grid grid-2">
+        <Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
+        <Field label="施工段"><SelectInput value={form.projectSectionId ?? ""} onChange={e => setForm({ ...form, projectSectionId: e.target.value || undefined })}><option value="">全项目</option>{lookups.sections.filter(s => !form.projectId || s.projectId === form.projectId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field>
+        <Field label="工序"><SelectInput value={form.workProcessId ?? ""} onChange={e => { const process = lookups.processes.find(item => item.id === e.target.value); setForm({ ...form, workProcessId: e.target.value, unit: process?.unit ?? form.unit }); }}>{lookups.processes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
+        <Field label="清单编码"><TextInput value={form.itemCode ?? ""} onChange={e => setForm({ ...form, itemCode: e.target.value })} /></Field>
+        <Field label="清单名称"><TextInput value={form.itemName ?? ""} onChange={e => setForm({ ...form, itemName: e.target.value })} /></Field>
+        <Field label="单位"><TextInput value={form.unit ?? ""} onChange={e => setForm({ ...form, unit: e.target.value })} /></Field>
+        <Field label="合同工程量"><TextInput type="number" value={form.contractQuantity ?? 0} onChange={e => setForm({ ...form, contractQuantity: Number(e.target.value) })} /></Field>
+        <Field label="单价"><TextInput type="number" value={form.unitPrice ?? 0} onChange={e => setForm({ ...form, unitPrice: Number(e.target.value) })} /></Field>
+        <Field label="状态"><SelectInput value={form.status ?? "active"} onChange={e => setForm({ ...form, status: e.target.value })}><option value="active">启用</option><option value="inactive">停用</option></SelectInput></Field>
+      </div>
+      <Field label="备注"><TextArea value={form.remark ?? ""} onChange={e => setForm({ ...form, remark: e.target.value })} /></Field>
+    </Modal>
   </Page>;
 }
 

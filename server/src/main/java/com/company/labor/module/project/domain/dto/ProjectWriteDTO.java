@@ -108,6 +108,27 @@ public final class ProjectWriteDTO {
     }
 
     @Data
+    public static class ProjectContractItemRequest {
+        @NotNull(message = "项目必填")
+        private Long projectId;
+        private Long projectSectionId;
+        @NotNull(message = "工序必填")
+        private Long workProcessId;
+        private String itemCode;
+        @NotBlank(message = "清单名称必填")
+        private String itemName;
+        @NotBlank(message = "单位必填")
+        private String unit;
+        @DecimalMin(value = "0.00", message = "合同工程量不能小于 0")
+        private BigDecimal contractQuantity;
+        @DecimalMin(value = "0.00", message = "单价不能小于 0")
+        private BigDecimal unitPrice;
+        @Pattern(regexp = "active|inactive", message = "清单状态不合法")
+        private String status;
+        private String remark;
+    }
+
+    @Data
     public static class DailyWorkReportRequest {
         @NotNull(message = "施工日期必填")
         private LocalDate workDate;
@@ -115,6 +136,7 @@ public final class ProjectWriteDTO {
         private Long projectId;
         @NotNull(message = "施工段必填")
         private Long projectSectionId;
+        private Long contractItemId;
         @NotNull(message = "工序必填")
         private Long workProcessId;
         @DecimalMin(value = "0.00", message = "完成工程量不能小于 0")

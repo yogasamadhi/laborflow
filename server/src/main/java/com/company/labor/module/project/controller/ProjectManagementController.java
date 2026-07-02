@@ -13,6 +13,7 @@ import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
 import com.company.labor.module.project.domain.entity.MachineryWorkRecordDO;
 import com.company.labor.module.project.domain.entity.MaterialRecordDO;
 import com.company.labor.module.project.domain.entity.ProjectCostRecordDO;
+import com.company.labor.module.project.domain.entity.ProjectContractItemDO;
 import com.company.labor.module.project.domain.entity.ProjectDocumentArchiveDO;
 import com.company.labor.module.project.domain.entity.ProjectDO;
 import com.company.labor.module.project.domain.entity.ProjectPaymentRecordDO;
@@ -250,6 +251,37 @@ public class ProjectManagementController {
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<ProjectProcessPriceDO> updateProjectProcessPrice(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectProcessPriceRequest dto) {
         return Result.success(service.updateProjectProcessPrice(id, copy(dto, ProjectProcessPriceDO.class)));
+    }
+
+    @GetMapping("/api/project-contract-items")
+    public Result<PageResult<ProjectContractItemDO>> contractItems(@RequestParam(defaultValue = "1") long page,
+                                                                   @RequestParam(defaultValue = "20") long pageSize,
+                                                                   @RequestParam(required = false) Long projectId,
+                                                                   @RequestParam(required = false) Long sectionId,
+                                                                   @RequestParam(required = false) Long processId,
+                                                                   @RequestParam(required = false) String status,
+                                                                   Authentication authentication) {
+        requireProjectFilterAccess(projectId, authentication);
+        return Result.success(PageResult.of(service.contractItems(page, pageSize, projectId, sectionId, processId, status)));
+    }
+
+    @PostMapping("/api/project-contract-items")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<ProjectContractItemDO> saveContractItem(@Valid @RequestBody ProjectWriteDTO.ProjectContractItemRequest dto) {
+        return Result.success(service.saveContractItem(copy(dto, ProjectContractItemDO.class)));
+    }
+
+    @PutMapping("/api/project-contract-items/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<ProjectContractItemDO> updateContractItem(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.ProjectContractItemRequest dto) {
+        return Result.success(service.updateContractItem(id, copy(dto, ProjectContractItemDO.class)));
+    }
+
+    @DeleteMapping("/api/project-contract-items/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
+    public Result<Void> deleteContractItem(@PathVariable Long id) {
+        service.deleteContractItem(id);
+        return Result.success();
     }
 
     @GetMapping("/api/daily-work-reports")

@@ -38,6 +38,7 @@ const groups = [
       { to: "/projects", label: "项目台账", end: true, roles: projectRoles },
       { to: "/projects/sections", label: "施工段管理", roles: projectRoles },
       { to: "/projects/processes", label: "工序库" },
+      { to: "/projects/contract-items", label: "合同清单", roles: projectRoles },
       { to: "/projects/daily-reports", label: "工程量日报" },
       { to: "/projects/work-confirmation", label: "工程量确认", roles: projectRoles },
       { to: "/projects/teams", label: "班组管理" },

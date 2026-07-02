@@ -16,6 +16,7 @@ import com.company.labor.module.project.mapper.MachineryEquipmentMapper;
 import com.company.labor.module.project.mapper.MachineryWorkRecordMapper;
 import com.company.labor.module.project.mapper.MaterialRecordMapper;
 import com.company.labor.module.project.mapper.ProjectCostRecordMapper;
+import com.company.labor.module.project.mapper.ProjectContractItemMapper;
 import com.company.labor.module.project.mapper.ProjectDocumentArchiveMapper;
 import com.company.labor.module.project.mapper.ProjectMapper;
 import com.company.labor.module.project.mapper.ProjectPaymentRecordMapper;
@@ -81,6 +82,7 @@ class ProjectApprovalEvidenceTest {
                 mock(TeamMapper.class),
                 mock(TeamUnitPriceMapper.class),
                 mock(ProjectProcessPriceMapper.class),
+                mock(ProjectContractItemMapper.class),
                 mock(DailyWorkReportMapper.class),
                 mock(DailyWorkReportFileMapper.class),
                 workQuantityConfirmMapper,
