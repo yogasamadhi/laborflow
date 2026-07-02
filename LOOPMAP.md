@@ -107,7 +107,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
-| L7-01 | backend | todo | 建立后端单元测试基线 | `server/src/test`、工资、项目、权限核心 service | `mvn test` 有真实用例；工资生成、状态机、权限至少覆盖核心路径 |
+| L7-01 | backend | done | 建立后端单元测试基线 | `server/src/test`、工资、项目、权限核心 service | `mvn test` 有真实用例；工资生成、状态机、权限至少覆盖核心路径；已通过 `git diff --check`、`AccessControlSupportTest`、`SalaryGenerationRulesTest`、`BusinessStateMachineTest`、`mvn test` |
 | L7-02 | backend | todo | 建立后端集成测试基线 | Testcontainers 或测试数据库、Flyway、Controller 测试 | 数据库迁移可在测试中执行；核心 API 有集成测试；认证和权限可验证 |
 | L7-03 | web | todo | 建立前端类型与组件测试 | `web/package.json`、测试框架、关键页面 | 有 `typecheck/test` 脚本；登录、工资、项目关键页面有基础测试 |
 | L7-04 | miniapp | todo | 建立小程序核心流程验证 | 小程序服务封装、登录、日报、签证、工资历史 | 至少有接口封装测试或可执行 smoke checklist；小程序接口与后端契约一致 |
@@ -475,4 +475,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectProfitDashboardTest,ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Added project revenue, cost-rate, profit-rate, paid-team, salary-allocation, cash-flow, and source-breakdown metrics to the dashboard; added risks for high cost rate, negative profit/cashflow, cost without revenue, and high retention balance; and exposed traceable income/cost/cash-flow tables in the Web project dashboard.
+```
+
+```text
+Loop: L7-01
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=AccessControlSupportTest,SalaryGenerationRulesTest,BusinessStateMachineTest,ProjectProfitDashboardTest test; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+结果: passed
+备注: Added explicit backend unit coverage for core role helpers and current user/employee extraction, and documented the backend unit baseline across salary generation, state machine, project dashboard, and permission paths.
 ```
