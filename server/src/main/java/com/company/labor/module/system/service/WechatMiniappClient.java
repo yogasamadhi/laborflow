@@ -12,6 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -21,6 +22,7 @@ public class WechatMiniappClient {
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
+    @Autowired
     public WechatMiniappClient(WechatMiniappProperties properties, ObjectMapper objectMapper) {
         this(properties, objectMapper, HttpClient.newHttpClient());
     }

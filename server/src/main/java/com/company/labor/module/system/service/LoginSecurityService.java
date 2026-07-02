@@ -7,6 +7,7 @@ import com.company.labor.security.LoginUser;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class LoginSecurityService {
     private final SysUserService userService;
     private final Clock clock;
 
+    @Autowired
     public LoginSecurityService(SysUserService userService) {
         this(userService, Clock.systemDefaultZone());
     }
