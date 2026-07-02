@@ -217,6 +217,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             detail.setDeductionAmount(deduction);
             detail.setActualAmount(payable.subtract(deduction));
             detail.setPaymentStatus("unpaid");
+            detail.setPayslipStatus("unconfirmed");
             detail.setDeleted(0);
             detailMapper.insert(detail);
             generatedCount++;
@@ -414,6 +415,38 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     }
 
     @Override
+    @Transactional
+    public void confirmPayslip(Long detailId) {
+        SalaryMonthlyDetailDO detail = requireDetail(detailId);
+        SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved", "paid");
+        detail.setPayslipStatus("confirmed");
+        detail.setPayslipConfirmedAt(LocalDateTime.now());
+        detail.setPayslipFeedback(null);
+        detail.setPayslipFeedbackAt(null);
+        detailMapper.updateById(detail);
+        log("confirm_payslip", detail.getSalaryMonthlyId(), "确认工资条：" + detailId);
+        audit(detail.getSalaryMonthlyId(), detailId, "confirm_payslip", null, "confirmed", "员工确认工资条", null);
+    }
+
+    @Override
+    @Transactional
+    public void feedbackPayslip(Long detailId, String feedback) {
+        if (!StringUtils.hasText(feedback)) {
+            throw new BusinessException("异常反馈必填");
+        }
+        SalaryMonthlyDetailDO detail = requireDetail(detailId);
+        SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
+        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved", "paid");
+        detail.setPayslipStatus("exception");
+        detail.setPayslipFeedback(limit(feedback, 500));
+        detail.setPayslipFeedbackAt(LocalDateTime.now());
+        detailMapper.updateById(detail);
+        log("feedback_payslip", detail.getSalaryMonthlyId(), "工资条异常反馈：" + detailId);
+        audit(detail.getSalaryMonthlyId(), detailId, "feedback_payslip", null, "exception", limit(feedback, 255), null);
+    }
+
+    @Override
     public List<SalaryAuditRecordDO> auditRecords(Long monthlyId) {
         requireMonthly(monthlyId);
         return auditRecordMapper.selectByMonthlyId(monthlyId);
@@ -496,6 +529,14 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             throw new BusinessException("工资表不存在");
         }
         return monthly;
+    }
+
+    private SalaryMonthlyDetailDO requireDetail(Long detailId) {
+        SalaryMonthlyDetailDO detail = detailMapper.selectById(detailId);
+        if (detail == null || detail.getDeleted() != null && detail.getDeleted() == 1) {
+            throw new BusinessException("工资明细不存在");
+        }
+        return detail;
     }
 
     private void requireDraftMonthly(SalaryMonthlyDO monthly, String action) {

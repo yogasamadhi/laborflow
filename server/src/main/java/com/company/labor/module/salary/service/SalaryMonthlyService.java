@@ -24,6 +24,8 @@ public interface SalaryMonthlyService extends IService<SalaryMonthlyDO> {
     SalaryMonthlyDetailDO updateDetail(Long detailId, SalaryMonthlyDetailDO detail);
     void markDetailPaid(Long detailId, SalaryPaymentDTO dto);
     void batchMarkPaid(BatchSalaryPaymentDTO dto);
+    void confirmPayslip(Long detailId);
+    void feedbackPayslip(Long detailId, String feedback);
     List<SalaryAuditRecordDO> auditRecords(Long monthlyId);
     List<SalarySourceRecordDO> sourceRecords(Long monthlyId, Long detailId);
 }

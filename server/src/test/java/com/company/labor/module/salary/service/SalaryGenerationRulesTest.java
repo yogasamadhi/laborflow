@@ -1,5 +1,6 @@
 package com.company.labor.module.salary.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -17,6 +18,7 @@ import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.file.service.FileBindingGuard;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
+import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
 import com.company.labor.module.salary.mapper.SalaryAuditRecordMapper;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyDetailMapper;
@@ -27,6 +29,7 @@ import com.company.labor.module.salary.service.impl.SalaryMonthlyServiceImpl;
 import com.company.labor.module.system.service.OperationLogService;
 import com.company.labor.security.AuditUserProvider;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class SalaryGenerationRulesTest {
@@ -79,6 +82,31 @@ class SalaryGenerationRulesTest {
                 .hasMessageContaining("冲正");
 
         verify(monthlyMapper, never()).updateById(any(SalaryMonthlyDO.class));
+    }
+
+    @Test
+    void confirmPayslipUpdatesApprovedDetail() {
+        SalaryMonthlyMapper monthlyMapper = mock(SalaryMonthlyMapper.class);
+        SalaryMonthlyDetailMapper detailMapper = mock(SalaryMonthlyDetailMapper.class);
+        SalaryMonthlyServiceImpl service = newService(
+                monthlyMapper,
+                mock(SalaryProfileMapper.class),
+                detailMapper,
+                mock(SalaryDetailItemMapper.class),
+                mock(SalarySourceRecordMapper.class));
+        when(monthlyMapper.selectById(1L)).thenReturn(monthlyWithStatus("approved"));
+        SalaryMonthlyDetailDO detail = new SalaryMonthlyDetailDO();
+        detail.setId(2L);
+        detail.setSalaryMonthlyId(1L);
+        detail.setDeleted(0);
+        when(detailMapper.selectById(2L)).thenReturn(detail);
+
+        service.confirmPayslip(2L);
+
+        ArgumentCaptor<SalaryMonthlyDetailDO> captor = ArgumentCaptor.forClass(SalaryMonthlyDetailDO.class);
+        verify(detailMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getPayslipStatus()).isEqualTo("confirmed");
+        assertThat(captor.getValue().getPayslipConfirmedAt()).isNotNull();
     }
 
     private SalaryMonthlyServiceImpl newService(

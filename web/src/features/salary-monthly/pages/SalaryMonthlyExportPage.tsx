@@ -10,7 +10,8 @@ export function SalaryMonthlyExportPage() {
   const exports = [
     { label: "月度工资表", url: `/salary/monthly/${monthlyId}/export`, filename: `月度工资表-${monthlyId}.xlsx` },
     { label: "部门工资汇总", url: `/salary/monthly/${monthlyId}/export/department-summary`, filename: `部门工资汇总-${monthlyId}.xlsx` },
-    { label: "工资发放记录", url: `/salary/monthly/${monthlyId}/export/payment-records`, filename: `工资发放记录-${monthlyId}.xlsx` }
+    { label: "工资发放记录", url: `/salary/monthly/${monthlyId}/export/payment-records`, filename: `工资发放记录-${monthlyId}.xlsx` },
+    { label: "银行代发", url: `/salary/monthly/${monthlyId}/export/bank-payment`, filename: `银行代发-${monthlyId}.xlsx` }
   ];
 
   return (

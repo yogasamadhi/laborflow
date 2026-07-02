@@ -8,6 +8,7 @@ import com.company.labor.module.compensation.domain.entity.SalarySourceRecordDO;
 import com.company.labor.module.salary.domain.dto.SalaryApprovalDTO;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
+import com.company.labor.module.salary.domain.dto.SalaryPayslipFeedbackDTO;
 import com.company.labor.module.salary.domain.dto.SalaryWriteDTO;
 import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
 import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
@@ -187,6 +188,20 @@ public class SalaryMonthlyController {
         return Result.success();
     }
 
+    @PostMapping("/details/{detailId}/payslip/confirm")
+    public Result<Void> confirmPayslip(@PathVariable Long detailId, Authentication authentication) {
+        requireSalaryDetailAccess(detailId, authentication);
+        service.confirmPayslip(detailId);
+        return Result.success();
+    }
+
+    @PostMapping("/details/{detailId}/payslip/feedback")
+    public Result<Void> feedbackPayslip(@PathVariable Long detailId, @Valid @RequestBody SalaryPayslipFeedbackDTO dto, Authentication authentication) {
+        requireSalaryDetailAccess(detailId, authentication);
+        service.feedbackPayslip(detailId, dto.getFeedback());
+        return Result.success();
+    }
+
     @GetMapping("/monthly/{id}/export")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public void exportMonthly(@PathVariable Long id, HttpServletResponse response) throws IOException {
@@ -206,6 +221,13 @@ public class SalaryMonthlyController {
     public void exportPaymentRecords(@PathVariable Long id, HttpServletResponse response) throws IOException {
         prepareExcelResponse(response, "工资发放记录-" + id + ".xlsx");
         exportService.exportPaymentRecords(id, response.getOutputStream());
+    }
+
+    @GetMapping("/monthly/{id}/export/bank-payment")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
+    public void exportBankPayment(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        prepareExcelResponse(response, "银行代发-" + id + ".xlsx");
+        exportService.exportBankPayment(id, response.getOutputStream());
     }
 
     @GetMapping("/monthly/{id}/payslip")

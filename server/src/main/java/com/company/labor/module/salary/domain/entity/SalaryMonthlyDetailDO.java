@@ -27,6 +27,10 @@ public class SalaryMonthlyDetailDO {
     private LocalDate paymentDate;
     private String paymentMethod;
     private String paymentProofUrl;
+    private String payslipStatus;
+    private LocalDateTime payslipConfirmedAt;
+    private String payslipFeedback;
+    private LocalDateTime payslipFeedbackAt;
     private String remark;
     private Integer deleted;
     @TableField(fill = FieldFill.INSERT)

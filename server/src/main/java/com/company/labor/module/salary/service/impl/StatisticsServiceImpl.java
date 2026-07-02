@@ -231,6 +231,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         record.setPaymentStatus(detail.getPaymentStatus());
         record.setPaymentDate(detail.getPaymentDate());
         record.setPaymentMethod(detail.getPaymentMethod());
+        record.setPayslipStatus(detail.getPayslipStatus());
+        record.setPayslipConfirmedAt(detail.getPayslipConfirmedAt());
+        record.setPayslipFeedback(detail.getPayslipFeedback());
+        record.setPayslipFeedbackAt(detail.getPayslipFeedbackAt());
         record.setRemark(detail.getRemark());
         List<SalaryDetailItemVO> earnings = new ArrayList<>();
         List<SalaryDetailItemVO> deductions = new ArrayList<>();

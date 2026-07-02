@@ -8,5 +8,6 @@ public interface SalaryExportService {
     void exportEmployeeDetails(Long employeeId, OutputStream outputStream) throws IOException;
     void exportDepartmentSummary(Long monthlyId, OutputStream outputStream) throws IOException;
     void exportPaymentRecords(Long monthlyId, OutputStream outputStream) throws IOException;
+    void exportBankPayment(Long monthlyId, OutputStream outputStream) throws IOException;
     void exportPayslip(Long monthlyId, Long employeeId, OutputStream outputStream) throws IOException;
 }

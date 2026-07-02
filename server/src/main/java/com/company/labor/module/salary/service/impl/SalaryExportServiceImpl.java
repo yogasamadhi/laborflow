@@ -132,6 +132,31 @@ public class SalaryExportServiceImpl implements SalaryExportService {
     }
 
     @Override
+    public void exportBankPayment(Long monthlyId, OutputStream outputStream) throws IOException {
+        SalaryMonthlyDO monthly = requireMonthly(monthlyId);
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("银行代发");
+            writeHeaders(workbook, sheet, "序号", "姓名", "银行卡号", "开户行", "金额", "用途", "备注");
+            int rowIndex = 1;
+            for (SalaryMonthlyDetailDO detail : details(monthlyId)) {
+                EmployeeDO employee = employeeMapper.selectById(detail.getEmployeeId());
+                Row row = sheet.createRow(rowIndex);
+                write(row, 0, rowIndex);
+                write(row, 1, employee == null ? detail.getEmployeeId() : employee.getName());
+                write(row, 2, employee == null ? "" : employee.getBankAccount());
+                write(row, 3, employee == null ? "" : employee.getBankName());
+                write(row, 4, detail.getActualAmount());
+                write(row, 5, monthly.getSalaryMonth() + "工资");
+                write(row, 6, detail.getRemark());
+                rowIndex++;
+            }
+            autosize(sheet, 7);
+            workbook.write(outputStream);
+        }
+        log("export_bank_payment", monthlyId, "导出银行代发：" + monthly.getSalaryMonth());
+    }
+
+    @Override
     public void exportPayslip(Long monthlyId, Long employeeId, OutputStream outputStream) throws IOException {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         List<SalaryMonthlyDetailDO> rows = details(monthlyId);
