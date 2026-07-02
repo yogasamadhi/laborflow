@@ -23,7 +23,8 @@ type MachineryEquipment = { id: string; name: string; equipmentType: string; own
 type MachineryWorkRecord = { id: string; projectId: string; projectSectionId?: string; machineryEquipmentId: string; workDate: string; shiftCount: number; unitPrice: number; amount: number; idleReason?: string; operatorName?: string };
 type MaterialRecord = { id: string; projectId: string; projectSectionId?: string; materialName: string; recordType: string; recordDate: string; quantity: number; unit?: string; unitPrice: number; amount: number; supplierName?: string; impactNote?: string };
 type DocumentArchive = { id: string; projectId: string; projectSectionId?: string; workProcessId?: string; archiveDate: string; documentType: string; fileId: string; uploaderName?: string; remark?: string };
-type Dashboard = { projectName: string; contractAmount: number; completedOutputValue: number; confirmedQuantity: number; teamPayableAmount: number; otherCostAmount: number; machineryCostAmount: number; materialCostAmount: number; totalCostAmount: number; grossProfit: number; receivableAmount: number; invoicedAmount: number; confirmedVariationAmount: number; pendingVariationAmount: number; receivedAmount: number; retentionAmount: number; retentionReturnedAmount: number; retentionBalanceAmount: number; paymentProgress: number; risks: { type: string; level: string; message: string }[] };
+type FinanceBreakdown = { category: string; amount: number; ratio: number; source: string };
+type Dashboard = { projectName: string; contractAmount: number; completedOutputValue: number; confirmedQuantity: number; revenueAmount: number; teamPayableAmount: number; teamPaidAmount: number; salaryAllocatedCostAmount: number; otherCostAmount: number; machineryCostAmount: number; materialCostAmount: number; totalCostAmount: number; grossProfit: number; profitRate: number; costRate: number; receivableAmount: number; invoicedAmount: number; confirmedVariationAmount: number; pendingVariationAmount: number; receivedAmount: number; cashInAmount: number; cashOutAmount: number; cashBalanceAmount: number; retentionAmount: number; retentionReturnedAmount: number; retentionBalanceAmount: number; paymentProgress: number; revenueBreakdowns: FinanceBreakdown[]; costBreakdowns: FinanceBreakdown[]; cashFlowBreakdowns: FinanceBreakdown[]; risks: { type: string; level: string; message: string }[] };
 type ApprovalRecord = { id: string; confirmStage: string; confirmStatus: string; confirmerName?: string; statusBefore?: string; statusAfter?: string; remark?: string; createdAt?: string };
 type EvidenceFile = { id: string; fileId: string; fileType: string; createdAt?: string };
 type EvidenceTarget = { type: "daily" | "variation"; id: string; title: string };
@@ -50,6 +51,10 @@ function nameOf<T extends { id: string; name: string }>(rows: T[], id?: string) 
 function contractItemText(item?: ContractItem) {
   if (!item) return "-";
   return item.itemCode ? `${item.itemCode} / ${item.itemName}` : item.itemName;
+}
+
+function percent(value?: number | string | null) {
+  return `${Number(value ?? 0).toFixed(1)}%`;
 }
 
 function Badge({ status }: { status?: string }) {
@@ -500,6 +505,7 @@ export function ProjectDashboardPage() {
   });
   const cards = useMemo(() => [
     ["合同金额", money(data?.contractAmount)],
+    ["确认收入", money(data?.revenueAmount)],
     ["应收款", money(data?.receivableAmount)],
     ["已开票", money(data?.invoicedAmount)],
     ["实际回款", money(data?.receivedAmount)],
@@ -509,11 +515,18 @@ export function ProjectDashboardPage() {
     ["已确认签证", money(data?.confirmedVariationAmount)],
     ["已确认工程量", data?.confirmedQuantity ?? 0],
     ["班组应付", money(data?.teamPayableAmount)],
+    ["班组已付", money(data?.teamPaidAmount)],
+    ["工资分摊", money(data?.salaryAllocatedCostAmount)],
     ["机械成本", money(data?.machineryCostAmount)],
     ["材料成本", money(data?.materialCostAmount)],
     ["其他成本", money(data?.otherCostAmount)],
     ["总成本", money(data?.totalCostAmount)],
+    ["成本率", percent(data?.costRate)],
     ["当前毛利", money(data?.grossProfit)],
+    ["毛利率", percent(data?.profitRate)],
+    ["现金流入", money(data?.cashInAmount)],
+    ["现金流出", money(data?.cashOutAmount)],
+    ["现金余额", money(data?.cashBalanceAmount)],
     ["待确认签证", money(data?.pendingVariationAmount)]
   ], [data]);
   return <Page title="项目经营看板">
@@ -521,11 +534,20 @@ export function ProjectDashboardPage() {
     <div className="grid grid-3">{cards.map(([label, value]) => <div className="card" key={label}><div className="muted">{label}</div><h3>{value}</h3></div>)}</div>
     <form className="panel toolbar" style={{ marginTop: 16 }} onSubmit={(event: FormEvent) => { event.preventDefault(); saveCost.mutate(); }}>
       <Field label="成本日期"><TextInput type="date" value={cost.costDate} onChange={e => setCost({ ...cost, costDate: e.target.value })} /></Field>
-      <Field label="成本类型"><SelectInput value={cost.costType} onChange={e => setCost({ ...cost, costType: e.target.value })}><option value="材料辅材">材料辅材</option><option value="机械台班">机械台班</option><option value="报销费用">报销费用</option><option value="其他成本">其他成本</option></SelectInput></Field>
+      <Field label="成本类型"><SelectInput value={cost.costType} onChange={e => setCost({ ...cost, costType: e.target.value })}><option value="员工工资分摊">员工工资分摊</option><option value="材料辅材">材料辅材</option><option value="机械台班">机械台班</option><option value="报销费用">报销费用</option><option value="其他成本">其他成本</option></SelectInput></Field>
       <Field label="金额"><TextInput type="number" value={cost.amount} onChange={e => setCost({ ...cost, amount: Number(e.target.value) })} /></Field>
       <Field label="说明"><TextInput value={cost.description} onChange={e => setCost({ ...cost, description: e.target.value })} /></Field>
       <Button type="submit">登记成本</Button>
     </form>
+    <div className="panel table-wrap" style={{ marginTop: 16 }}>
+      <table><thead><tr><th>收入项</th><th>金额</th><th>占比</th><th>来源</th></tr></thead><tbody>{(data?.revenueBreakdowns ?? []).map(row => <tr key={row.category}><td>{row.category}</td><td>{money(row.amount)}</td><td>{percent(row.ratio)}</td><td>{row.source}</td></tr>)}</tbody></table>
+    </div>
+    <div className="panel table-wrap" style={{ marginTop: 16 }}>
+      <table><thead><tr><th>成本项</th><th>金额</th><th>占比</th><th>来源</th></tr></thead><tbody>{(data?.costBreakdowns ?? []).map(row => <tr key={row.category}><td>{row.category}</td><td>{money(row.amount)}</td><td>{percent(row.ratio)}</td><td>{row.source}</td></tr>)}</tbody></table>
+    </div>
+    <div className="panel table-wrap" style={{ marginTop: 16 }}>
+      <table><thead><tr><th>现金流</th><th>金额</th><th>占比</th><th>来源</th></tr></thead><tbody>{(data?.cashFlowBreakdowns ?? []).map(row => <tr key={row.category}><td>{row.category}</td><td>{money(row.amount)}</td><td>{percent(row.ratio)}</td><td>{row.source}</td></tr>)}</tbody></table>
+    </div>
     <div className="panel table-wrap" style={{ marginTop: 16 }}><table><thead><tr><th>日期</th><th>类型</th><th>金额</th><th>说明</th></tr></thead><tbody>{(costs.data?.records ?? []).map(row => <tr key={row.id}><td>{row.costDate}</td><td>{row.costType}</td><td>{money(row.amount)}</td><td>{row.description ?? "-"}</td></tr>)}</tbody></table></div>
     <div className="panel table-wrap" style={{ marginTop: 16 }}><table><thead><tr><th>级别</th><th>风险</th></tr></thead><tbody>{(data?.risks ?? []).map(risk => <tr key={risk.type}><td><span className={risk.level === "danger" ? "badge badge-red" : "badge badge-yellow"}>{risk.level}</span></td><td>{risk.message}</td></tr>)}</tbody></table></div>
   </Page>;

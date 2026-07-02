@@ -33,6 +33,7 @@ import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
+import com.company.labor.module.project.domain.vo.ProjectFinanceBreakdownVO;
 import com.company.labor.module.project.domain.vo.ProjectRiskVO;
 import com.company.labor.module.project.mapper.DailyWorkReportFileMapper;
 import com.company.labor.module.project.mapper.DailyWorkReportMapper;
@@ -1044,17 +1045,28 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         }
 
         BigDecimal teamPayable = BigDecimal.ZERO;
+        BigDecimal teamPaid = BigDecimal.ZERO;
         for (TeamSettlementDO settlement : teamSettlementMapper.selectList(new LambdaQueryWrapper<TeamSettlementDO>()
                 .eq(TeamSettlementDO::getDeleted, 0)
                 .eq(TeamSettlementDO::getProjectId, projectId))) {
-            teamPayable = teamPayable.add(nvl(settlement.getActualPayAmount()));
+            BigDecimal actualPay = nvl(settlement.getActualPayAmount());
+            teamPayable = teamPayable.add(actualPay);
+            if ("paid".equals(settlement.getPaymentStatus())) {
+                teamPaid = teamPaid.add(actualPay);
+            }
         }
 
         BigDecimal otherCost = BigDecimal.ZERO;
+        BigDecimal salaryAllocatedCost = BigDecimal.ZERO;
         for (ProjectCostRecordDO cost : costRecordMapper.selectList(new LambdaQueryWrapper<ProjectCostRecordDO>()
                 .eq(ProjectCostRecordDO::getDeleted, 0)
                 .eq(ProjectCostRecordDO::getProjectId, projectId))) {
-            otherCost = otherCost.add(nvl(cost.getAmount()));
+            BigDecimal amount = nvl(cost.getAmount());
+            if (isSalaryAllocationCost(cost)) {
+                salaryAllocatedCost = salaryAllocatedCost.add(amount);
+            } else {
+                otherCost = otherCost.add(amount);
+            }
         }
 
         BigDecimal machineryCost = BigDecimal.ZERO;
@@ -1105,7 +1117,14 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         if (!hasExplicitReceivable) {
             receivableAmount = nvl(project.getContractAmount()).add(confirmedVariation);
         }
-        BigDecimal totalCost = teamPayable.add(otherCost).add(machineryCost).add(materialCost);
+        BigDecimal revenueAmount = outputValue.add(confirmedVariation);
+        BigDecimal totalCost = teamPayable.add(salaryAllocatedCost).add(otherCost).add(machineryCost).add(materialCost);
+        BigDecimal grossProfit = revenueAmount.subtract(totalCost);
+        BigDecimal costRate = percent(totalCost, revenueAmount);
+        BigDecimal profitRate = percent(grossProfit, revenueAmount);
+        BigDecimal cashInAmount = receivedAmount;
+        BigDecimal cashOutAmount = teamPaid.add(salaryAllocatedCost).add(otherCost).add(machineryCost).add(materialCost);
+        BigDecimal cashBalanceAmount = cashInAmount.subtract(cashOutAmount);
         BigDecimal paymentProgress = receivableAmount.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO
                 : receivedAmount.divide(receivableAmount, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
@@ -1155,6 +1174,22 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 && totalCost.compareTo(nvl(project.getContractAmount()).multiply(new BigDecimal("0.8"))) >= 0) {
             risks.add(new ProjectRiskVO("cost_high", "danger", "项目成本已接近合同金额"));
         }
+        if (revenueAmount.compareTo(BigDecimal.ZERO) > 0 && grossProfit.compareTo(BigDecimal.ZERO) < 0) {
+            risks.add(new ProjectRiskVO("profit_negative", "danger", "项目已确认收入不足以覆盖成本"));
+        } else if (revenueAmount.compareTo(BigDecimal.ZERO) > 0
+                && costRate.compareTo(BigDecimal.valueOf(85)) >= 0) {
+            risks.add(new ProjectRiskVO("cost_rate_high", "warning", "项目成本率已达到 85%"));
+        }
+        if (revenueAmount.compareTo(BigDecimal.ZERO) == 0 && totalCost.compareTo(BigDecimal.ZERO) > 0) {
+            risks.add(new ProjectRiskVO("cost_without_revenue", "warning", "项目已有成本但暂无已确认收入"));
+        }
+        if (cashBalanceAmount.compareTo(BigDecimal.ZERO) < 0) {
+            risks.add(new ProjectRiskVO("cashflow_negative", "warning", "项目现金流为负，请关注垫资压力"));
+        }
+        if (receivableAmount.compareTo(BigDecimal.ZERO) > 0
+                && retentionBalance.compareTo(receivableAmount.multiply(new BigDecimal("0.1"))) > 0) {
+            risks.add(new ProjectRiskVO("retention_balance_high", "warning", "未返还质保金超过应收金额的 10%"));
+        }
         for (ProjectSectionDO section : sectionMapper.selectList(new LambdaQueryWrapper<ProjectSectionDO>()
                 .eq(ProjectSectionDO::getDeleted, 0)
                 .eq(ProjectSectionDO::getProjectId, projectId))) {
@@ -1174,23 +1209,59 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         vo.setContractAmount(nvl(project.getContractAmount()));
         vo.setCompletedOutputValue(outputValue);
         vo.setConfirmedQuantity(confirmedQuantity);
+        vo.setRevenueAmount(revenueAmount);
         vo.setTeamPayableAmount(teamPayable);
+        vo.setTeamPaidAmount(teamPaid);
+        vo.setSalaryAllocatedCostAmount(salaryAllocatedCost);
         vo.setOtherCostAmount(otherCost);
         vo.setMachineryCostAmount(machineryCost);
         vo.setMaterialCostAmount(materialCost);
         vo.setTotalCostAmount(totalCost);
-        vo.setGrossProfit(outputValue.add(confirmedVariation).subtract(totalCost));
+        vo.setGrossProfit(grossProfit);
+        vo.setProfitRate(profitRate);
+        vo.setCostRate(costRate);
         vo.setReceivableAmount(receivableAmount);
         vo.setInvoicedAmount(invoicedAmount);
         vo.setConfirmedVariationAmount(confirmedVariation);
         vo.setPendingVariationAmount(pendingVariation);
         vo.setReceivedAmount(receivedAmount);
+        vo.setCashInAmount(cashInAmount);
+        vo.setCashOutAmount(cashOutAmount);
+        vo.setCashBalanceAmount(cashBalanceAmount);
         vo.setRetentionAmount(retentionAmount);
         vo.setRetentionReturnedAmount(retentionReturned);
         vo.setRetentionBalanceAmount(retentionBalance);
         vo.setPaymentProgress(paymentProgress);
+        vo.setRevenueBreakdowns(List.of(
+                financeBreakdown("工程量产值", outputValue, revenueAmount, "已终审确认日报的产值快照"),
+                financeBreakdown("签证变更收入", confirmedVariation, revenueAmount, "已确认签证的确认金额")));
+        vo.setCostBreakdowns(List.of(
+                financeBreakdown("班组结算", teamPayable, totalCost, "班组结算实付金额"),
+                financeBreakdown("工资分摊", salaryAllocatedCost, totalCost, "项目成本登记中的工资/薪酬分摊"),
+                financeBreakdown("材料辅材", materialCost, totalCost, "材料记录金额"),
+                financeBreakdown("机械台班", machineryCost, totalCost, "机械台班记录金额"),
+                financeBreakdown("其他成本", otherCost, totalCost, "项目成本登记中的非工资成本")));
+        vo.setCashFlowBreakdowns(List.of(
+                financeBreakdown("现金流入", cashInAmount, cashInAmount.add(cashOutAmount), "回款记录与已返还质保金"),
+                financeBreakdown("现金流出", cashOutAmount, cashInAmount.add(cashOutAmount), "已支付班组结算、工资分摊、材料、机械和其他成本")));
         vo.setRisks(risks);
         return vo;
+    }
+
+    private boolean isSalaryAllocationCost(ProjectCostRecordDO cost) {
+        return StringUtils.hasText(cost.getCostType())
+                && (cost.getCostType().contains("工资") || cost.getCostType().contains("薪酬"));
+    }
+
+    private ProjectFinanceBreakdownVO financeBreakdown(String category, BigDecimal amount, BigDecimal base, String source) {
+        return new ProjectFinanceBreakdownVO(category, amount, percent(amount, base), source);
+    }
+
+    private BigDecimal percent(BigDecimal amount, BigDecimal base) {
+        if (base == null || base.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return nvl(amount).divide(base, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
     }
 
     private void validateDailyReport(DailyWorkReportDO report) {

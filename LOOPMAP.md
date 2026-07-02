@@ -101,7 +101,7 @@
 | L6-02 | backend/web/miniapp | done | 工程量确认与班组结算闭环 | 日报、确认、班组单价、结算、移动端待办 | 已确认工程量才能结算；同一日报不能重复结算；结算可审核、驳回、支付；已通过 `git diff --check`、`TeamSettlementReviewFlowTest`、`node --check`、`pnpm build`、`mvn test` |
 | L6-03 | backend/web/miniapp | done | 签证变更收入闭环 | 签证、附件、确认金额、项目看板 | 签证从提交到确认金额有状态流；确认金额进入项目经营统计；已通过 `git diff --check`、`VariationOrderIncomeFlowTest`、`node --check`、`pnpm build`、`mvn test` |
 | L6-04 | backend/web | done | 项目回款、发票、质保金 | 回款记录、发票记录、质保金、项目看板 | 项目能展示合同额、已开票、已回款、应收、质保金和回款进度；已通过 `git diff --check`、`ProjectPaymentDashboardTest`、`pnpm build`、`mvn test` |
-| L6-05 | backend/web | todo | 成本归集与利润分析 | 成本、材料、机械、班组结算、工资分摊 | 项目毛利、成本构成、现金流、风险预警口径稳定，并可追溯来源 |
+| L6-05 | backend/web | done | 成本归集与利润分析 | 成本、材料、机械、班组结算、工资分摊 | 项目毛利、成本构成、现金流、风险预警口径稳定，并可追溯来源；已通过 `git diff --check`、`ProjectProfitDashboardTest`、`pnpm build`、`mvn test` |
 
 ### P7：测试、质量门禁与回归体系
 
@@ -465,4 +465,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Extended project payment records for invoices and retention, added dashboard sums for invoiced amount, received amount, receivables, retention balance, and payment progress, and exposed invoice/retention entry in the Web project payment page.
+```
+
+```text
+Loop: L6-05
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectProfitDashboardTest,ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+结果: passed
+备注: Added project revenue, cost-rate, profit-rate, paid-team, salary-allocation, cash-flow, and source-breakdown metrics to the dashboard; added risks for high cost rate, negative profit/cashflow, cost without revenue, and high retention balance; and exposed traceable income/cost/cash-flow tables in the Web project dashboard.
 ```
