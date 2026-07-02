@@ -84,6 +84,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         monthly.setTotalDeductionAmount(BigDecimal.ZERO);
         monthly.setTotalActualAmount(BigDecimal.ZERO);
         monthly.setDeleted(0);
+        defaultGenerationRules(monthly);
         save(monthly);
         log("create_monthly", monthly.getId(), "创建工资表：" + monthly.getSalaryMonth());
         audit(monthly.getId(), null, "create_monthly", null, monthly.getStatus(), "创建工资表：" + monthly.getSalaryMonth(), null);
@@ -96,6 +97,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDO old = requireMonthly(monthlyId);
         monthly.setId(monthlyId);
         monthly.setStatus(old.getStatus());
+        inheritGenerationRules(monthly, old);
         updateById(monthly);
         SalaryMonthlyDO updated = requireMonthly(monthlyId);
         String content = "修改工资表：" + valueOrDefault(old.getTitle(), old.getSalaryMonth()) + " -> " + valueOrDefault(updated.getTitle(), updated.getSalaryMonth());
@@ -109,6 +111,10 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     public void generate(Long monthlyId) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
+        GenerationRules rules = generationRules(monthly);
+        if (!rules.hasAnyEnabled()) {
+            throw new BusinessException("至少启用一项工资生成规则");
+        }
         List<SalaryProfileDO> activeProfiles = latestActiveProfiles();
         if (activeProfiles.isEmpty()) {
             throw new BusinessException("没有启用的工资档案，无法生成工资明细");
@@ -136,7 +142,9 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                 skippedReasons.add("员工 " + employee.getName() + " 已离职");
                 continue;
             }
-            List<SalaryProfileItemDO> profileItems = salaryProfileItemMapper.selectList(new LambdaQueryWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profile.getId()));
+            List<SalaryProfileItemDO> profileItems = rules.fixedSalary()
+                    ? salaryProfileItemMapper.selectList(new LambdaQueryWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profile.getId()))
+                    : List.of();
             BigDecimal payable = BigDecimal.ZERO;
             BigDecimal deduction = BigDecimal.ZERO;
             for (SalaryProfileItemDO item : profileItems) {
@@ -147,31 +155,37 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                     payable = payable.add(amount);
                 }
             }
-            AttendanceRecordDO attendance = attendanceRecordMapper.selectOne(new LambdaQueryWrapper<AttendanceRecordDO>()
-                    .eq(AttendanceRecordDO::getDeleted, 0)
-                    .eq(AttendanceRecordDO::getEmployeeId, employee.getId())
-                    .eq(AttendanceRecordDO::getAttendanceMonth, monthly.getSalaryMonth())
-                    .orderByDesc(AttendanceRecordDO::getCreatedAt)
-                    .last("LIMIT 1"));
+            AttendanceRecordDO attendance = rules.attendanceDeduction()
+                    ? attendanceRecordMapper.selectOne(new LambdaQueryWrapper<AttendanceRecordDO>()
+                            .eq(AttendanceRecordDO::getDeleted, 0)
+                            .eq(AttendanceRecordDO::getEmployeeId, employee.getId())
+                            .eq(AttendanceRecordDO::getAttendanceMonth, monthly.getSalaryMonth())
+                            .orderByDesc(AttendanceRecordDO::getCreatedAt)
+                            .last("LIMIT 1"))
+                    : null;
             BigDecimal attendanceDeduction = attendance == null || attendance.getDeductionAmount() == null ? BigDecimal.ZERO : attendance.getDeductionAmount();
             deduction = deduction.add(attendanceDeduction);
 
-            List<PerformanceScoreDO> scores = performanceScoreMapper.selectList(new LambdaQueryWrapper<PerformanceScoreDO>()
-                    .eq(PerformanceScoreDO::getDeleted, 0)
-                    .eq(PerformanceScoreDO::getEmployeeId, employee.getId())
-                    .eq(PerformanceScoreDO::getPerformanceMonth, monthly.getSalaryMonth())
-                    .eq(PerformanceScoreDO::getStatus, "confirmed"));
+            List<PerformanceScoreDO> scores = rules.performanceSalary()
+                    ? performanceScoreMapper.selectList(new LambdaQueryWrapper<PerformanceScoreDO>()
+                            .eq(PerformanceScoreDO::getDeleted, 0)
+                            .eq(PerformanceScoreDO::getEmployeeId, employee.getId())
+                            .eq(PerformanceScoreDO::getPerformanceMonth, monthly.getSalaryMonth())
+                            .eq(PerformanceScoreDO::getStatus, "confirmed"))
+                    : List.of();
             BigDecimal performanceAmount = BigDecimal.ZERO;
             for (PerformanceScoreDO score : scores) {
                 performanceAmount = performanceAmount.add(score.getPerformanceAmount() == null ? BigDecimal.ZERO : score.getPerformanceAmount());
             }
             payable = payable.add(performanceAmount);
 
-            List<ProjectBonusAllocationDO> allocations = bonusAllocationMapper.selectList(new LambdaQueryWrapper<ProjectBonusAllocationDO>()
-                    .eq(ProjectBonusAllocationDO::getDeleted, 0)
-                    .eq(ProjectBonusAllocationDO::getEmployeeId, employee.getId())
-                    .eq(ProjectBonusAllocationDO::getPaymentMonth, monthly.getSalaryMonth())
-                    .in(ProjectBonusAllocationDO::getStatus, List.of("allocated", "confirmed")));
+            List<ProjectBonusAllocationDO> allocations = rules.projectBonus()
+                    ? bonusAllocationMapper.selectList(new LambdaQueryWrapper<ProjectBonusAllocationDO>()
+                            .eq(ProjectBonusAllocationDO::getDeleted, 0)
+                            .eq(ProjectBonusAllocationDO::getEmployeeId, employee.getId())
+                            .eq(ProjectBonusAllocationDO::getPaymentMonth, monthly.getSalaryMonth())
+                            .in(ProjectBonusAllocationDO::getStatus, List.of("allocated", "confirmed")))
+                    : List.of();
             BigDecimal projectBonus = BigDecimal.ZERO;
             for (ProjectBonusAllocationDO allocation : allocations) {
                 projectBonus = projectBonus.add(allocation.getAllocationAmount() == null ? BigDecimal.ZERO : allocation.getAllocationAmount());
@@ -223,8 +237,9 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             throw new BusinessException("启用的工资档案未生成任何明细：" + reason);
         }
         summarize(monthlyId);
-        log("generate_monthly", monthlyId, "生成工资明细");
-        audit(monthlyId, null, "generate_monthly", monthly.getStatus(), "draft", "生成工资明细：" + generatedCount + " 人", null);
+        String ruleSummary = rules.summary();
+        log("generate_monthly", monthlyId, "生成工资明细，规则：" + ruleSummary);
+        audit(monthlyId, null, "generate_monthly", monthly.getStatus(), "draft", "生成工资明细：" + generatedCount + " 人；规则：" + ruleSummary, null);
     }
 
     @Override
@@ -375,6 +390,16 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     }
 
     @Override
+    public List<SalarySourceRecordDO> sourceRecords(Long monthlyId, Long detailId) {
+        requireMonthly(monthlyId);
+        return salarySourceRecordMapper.selectList(new LambdaQueryWrapper<SalarySourceRecordDO>()
+                .eq(SalarySourceRecordDO::getSalaryMonthlyId, monthlyId)
+                .eq(detailId != null, SalarySourceRecordDO::getSalaryDetailId, detailId)
+                .orderByAsc(SalarySourceRecordDO::getSalaryDetailId)
+                .orderByAsc(SalarySourceRecordDO::getId));
+    }
+
+    @Override
     @Transactional
     public void deleteMonthly(Long monthlyId) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
@@ -449,6 +474,55 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         detail.setPaymentDate(dto.getPaymentDate() == null ? LocalDate.now() : dto.getPaymentDate());
         detail.setPaymentMethod(StringUtils.hasText(dto.getPaymentMethod()) ? dto.getPaymentMethod() : "bank_transfer");
         detail.setPaymentProofUrl(fileBindingGuard.normalizeSalaryProofUrl(dto.getPaymentProofUrl()));
+    }
+
+    private void defaultGenerationRules(SalaryMonthlyDO monthly) {
+        monthly.setIncludeFixedSalary(defaultRule(monthly.getIncludeFixedSalary(), 1));
+        monthly.setIncludeAttendanceDeduction(defaultRule(monthly.getIncludeAttendanceDeduction(), 1));
+        monthly.setIncludePerformanceSalary(defaultRule(monthly.getIncludePerformanceSalary(), 1));
+        monthly.setIncludeProjectBonus(defaultRule(monthly.getIncludeProjectBonus(), 1));
+    }
+
+    private void inheritGenerationRules(SalaryMonthlyDO monthly, SalaryMonthlyDO old) {
+        monthly.setIncludeFixedSalary(defaultRule(monthly.getIncludeFixedSalary(), old.getIncludeFixedSalary()));
+        monthly.setIncludeAttendanceDeduction(defaultRule(monthly.getIncludeAttendanceDeduction(), old.getIncludeAttendanceDeduction()));
+        monthly.setIncludePerformanceSalary(defaultRule(monthly.getIncludePerformanceSalary(), old.getIncludePerformanceSalary()));
+        monthly.setIncludeProjectBonus(defaultRule(monthly.getIncludeProjectBonus(), old.getIncludeProjectBonus()));
+    }
+
+    private Integer defaultRule(Integer value, Integer fallback) {
+        return value == null ? (fallback == null ? 1 : fallback) : value;
+    }
+
+    private GenerationRules generationRules(SalaryMonthlyDO monthly) {
+        return new GenerationRules(
+                enabled(monthly.getIncludeFixedSalary()),
+                enabled(monthly.getIncludeAttendanceDeduction()),
+                enabled(monthly.getIncludePerformanceSalary()),
+                enabled(monthly.getIncludeProjectBonus())
+        );
+    }
+
+    private boolean enabled(Integer value) {
+        return value == null || value == 1;
+    }
+
+    private record GenerationRules(boolean fixedSalary,
+                                   boolean attendanceDeduction,
+                                   boolean performanceSalary,
+                                   boolean projectBonus) {
+        boolean hasAnyEnabled() {
+            return fixedSalary || attendanceDeduction || performanceSalary || projectBonus;
+        }
+
+        String summary() {
+            List<String> names = new ArrayList<>();
+            if (fixedSalary) names.add("固定工资");
+            if (attendanceDeduction) names.add("考勤扣款");
+            if (performanceSalary) names.add("绩效工资");
+            if (projectBonus) names.add("项目奖金");
+            return String.join("、", names);
+        }
     }
 
     private SalaryDetailItemDO detailItem(Long detailId, Long itemId, String name, String type, BigDecimal amount, String remark) {

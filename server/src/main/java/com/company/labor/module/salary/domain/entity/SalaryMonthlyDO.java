@@ -21,6 +21,10 @@ public class SalaryMonthlyDO {
     private BigDecimal totalDeductionAmount;
     private BigDecimal totalActualAmount;
     private String status;
+    private Integer includeFixedSalary;
+    private Integer includeAttendanceDeduction;
+    private Integer includePerformanceSalary;
+    private Integer includeProjectBonus;
     @TableField(fill = FieldFill.INSERT)
     private Long createdBy;
     private Long approvedBy;

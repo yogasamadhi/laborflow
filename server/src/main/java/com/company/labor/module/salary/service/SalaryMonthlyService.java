@@ -2,6 +2,7 @@ package com.company.labor.module.salary.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.company.labor.module.compensation.domain.entity.SalarySourceRecordDO;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
 import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
@@ -24,4 +25,5 @@ public interface SalaryMonthlyService extends IService<SalaryMonthlyDO> {
     void markDetailPaid(Long detailId, SalaryPaymentDTO dto);
     void batchMarkPaid(BatchSalaryPaymentDTO dto);
     List<SalaryAuditRecordDO> auditRecords(Long monthlyId);
+    List<SalarySourceRecordDO> sourceRecords(Long monthlyId, Long detailId);
 }

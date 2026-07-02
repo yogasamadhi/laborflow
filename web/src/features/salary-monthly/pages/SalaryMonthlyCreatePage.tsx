@@ -11,9 +11,26 @@ function currentMonth() {
   return new Date().toISOString().slice(0, 7);
 }
 
+type RuleKey = "includeFixedSalary" | "includeAttendanceDeduction" | "includePerformanceSalary" | "includeProjectBonus";
+
+const generationRules: Array<{ key: RuleKey; label: string }> = [
+  { key: "includeFixedSalary", label: "固定工资" },
+  { key: "includeAttendanceDeduction", label: "考勤扣款" },
+  { key: "includePerformanceSalary", label: "绩效工资" },
+  { key: "includeProjectBonus", label: "项目奖金" }
+];
+
 export function SalaryMonthlyCreatePage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ salaryMonth: currentMonth(), title: "", remark: "" });
+  const [form, setForm] = useState({
+    salaryMonth: currentMonth(),
+    title: "",
+    remark: "",
+    includeFixedSalary: 1,
+    includeAttendanceDeduction: 1,
+    includePerformanceSalary: 1,
+    includeProjectBonus: 1
+  });
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [error, setError] = useState("");
   const [createdMonthlyId, setCreatedMonthlyId] = useState<string | null>(null);
@@ -39,8 +56,18 @@ export function SalaryMonthlyCreatePage() {
   function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
+    if (!generationRules.some((rule) => form[rule.key] === 1)) {
+      setError("至少启用一项工资生成规则");
+      return;
+    }
     save.mutate();
   }
+
+  function toggleRule(key: RuleKey) {
+    setForm((current) => ({ ...current, [key]: current[key] === 1 ? 0 : 1 }));
+  }
+
+  const enabledRules = generationRules.filter((rule) => form[rule.key] === 1).map((rule) => rule.label).join("、") || "未启用";
 
   return (
     <Page title="创建工资月份">
@@ -67,12 +94,23 @@ export function SalaryMonthlyCreatePage() {
             <option value="manual">只创建月份，稍后手动生成</option>
           </SelectInput>
         </Field>
+        <Field label="生成规则">
+          <div className="checkbox-chips">
+            {generationRules.map((rule) => (
+              <label className="checkbox-chip" key={rule.key}>
+                <input type="checkbox" checked={form[rule.key] === 1} onChange={() => toggleRule(rule.key)} />
+                {rule.label}
+              </label>
+            ))}
+          </div>
+        </Field>
         <Field label="备注">
           <TextArea value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} />
         </Field>
         <div className="summary-strip">
           <span>月份：{form.salaryMonth || "-"}</span>
           <span>标题：{form.title || defaultTitle}</span>
+          <span>规则：{enabledRules}</span>
           <strong>{autoGenerate ? "会立即生成工资明细" : "只保存草稿工资表"}</strong>
         </div>
         <div className="toolbar">

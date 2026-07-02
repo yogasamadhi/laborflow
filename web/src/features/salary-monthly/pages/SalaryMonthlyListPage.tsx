@@ -21,6 +21,10 @@ type Monthly = {
   approvedAt?: string;
   paidAt?: string;
   deleted?: number;
+  includeFixedSalary?: number;
+  includeAttendanceDeduction?: number;
+  includePerformanceSalary?: number;
+  includeProjectBonus?: number;
 };
 
 const statusClass: Record<string, string> = {
@@ -30,6 +34,16 @@ const statusClass: Record<string, string> = {
   paid: "badge-green",
   archived: "badge-red"
 };
+
+function ruleSummary(monthly: Monthly) {
+  const rules = [
+    monthly.includeFixedSalary !== 0 ? "固定" : "",
+    monthly.includeAttendanceDeduction !== 0 ? "考勤" : "",
+    monthly.includePerformanceSalary !== 0 ? "绩效" : "",
+    monthly.includeProjectBonus !== 0 ? "奖金" : ""
+  ].filter(Boolean);
+  return rules.length > 0 ? rules.join(" / ") : "未启用";
+}
 
 export function SalaryMonthlyListPage() {
   const queryClient = useQueryClient();
@@ -157,6 +171,7 @@ export function SalaryMonthlyListPage() {
             <tr>
               <th>月份</th>
               <th>标题</th>
+              <th>规则</th>
               <th>人数</th>
               <th>应发</th>
               <th>扣减</th>
@@ -173,6 +188,7 @@ export function SalaryMonthlyListPage() {
               <tr key={monthly.id}>
                 <td>{monthly.salaryMonth}</td>
                 <td><Link to={`/salary/monthly/${monthly.id}`}>{monthly.title}</Link></td>
+                <td>{ruleSummary(monthly)}</td>
                 <td>{monthly.totalEmployeeCount ?? 0}</td>
                 <td>{money(monthly.totalPayableAmount)}</td>
                 <td>{money(monthly.totalDeductionAmount)}</td>

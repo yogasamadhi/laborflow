@@ -1,6 +1,8 @@
 package com.company.labor.module.salary.domain.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
@@ -30,6 +32,18 @@ public final class SalaryWriteDTO {
         @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "工资月份格式必须为 yyyy-MM")
         private String salaryMonth;
         private String title;
+        @Min(value = 0, message = "固定工资规则只能为 0 或 1")
+        @Max(value = 1, message = "固定工资规则只能为 0 或 1")
+        private Integer includeFixedSalary;
+        @Min(value = 0, message = "考勤扣款规则只能为 0 或 1")
+        @Max(value = 1, message = "考勤扣款规则只能为 0 或 1")
+        private Integer includeAttendanceDeduction;
+        @Min(value = 0, message = "绩效工资规则只能为 0 或 1")
+        @Max(value = 1, message = "绩效工资规则只能为 0 或 1")
+        private Integer includePerformanceSalary;
+        @Min(value = 0, message = "项目奖金规则只能为 0 或 1")
+        @Max(value = 1, message = "项目奖金规则只能为 0 或 1")
+        private Integer includeProjectBonus;
         private String remark;
     }
 

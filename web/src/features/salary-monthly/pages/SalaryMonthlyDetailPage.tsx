@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Eye, RefreshCw, Save } from "lucide-react";
+import { Download, Eye, RefreshCw, Save, Settings } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
@@ -14,6 +14,10 @@ type Monthly = {
   id: string;
   salaryMonth: string;
   title: string;
+  includeFixedSalary?: number;
+  includeAttendanceDeduction?: number;
+  includePerformanceSalary?: number;
+  includeProjectBonus?: number;
   totalEmployeeCount: number;
   totalPayableAmount: number;
   totalDeductionAmount: number;
@@ -21,6 +25,10 @@ type Monthly = {
   status: string;
   remark?: string;
 };
+
+type RuleKey = "includeFixedSalary" | "includeAttendanceDeduction" | "includePerformanceSalary" | "includeProjectBonus";
+
+type MonthlyRuleForm = Pick<Monthly, "salaryMonth" | "title" | "remark"> & Record<RuleKey, number>;
 
 type Detail = {
   id: string;
@@ -45,6 +53,18 @@ type DetailItem = {
   salaryItemType: "earning" | "deduction";
   amount: number;
   remark?: string;
+};
+
+type SourceRecord = {
+  id: string;
+  salaryDetailId: string;
+  employeeId: string;
+  sourceType: string;
+  sourceId?: string;
+  sourceName?: string;
+  amount: number;
+  remark?: string;
+  createdAt?: string;
 };
 
 type Profile = {
@@ -72,6 +92,20 @@ const badgeClass: Record<string, string> = {
   unpaid: "badge-yellow"
 };
 
+const generationRules: Array<{ key: RuleKey; label: string }> = [
+  { key: "includeFixedSalary", label: "固定工资" },
+  { key: "includeAttendanceDeduction", label: "考勤扣款" },
+  { key: "includePerformanceSalary", label: "绩效工资" },
+  { key: "includeProjectBonus", label: "项目奖金" }
+];
+
+const ruleSummaryLabels: Record<RuleKey, string> = {
+  includeFixedSalary: "固定",
+  includeAttendanceDeduction: "考勤",
+  includePerformanceSalary: "绩效",
+  includeProjectBonus: "奖金"
+};
+
 export function SalaryMonthlyDetailPage() {
   const { id } = useParams();
   const monthlyId = id ?? "";
@@ -79,6 +113,7 @@ export function SalaryMonthlyDetailPage() {
   const [keyword, setKeyword] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [editing, setEditing] = useState<Detail | null>(null);
+  const [editingMonthly, setEditingMonthly] = useState<MonthlyRuleForm | null>(null);
   const [viewing, setViewing] = useState<Detail | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -103,6 +138,10 @@ export function SalaryMonthlyDetailPage() {
     queryKey: ["salary-audits", monthlyId],
     queryFn: () => getData<AuditRecord[]>(`/salary/monthly/${monthlyId}/audits`)
   });
+  const { data: sourceRecords } = useQuery({
+    queryKey: ["salary-sources", monthlyId],
+    queryFn: () => getData<SourceRecord[]>(`/salary/monthly/${monthlyId}/sources`)
+  });
   const { data: profilesData } = useQuery({
     queryKey: ["salary-profiles", "monthly-detail-diagnostics"],
     queryFn: () => getData<PageResult<Profile>>("/salary/profiles", { page: 1, pageSize: 500 })
@@ -120,6 +159,15 @@ export function SalaryMonthlyDetailPage() {
     }
     return map;
   }, [monthlyDetailItems]);
+  const sourceMap = useMemo(() => {
+    const map = new Map<string, SourceRecord[]>();
+    for (const item of sourceRecords ?? []) {
+      const rows = map.get(item.salaryDetailId) ?? [];
+      rows.push(item);
+      map.set(item.salaryDetailId, rows);
+    }
+    return map;
+  }, [sourceRecords]);
   const visibleDetails = details.filter((detail) => {
     const employee = employeeMap.get(detail.employeeId);
     const matchesKeyword = !keyword || String(detail.employeeId).includes(keyword) || employee?.name?.includes(keyword);
@@ -139,6 +187,7 @@ export function SalaryMonthlyDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["salary-details", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly-detail-items", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-sources", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
     },
     onError: (reason) => {
@@ -157,14 +206,52 @@ export function SalaryMonthlyDetailPage() {
     },
     onError: (reason) => setError(reason instanceof Error ? reason.message : "保存失败")
   });
+  const updateMonthly = useMutation({
+    mutationFn: (payload: MonthlyRuleForm) => putData<Monthly>(`/salary/monthly/${monthlyId}`, payload),
+    onSuccess: async () => {
+      setError("");
+      setEditingMonthly(null);
+      await queryClient.invalidateQueries({ queryKey: ["salary-monthly", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
+    },
+    onError: (reason) => setError(reason instanceof Error ? reason.message : "规则保存失败")
+  });
 
   function submitEdit(event: FormEvent) {
     event.preventDefault();
     if (editing) update.mutate(editing);
   }
 
+  function submitMonthlyRules(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    if (!editingMonthly) return;
+    if (!generationRules.some((rule) => editingMonthly[rule.key] === 1)) {
+      setError("至少启用一项工资生成规则");
+      return;
+    }
+    updateMonthly.mutate(editingMonthly);
+  }
+
   function patchEditing(patch: Partial<Detail>) {
     setEditing((current) => current ? { ...current, ...patch } : current);
+  }
+
+  function patchMonthlyRule(key: RuleKey) {
+    setEditingMonthly((current) => current ? { ...current, [key]: current[key] === 1 ? 0 : 1 } : current);
+  }
+
+  function openMonthlyRules() {
+    if (!monthly) return;
+    setEditingMonthly({
+      salaryMonth: monthly.salaryMonth,
+      title: monthly.title,
+      remark: monthly.remark,
+      includeFixedSalary: monthly.includeFixedSalary ?? 1,
+      includeAttendanceDeduction: monthly.includeAttendanceDeduction ?? 1,
+      includePerformanceSalary: monthly.includePerformanceSalary ?? 1,
+      includeProjectBonus: monthly.includeProjectBonus ?? 1
+    });
   }
 
   function openProof(proofUrl: string) {
@@ -182,6 +269,7 @@ export function SalaryMonthlyDetailPage() {
       title={monthly?.title ?? "工资明细"}
       actions={
         <div className="table-actions">
+          {monthly?.status === "draft" && <Button type="button" variant="secondary" onClick={openMonthlyRules}><Settings size={16} />规则设置</Button>}
           {monthly?.status === "draft" && <Button type="button" variant="secondary" onClick={() => generate.mutate()} disabled={generate.isPending}><RefreshCw size={16} />{generate.isPending ? "生成中" : "重新生成"}</Button>}
           {monthly && <Link to={`/salary/monthly/${monthly.id}/payment`}><Button>发放登记</Button></Link>}
         </div>
@@ -193,6 +281,7 @@ export function SalaryMonthlyDetailPage() {
         <div className="card"><div className="muted">工资月份</div><h3>{monthly?.salaryMonth ?? "-"}</h3></div>
         <div className="card"><div className="muted">状态</div><h3>{statusText(monthly?.status)}</h3></div>
         <div className="card"><div className="muted">人数</div><h3>{monthly?.totalEmployeeCount ?? 0}</h3></div>
+        <div className="card"><div className="muted">生成规则</div><h3>{ruleSummary(monthly)}</h3></div>
         <div className="card"><div className="muted">应发</div><h3>{money(monthly?.totalPayableAmount)}</h3></div>
         <div className="card"><div className="muted">扣减</div><h3>{money(monthly?.totalDeductionAmount)}</h3></div>
         <div className="card"><div className="muted">实发</div><h3>{money(monthly?.totalActualAmount)}</h3></div>
@@ -347,9 +436,43 @@ export function SalaryMonthlyDetailPage() {
         )}
       </Modal>
 
+      <Modal
+        open={Boolean(editingMonthly)}
+        title="工资生成规则"
+        onClose={() => setEditingMonthly(null)}
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setEditingMonthly(null)}>取消</Button>
+            <Button type="submit" form="salary-monthly-rule-form" disabled={updateMonthly.isPending}><Save size={16} />保存</Button>
+          </>
+        }
+      >
+        {editingMonthly && (
+          <form id="salary-monthly-rule-form" className="grid" onSubmit={submitMonthlyRules}>
+            <div className="summary-strip">
+              <span>{editingMonthly.salaryMonth}</span>
+              <strong>{editingMonthly.title}</strong>
+            </div>
+            <Field label="生成规则">
+              <div className="checkbox-chips">
+                {generationRules.map((rule) => (
+                  <label className="checkbox-chip" key={rule.key}>
+                    <input type="checkbox" checked={editingMonthly[rule.key] === 1} onChange={() => patchMonthlyRule(rule.key)} />
+                    {rule.label}
+                  </label>
+                ))}
+              </div>
+            </Field>
+          </form>
+        )}
+      </Modal>
+
       <Modal open={Boolean(viewing)} title="工资项组成" onClose={() => setViewing(null)}>
         {viewing && (detailItemMap.get(viewing.id) ?? []).length === 0 && (
           <div className="empty-state">这条工资明细没有工资项快照。请确认生成工资表前该员工已有启用工资档案，并在草稿状态重新生成。</div>
+        )}
+        {viewing && (sourceMap.get(viewing.id) ?? []).length === 0 && (
+          <div className="empty-state">暂无来源快照。重新生成后系统会记录固定工资、考勤、绩效和项目奖金来源。</div>
         )}
         <div className="table-wrap">
           <table>
@@ -368,9 +491,45 @@ export function SalaryMonthlyDetailPage() {
             </tbody>
           </table>
         </div>
+        {(viewing ? sourceMap.get(viewing.id) ?? [] : []).length > 0 && (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th>来源</th><th>来源名称</th><th>金额</th><th>备注</th></tr>
+              </thead>
+              <tbody>
+                {(viewing ? sourceMap.get(viewing.id) ?? [] : []).map((item) => (
+                  <tr key={item.id}>
+                    <td>{sourceTypeText(item.sourceType)}</td>
+                    <td>{item.sourceName ?? item.sourceId ?? "-"}</td>
+                    <td>{money(item.amount)}</td>
+                    <td>{item.remark ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Modal>
     </Page>
   );
+}
+
+function ruleSummary(monthly?: Monthly) {
+  if (!monthly) return "-";
+  const rules = generationRules.map((rule) => ({ enabled: monthly[rule.key] !== 0, label: ruleSummaryLabels[rule.key] }));
+  const enabled = rules.filter((item) => item.enabled).map((item) => item.label);
+  return enabled.length > 0 ? enabled.join(" / ") : "未启用";
+}
+
+function sourceTypeText(type: string) {
+  const map: Record<string, string> = {
+    fixed_salary: "固定工资",
+    attendance_deduction: "考勤扣款",
+    performance_salary: "绩效工资",
+    project_bonus: "项目奖金"
+  };
+  return map[type] ?? type;
 }
 
 function auditActionText(action: string) {

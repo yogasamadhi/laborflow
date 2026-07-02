@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
+import com.company.labor.module.compensation.domain.entity.SalarySourceRecordDO;
 import com.company.labor.module.salary.domain.dto.SalaryApprovalDTO;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
@@ -164,6 +165,12 @@ public class SalaryMonthlyController {
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<List<SalaryAuditRecordDO>> auditRecords(@PathVariable Long monthlyId) {
         return Result.success(service.auditRecords(monthlyId));
+    }
+
+    @GetMapping("/monthly/{monthlyId}/sources")
+    @PreAuthorize(RoleExpressions.SALARY_MANAGE)
+    public Result<List<SalarySourceRecordDO>> sourceRecords(@PathVariable Long monthlyId, @RequestParam(required = false) Long detailId) {
+        return Result.success(service.sourceRecords(monthlyId, detailId));
     }
 
     @PostMapping("/details/{detailId}/mark-paid")
