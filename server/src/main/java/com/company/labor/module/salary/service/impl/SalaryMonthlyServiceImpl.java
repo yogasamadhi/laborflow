@@ -95,6 +95,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     @Transactional
     public SalaryMonthlyDO updateMonthly(Long monthlyId, SalaryMonthlyDO monthly) {
         SalaryMonthlyDO old = requireMonthly(monthlyId);
+        requireDraftMonthly(old, "修改工资表");
         monthly.setId(monthlyId);
         monthly.setStatus(old.getStatus());
         inheritGenerationRules(monthly, old);
@@ -110,7 +111,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     @Transactional
     public void generate(Long monthlyId) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
+        requireDraftMonthly(monthly, "重新生成工资");
         GenerationRules rules = generationRules(monthly);
         if (!rules.hasAnyEnabled()) {
             throw new BusinessException("至少启用一项工资生成规则");
@@ -307,7 +308,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDetailDO old = detailMapper.selectById(detailId);
         if (old == null) throw new BusinessException("工资明细不存在");
         SalaryMonthlyDO monthly = requireMonthly(old.getSalaryMonthlyId());
-        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
+        requireDraftMonthly(monthly, "修改工资明细");
         detail.setId(detailId);
         detail.setSalaryMonthlyId(old.getSalaryMonthlyId());
         detail.setPaymentStatus(old.getPaymentStatus());
@@ -403,7 +404,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     @Transactional
     public void deleteMonthly(Long monthlyId) {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
-        BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
+        requireDraftMonthly(monthly, "删除工资表");
         baseMapper.softDeleteById(monthlyId);
         detailMapper.update(null, new LambdaUpdateWrapper<SalaryMonthlyDetailDO>()
                 .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthlyId)
@@ -466,6 +467,14 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             throw new BusinessException("工资表不存在");
         }
         return monthly;
+    }
+
+    private void requireDraftMonthly(SalaryMonthlyDO monthly, String action) {
+        try {
+            BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "draft");
+        } catch (BusinessException ex) {
+            throw new BusinessException("工资表已提交或锁定，不能" + action + "；请驳回到草稿后重算，或通过冲正/调整流程处理差异");
+        }
     }
 
     private void applyPayment(SalaryMonthlyDetailDO detail, SalaryPaymentDTO dto) {

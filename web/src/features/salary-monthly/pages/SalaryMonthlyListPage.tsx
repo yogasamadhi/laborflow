@@ -98,12 +98,13 @@ export function SalaryMonthlyListPage() {
     }
   });
 
-  function can(row: Monthly, op: "generate" | "submit" | "approve" | "reject" | "payment") {
+  function can(row: Monthly, op: "generate" | "submit" | "approve" | "reject" | "payment" | "delete") {
     if (row.deleted === 1) return false;
     if (op === "generate") return row.status === "draft";
     if (op === "submit") return row.status === "draft" && Number(row.totalEmployeeCount ?? 0) > 0;
     if (op === "approve" || op === "reject") return row.status === "pending_approval";
     if (op === "payment") return row.status === "approved" || row.status === "paid";
+    if (op === "delete") return row.status === "draft";
     return false;
   }
 
@@ -211,7 +212,7 @@ export function SalaryMonthlyListPage() {
                         {can(monthly, "payment") && <Link to={`/salary/monthly/${monthly.id}/payment`}><Button><Wallet size={16} />发放</Button></Link>}
                         <Link to={`/salary/monthly/${monthly.id}/export`}><Button variant="secondary"><Download size={16} />导出</Button></Link>
                         <Link to={`/salary/monthly/${monthly.id}/payslip`}><Button variant="secondary">工资条</Button></Link>
-                        <Button variant="danger" onClick={() => deleteMonthly(monthly.id, monthly.title)} disabled={action.isPending}><Trash2 size={16} />删除</Button>
+                        <Button variant="danger" onClick={() => deleteMonthly(monthly.id, monthly.title)} disabled={action.isPending || !can(monthly, "delete")}><Trash2 size={16} />删除</Button>
                       </>
                     )}
                   </div>

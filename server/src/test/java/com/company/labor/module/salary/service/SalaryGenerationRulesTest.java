@@ -1,8 +1,11 @@
 package com.company.labor.module.salary.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.labor.common.exception.BusinessException;
@@ -57,15 +60,63 @@ class SalaryGenerationRulesTest {
         verifyNoInteractions(salaryProfileMapper, detailMapper, detailItemMapper, sourceRecordMapper);
     }
 
+    @Test
+    void updateMonthlyRejectsSubmittedMonthly() {
+        SalaryMonthlyMapper monthlyMapper = mock(SalaryMonthlyMapper.class);
+        SalaryMonthlyServiceImpl service = newService(
+                monthlyMapper,
+                mock(SalaryProfileMapper.class),
+                mock(SalaryMonthlyDetailMapper.class),
+                mock(SalaryDetailItemMapper.class),
+                mock(SalarySourceRecordMapper.class));
+        when(monthlyMapper.selectById(1L)).thenReturn(monthlyWithStatus("pending_approval"));
+
+        assertThatThrownBy(() -> service.updateMonthly(1L, new SalaryMonthlyDO()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("工资表已提交或锁定")
+                .hasMessageContaining("冲正");
+
+        verify(monthlyMapper, never()).updateById(any(SalaryMonthlyDO.class));
+    }
+
+    private SalaryMonthlyServiceImpl newService(
+            SalaryMonthlyMapper monthlyMapper,
+            SalaryProfileMapper salaryProfileMapper,
+            SalaryMonthlyDetailMapper detailMapper,
+            SalaryDetailItemMapper detailItemMapper,
+            SalarySourceRecordMapper sourceRecordMapper) {
+        SalaryMonthlyServiceImpl service = new SalaryMonthlyServiceImpl(
+                mock(EmployeeMapper.class),
+                salaryProfileMapper,
+                mock(SalaryProfileItemMapper.class),
+                detailMapper,
+                detailItemMapper,
+                mock(SalaryAuditRecordMapper.class),
+                mock(OperationLogService.class),
+                mock(AuditUserProvider.class),
+                mock(AttendanceRecordMapper.class),
+                mock(PerformanceScoreMapper.class),
+                mock(ProjectBonusAllocationMapper.class),
+                sourceRecordMapper,
+                mock(FileBindingGuard.class));
+        ReflectionTestUtils.setField(service, "baseMapper", monthlyMapper);
+        return service;
+    }
+
     private SalaryMonthlyDO disabledMonthly() {
-        SalaryMonthlyDO monthly = new SalaryMonthlyDO();
-        monthly.setId(1L);
-        monthly.setStatus("draft");
-        monthly.setDeleted(0);
+        SalaryMonthlyDO monthly = monthlyWithStatus("draft");
         monthly.setIncludeFixedSalary(0);
         monthly.setIncludeAttendanceDeduction(0);
         monthly.setIncludePerformanceSalary(0);
         monthly.setIncludeProjectBonus(0);
+        return monthly;
+    }
+
+    private SalaryMonthlyDO monthlyWithStatus(String status) {
+        SalaryMonthlyDO monthly = new SalaryMonthlyDO();
+        monthly.setId(1L);
+        monthly.setStatus(status);
+        monthly.setDeleted(0);
         return monthly;
     }
 }

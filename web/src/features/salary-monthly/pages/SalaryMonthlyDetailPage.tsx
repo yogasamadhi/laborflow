@@ -282,6 +282,7 @@ export function SalaryMonthlyDetailPage() {
         <div className="card"><div className="muted">状态</div><h3>{statusText(monthly?.status)}</h3></div>
         <div className="card"><div className="muted">人数</div><h3>{monthly?.totalEmployeeCount ?? 0}</h3></div>
         <div className="card"><div className="muted">生成规则</div><h3>{ruleSummary(monthly)}</h3></div>
+        <div className="card"><div className="muted">锁账状态</div><h3>{lockStatusText(monthly?.status)}</h3></div>
         <div className="card"><div className="muted">应发</div><h3>{money(monthly?.totalPayableAmount)}</h3></div>
         <div className="card"><div className="muted">扣减</div><h3>{money(monthly?.totalDeductionAmount)}</h3></div>
         <div className="card"><div className="muted">实发</div><h3>{money(monthly?.totalActualAmount)}</h3></div>
@@ -530,6 +531,15 @@ function sourceTypeText(type: string) {
     project_bonus: "项目奖金"
   };
   return map[type] ?? type;
+}
+
+function lockStatusText(status?: string) {
+  if (!status) return "-";
+  if (status === "draft") return "未锁账";
+  if (status === "pending_approval") return "已提交";
+  if (status === "approved") return "已锁定";
+  if (status === "paid") return "已发放";
+  return statusText(status);
 }
 
 function auditActionText(action: string) {
