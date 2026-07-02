@@ -13,4 +13,5 @@ public interface StatisticsService {
     List<Map<String, Object>> departmentSummary();
     SalaryEmployeeHistoryVO employeeHistory(Long employeeId);
     List<SalaryAnomalyVO> anomalies(double fluctuationRatio);
+    void handleAnomaly(String anomalyKey, String status, String remark);
 }

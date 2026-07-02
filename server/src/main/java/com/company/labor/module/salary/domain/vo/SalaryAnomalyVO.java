@@ -1,10 +1,12 @@
 package com.company.labor.module.salary.domain.vo;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
 public class SalaryAnomalyVO {
+    private String anomalyKey;
     private String type;
     private String level;
     private String salaryMonth;
@@ -15,4 +17,8 @@ public class SalaryAnomalyVO {
     private BigDecimal actualAmount;
     private BigDecimal compareAmount;
     private String message;
+    private String processStatus;
+    private String processRemark;
+    private String processedBy;
+    private LocalDateTime processedAt;
 }

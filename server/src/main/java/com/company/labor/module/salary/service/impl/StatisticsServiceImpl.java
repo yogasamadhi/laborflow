@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
+import com.company.labor.module.salary.domain.entity.SalaryAnomalyRecordDO;
 import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
@@ -14,12 +15,17 @@ import com.company.labor.module.salary.domain.vo.SalaryHistoryRecordVO;
 import com.company.labor.module.salary.domain.vo.SalaryOverviewVO;
 import com.company.labor.module.salary.domain.vo.SalaryTrendVO;
 import com.company.labor.module.salary.domain.vo.SalaryYearSummaryVO;
+import com.company.labor.module.salary.mapper.SalaryAnomalyRecordMapper;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyDetailMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.salary.service.StatisticsService;
+import com.company.labor.module.system.service.OperationLogService;
+import com.company.labor.security.AuditUserProvider;
+import com.company.labor.security.LoginUser;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -37,6 +43,9 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final SalaryMonthlyDetailMapper detailMapper;
     private final SalaryDetailItemMapper detailItemMapper;
     private final EmployeeMapper employeeMapper;
+    private final SalaryAnomalyRecordMapper anomalyRecordMapper;
+    private final OperationLogService operationLogService;
+    private final AuditUserProvider auditUserProvider;
 
     @Override
     public SalaryOverviewVO overview() {
@@ -199,8 +208,42 @@ public class StatisticsServiceImpl implements StatisticsService {
                 result.add(anomaly("duplicate_monthly", "danger", monthly, null, null, "重复创建同月份工资表", null));
             }
         }
+        applyAnomalyRecords(result);
         result.sort(Comparator.comparing(SalaryAnomalyVO::getSalaryMonth, Comparator.nullsLast(String::compareTo)).reversed());
         return result;
+    }
+
+    @Override
+    public void handleAnomaly(String anomalyKey, String status, String remark) {
+        if (!StringUtils.hasText(anomalyKey)) {
+            throw new BusinessException("异常标识必填");
+        }
+        if (!List.of("handled", "ignored", "adjustment").contains(status)) {
+            throw new BusinessException("处理状态不合法");
+        }
+        SalaryAnomalyRecordDO record = anomalyRecordMapper.selectOne(new LambdaQueryWrapper<SalaryAnomalyRecordDO>()
+                .eq(SalaryAnomalyRecordDO::getDeleted, 0)
+                .eq(SalaryAnomalyRecordDO::getAnomalyKey, anomalyKey)
+                .last("LIMIT 1"));
+        if (record == null) {
+            record = new SalaryAnomalyRecordDO();
+            record.setAnomalyKey(anomalyKey);
+            record.setDeleted(0);
+        }
+        LoginUser operator = auditUserProvider.currentLoginUser();
+        if (operator != null) {
+            record.setHandlerId(operator.getUser().getId());
+            record.setHandlerName(operator.getUsername());
+        }
+        record.setStatus(status);
+        record.setRemark(limit(remark, 500));
+        record.setHandledAt(LocalDateTime.now());
+        if (record.getId() == null) {
+            anomalyRecordMapper.insert(record);
+        } else {
+            anomalyRecordMapper.updateById(record);
+        }
+        operationLogService.record("salary", null, "handle_anomaly", "处理工资异常：" + anomalyKey + " -> " + status);
     }
 
     private SalaryMonthlyDO latestMonthly() {
@@ -253,6 +296,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     private SalaryAnomalyVO anomaly(String type, String level, SalaryMonthlyDO monthly, SalaryMonthlyDetailDO detail, EmployeeDO employee, String message, BigDecimal compareAmount) {
         SalaryAnomalyVO vo = new SalaryAnomalyVO();
+        vo.setAnomalyKey(anomalyKey(type, monthly, detail, employee));
         vo.setType(type);
         vo.setLevel(level);
         vo.setSalaryMonth(monthly == null ? null : monthly.getSalaryMonth());
@@ -263,7 +307,43 @@ public class StatisticsServiceImpl implements StatisticsService {
         vo.setActualAmount(detail == null ? null : detail.getActualAmount());
         vo.setCompareAmount(compareAmount);
         vo.setMessage(message);
+        vo.setProcessStatus("open");
         return vo;
+    }
+
+    private void applyAnomalyRecords(List<SalaryAnomalyVO> anomalies) {
+        if (anomalies.isEmpty()) {
+            return;
+        }
+        Map<String, SalaryAnomalyRecordDO> records = new HashMap<>();
+        for (SalaryAnomalyRecordDO record : anomalyRecordMapper.selectList(new LambdaQueryWrapper<SalaryAnomalyRecordDO>()
+                .eq(SalaryAnomalyRecordDO::getDeleted, 0))) {
+            records.put(record.getAnomalyKey(), record);
+        }
+        for (SalaryAnomalyVO anomaly : anomalies) {
+            SalaryAnomalyRecordDO record = records.get(anomaly.getAnomalyKey());
+            if (record == null) {
+                continue;
+            }
+            anomaly.setProcessStatus(record.getStatus());
+            anomaly.setProcessRemark(record.getRemark());
+            anomaly.setProcessedBy(record.getHandlerName());
+            anomaly.setProcessedAt(record.getHandledAt());
+        }
+    }
+
+    private String anomalyKey(String type, SalaryMonthlyDO monthly, SalaryMonthlyDetailDO detail, EmployeeDO employee) {
+        return type
+                + "|" + (monthly == null ? 0 : monthly.getId())
+                + "|" + (detail == null ? 0 : detail.getId())
+                + "|" + (employee == null ? 0 : employee.getId());
+    }
+
+    private String limit(String value, int maxLength) {
+        if (!StringUtils.hasText(value) || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private static class SalaryYearAccumulator {

@@ -91,7 +91,7 @@
 | L5-02 | backend/web | done | 工资锁账与重算机制 | 月度工资表、明细、来源记录、前端操作 | 草稿可重算；提交后限制修改；审核后锁定；必要调整走冲正或重新生成流程；已通过 `git diff --check`、`SalaryGenerationRulesTest`、`mvn test`、`pnpm build` |
 | L5-03 | backend/web | done | 补充社保、公积金、个税与借支 | 薪酬规则、工资明细、统计、导出 | 法定扣款、借支扣款、其他扣款可维护并进入工资明细和导出；已通过 `git diff --check`、`SalaryDeductionRecordServiceTest`、`mvn test`、`pnpm build` |
 | L5-04 | backend/web | done | 银行代发与工资条确认 | 工资导出、支付记录、员工端工资条 | 可导出银行代发格式；员工端可查看工资条并确认或反馈异常；已通过 `git diff --check`、`SalaryGenerationRulesTest`、`mvn test`、`pnpm build` |
-| L5-05 | backend/web | todo | 工资异常处理闭环 | 异常统计、处理记录、工资详情 | 异常不只展示，还能标记已处理、忽略、转入调整；处理过程可审计 |
+| L5-05 | backend/web | done | 工资异常处理闭环 | 异常统计、处理记录、工资详情 | 异常不只展示，还能标记已处理、忽略、转入调整；处理过程可审计；已通过 `git diff --check`、`SalaryAnomalyHandlingTest`、`mvn test`、`pnpm build` |
 
 ### P6：项目经营与成本闭环
 
@@ -415,4 +415,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in web/); mvn test (in server/)
 结果: passed
 备注: Added a bank-payment export, persisted payslip confirmation/exception feedback on salary details, exposed employee-accessible payslip confirm/feedback APIs, and added Web employee salary history actions for payslip confirmation and anomaly feedback.
+```
+
+```text
+Loop: L5-05
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; mvn -q -Dtest=SalaryAnomalyHandlingTest,SalaryGenerationRulesTest test (in server/); pnpm build (in web/); mvn test (in server/)
+结果: passed
+备注: Added auditable salary anomaly handling records, merged handling status into anomaly statistics, exposed a handle API for processed/ignored/adjustment outcomes, and added Web actions to process salary anomalies.
 ```
