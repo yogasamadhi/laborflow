@@ -37,6 +37,25 @@ public final class CompensationWriteDTO {
     }
 
     @Data
+    public static class SalaryDeductionRecordRequest {
+        @NotNull(message = "员工必填")
+        private Long employeeId;
+        @NotBlank(message = "扣款月份必填")
+        @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "扣款月份格式必须为 yyyy-MM")
+        private String deductionMonth;
+        @NotBlank(message = "扣款类型必填")
+        @Pattern(regexp = "social_security|housing_fund|individual_tax|advance|other", message = "扣款类型不合法")
+        private String deductionType;
+        private Long salaryItemId;
+        private String salaryItemName;
+        @DecimalMin(value = "0.00", message = "扣款金额不能小于 0")
+        private BigDecimal amount;
+        @Pattern(regexp = "active|inactive", message = "扣款状态不合法")
+        private String status;
+        private String remark;
+    }
+
+    @Data
     public static class PerformanceIndicatorRequest {
         private Long positionId;
         @NotBlank(message = "指标名称必填")

@@ -50,13 +50,13 @@ public class SalaryExportServiceImpl implements SalaryExportService {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("月度工资表");
-            writeHeaders(workbook, sheet, "工资月份", "员工姓名", "部门", "岗位", "应发金额", "扣减金额", "实发金额", "发放状态", "发放日期", "发放方式", "备注");
+            writeHeaders(workbook, sheet, "工资月份", "员工姓名", "部门", "岗位", "应发金额", "扣减金额", "实发金额", "发放状态", "发放日期", "发放方式", "扣款明细", "备注");
             int rowIndex = 1;
             for (SalaryMonthlyDetailDO detail : details(monthlyId)) {
                 EmployeeDO employee = employeeMapper.selectById(detail.getEmployeeId());
                 writePayrollRow(sheet.createRow(rowIndex++), monthly, detail, employee);
             }
-            autosize(sheet, 11);
+            autosize(sheet, 12);
             workbook.write(outputStream);
         }
         log("export_monthly", monthlyId, "导出月度工资表：" + monthly.getSalaryMonth());
@@ -74,13 +74,13 @@ public class SalaryExportServiceImpl implements SalaryExportService {
                 .orderByDesc(SalaryMonthlyDetailDO::getCreatedAt));
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("员工工资明细");
-            writeHeaders(workbook, sheet, "工资月份", "员工姓名", "部门", "岗位", "应发金额", "扣减金额", "实发金额", "发放状态", "发放日期", "发放方式", "备注");
+            writeHeaders(workbook, sheet, "工资月份", "员工姓名", "部门", "岗位", "应发金额", "扣减金额", "实发金额", "发放状态", "发放日期", "发放方式", "扣款明细", "备注");
             int rowIndex = 1;
             for (SalaryMonthlyDetailDO detail : rows) {
                 SalaryMonthlyDO monthly = monthlyMapper.selectById(detail.getSalaryMonthlyId());
                 writePayrollRow(sheet.createRow(rowIndex++), monthly, detail, employee);
             }
-            autosize(sheet, 11);
+            autosize(sheet, 12);
             workbook.write(outputStream);
         }
         log("export_employee_details", employeeId, "导出员工工资明细：" + employee.getName());
@@ -119,13 +119,13 @@ public class SalaryExportServiceImpl implements SalaryExportService {
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("工资发放记录");
-            writeHeaders(workbook, sheet, "工资月份", "员工姓名", "部门", "岗位", "应发金额", "扣减金额", "实发金额", "发放状态", "发放日期", "发放方式", "备注");
+            writeHeaders(workbook, sheet, "工资月份", "员工姓名", "部门", "岗位", "应发金额", "扣减金额", "实发金额", "发放状态", "发放日期", "发放方式", "扣款明细", "备注");
             int rowIndex = 1;
             for (SalaryMonthlyDetailDO detail : details(monthlyId)) {
                 EmployeeDO employee = employeeMapper.selectById(detail.getEmployeeId());
                 writePayrollRow(sheet.createRow(rowIndex++), monthly, detail, employee);
             }
-            autosize(sheet, 11);
+            autosize(sheet, 12);
             workbook.write(outputStream);
         }
         log("export_payment_records", monthlyId, "导出工资发放记录：" + monthly.getSalaryMonth());
@@ -199,7 +199,8 @@ public class SalaryExportServiceImpl implements SalaryExportService {
         write(row, 7, detail.getPaymentStatus());
         write(row, 8, detail.getPaymentDate());
         write(row, 9, detail.getPaymentMethod());
-        write(row, 10, detail.getRemark());
+        write(row, 10, deductionSummary(detail.getId()));
+        write(row, 11, detail.getRemark());
     }
 
     private void writePayslipRow(Row row, SalaryMonthlyDO monthly, SalaryMonthlyDetailDO detail, EmployeeDO employee, String type, String itemName, BigDecimal amount) {
@@ -244,8 +245,22 @@ public class SalaryExportServiceImpl implements SalaryExportService {
         return position == null ? String.valueOf(positionId) : position.getName();
     }
 
+    private String deductionSummary(Long detailId) {
+        List<String> items = new ArrayList<>();
+        for (SalaryDetailItemDO item : detailItemMapper.selectList(new LambdaQueryWrapper<SalaryDetailItemDO>()
+                .eq(SalaryDetailItemDO::getSalaryDetailId, detailId)
+                .eq(SalaryDetailItemDO::getSalaryItemType, "deduction"))) {
+            items.add(item.getSalaryItemName() + ":" + nvl(item.getAmount()));
+        }
+        return String.join("; ", items);
+    }
+
     private void log(String action, Long businessId, String content) {
         operationLogService.record("salary", businessId, action, content);
+    }
+
+    private BigDecimal nvl(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     private static class DepartmentSummary {

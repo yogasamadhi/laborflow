@@ -11,6 +11,7 @@ import com.company.labor.module.compensation.domain.entity.PerformancePlanDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceScoreDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocationDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusPoolDO;
+import com.company.labor.module.compensation.domain.entity.SalaryDeductionRecordDO;
 import com.company.labor.module.compensation.domain.vo.CompensationDashboardVO;
 import com.company.labor.module.compensation.mapper.AttendanceRecordMapper;
 import com.company.labor.module.compensation.mapper.PerformanceIndicatorMapper;
@@ -18,6 +19,7 @@ import com.company.labor.module.compensation.mapper.PerformancePlanMapper;
 import com.company.labor.module.compensation.mapper.PerformanceScoreMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusPoolMapper;
+import com.company.labor.module.compensation.mapper.SalaryDeductionRecordMapper;
 import com.company.labor.module.compensation.service.CompensationService;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectManagementService;
@@ -38,6 +40,7 @@ public class CompensationServiceImpl implements CompensationService {
     private final PerformanceScoreMapper scoreMapper;
     private final ProjectBonusPoolMapper bonusPoolMapper;
     private final ProjectBonusAllocationMapper bonusAllocationMapper;
+    private final SalaryDeductionRecordMapper salaryDeductionMapper;
     private final ProjectManagementService projectManagementService;
     private final SalaryMonthlyMapper salaryMonthlyMapper;
     private final OperationLogService operationLogService;
@@ -68,6 +71,44 @@ public class CompensationServiceImpl implements CompensationService {
         normalizeAttendance(record);
         attendanceMapper.updateById(record);
         return attendanceMapper.selectById(id);
+    }
+
+    @Override
+    public Page<SalaryDeductionRecordDO> salaryDeductions(long page, long pageSize, Long employeeId, String month, String type) {
+        return salaryDeductionMapper.selectPage(new Page<>(page, pageSize), new LambdaQueryWrapper<SalaryDeductionRecordDO>()
+                .eq(SalaryDeductionRecordDO::getDeleted, 0)
+                .eq(employeeId != null, SalaryDeductionRecordDO::getEmployeeId, employeeId)
+                .eq(StringUtils.hasText(month), SalaryDeductionRecordDO::getDeductionMonth, month)
+                .eq(StringUtils.hasText(type), SalaryDeductionRecordDO::getDeductionType, type)
+                .orderByDesc(SalaryDeductionRecordDO::getDeductionMonth)
+                .orderByDesc(SalaryDeductionRecordDO::getCreatedAt));
+    }
+
+    @Override
+    public SalaryDeductionRecordDO saveSalaryDeduction(SalaryDeductionRecordDO record) {
+        normalizeSalaryDeduction(record);
+        record.setDeleted(0);
+        salaryDeductionMapper.insert(record);
+        operationLogService.record("compensation", record.getId(), "save_salary_deduction", "保存工资扣款：" + record.getSalaryItemName());
+        return record;
+    }
+
+    @Override
+    public SalaryDeductionRecordDO updateSalaryDeduction(Long id, SalaryDeductionRecordDO record) {
+        requireSalaryDeduction(id);
+        record.setId(id);
+        normalizeSalaryDeduction(record);
+        salaryDeductionMapper.updateById(record);
+        operationLogService.record("compensation", id, "update_salary_deduction", "更新工资扣款：" + record.getSalaryItemName());
+        return salaryDeductionMapper.selectById(id);
+    }
+
+    @Override
+    public void deleteSalaryDeduction(Long id) {
+        SalaryDeductionRecordDO record = requireSalaryDeduction(id);
+        record.setDeleted(1);
+        salaryDeductionMapper.updateById(record);
+        operationLogService.record("compensation", id, "delete_salary_deduction", "删除工资扣款：" + record.getSalaryItemName());
     }
 
     @Override
@@ -260,6 +301,13 @@ public class CompensationServiceImpl implements CompensationService {
                 .eq(StringUtils.hasText(month), AttendanceRecordDO::getAttendanceMonth, month))) {
             attendanceDeduction = attendanceDeduction.add(nvl(row.getDeductionAmount()));
         }
+        BigDecimal salaryDeduction = BigDecimal.ZERO;
+        for (SalaryDeductionRecordDO row : salaryDeductionMapper.selectList(new LambdaQueryWrapper<SalaryDeductionRecordDO>()
+                .eq(SalaryDeductionRecordDO::getDeleted, 0)
+                .eq(SalaryDeductionRecordDO::getStatus, "active")
+                .eq(StringUtils.hasText(month), SalaryDeductionRecordDO::getDeductionMonth, month))) {
+            salaryDeduction = salaryDeduction.add(nvl(row.getAmount()));
+        }
         BigDecimal performanceAmount = BigDecimal.ZERO;
         long confirmedScoreCount = 0;
         for (PerformanceScoreDO row : scoreMapper.selectList(new LambdaQueryWrapper<PerformanceScoreDO>()
@@ -281,6 +329,7 @@ public class CompensationServiceImpl implements CompensationService {
             actualSalary = actualSalary.add(nvl(row.getTotalActualAmount()));
         }
         vo.setAttendanceDeductionAmount(attendanceDeduction);
+        vo.setSalaryDeductionAmount(salaryDeduction);
         vo.setPerformanceAmount(performanceAmount);
         vo.setProjectBonusAmount(projectBonus);
         vo.setSalaryActualAmount(actualSalary);
@@ -302,6 +351,16 @@ public class CompensationServiceImpl implements CompensationService {
         if (record.getDeductionAmount() == null || record.getDeductionAmount().compareTo(BigDecimal.ZERO) == 0) {
             record.setDeductionAmount(record.getLeaveDays().multiply(BigDecimal.valueOf(100)).add(record.getAbsentDays().multiply(BigDecimal.valueOf(200))));
         }
+    }
+
+    private void normalizeSalaryDeduction(SalaryDeductionRecordDO record) {
+        if (record.getEmployeeId() == null) throw new BusinessException("员工必填");
+        requireText(record.getDeductionMonth(), "扣款月份必填");
+        record.setDeductionType(defaultText(record.getDeductionType(), "other"));
+        record.setAmount(nvl(record.getAmount()));
+        record.setStatus(defaultText(record.getStatus(), "active"));
+        record.setSalaryItemId(defaultSalaryItemId(record));
+        record.setSalaryItemName(defaultText(record.getSalaryItemName(), defaultSalaryItemName(record.getDeductionType())));
     }
 
     private void normalizeScore(PerformanceScoreDO score) {
@@ -356,6 +415,12 @@ public class CompensationServiceImpl implements CompensationService {
         return row;
     }
 
+    private SalaryDeductionRecordDO requireSalaryDeduction(Long id) {
+        SalaryDeductionRecordDO row = salaryDeductionMapper.selectById(id);
+        if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("工资扣款不存在");
+        return row;
+    }
+
     private PerformanceIndicatorDO requireIndicator(Long id) {
         PerformanceIndicatorDO row = indicatorMapper.selectById(id);
         if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("绩效指标不存在");
@@ -392,6 +457,27 @@ public class CompensationServiceImpl implements CompensationService {
 
     private String defaultText(String value, String defaultValue) {
         return StringUtils.hasText(value) ? value : defaultValue;
+    }
+
+    private Long defaultSalaryItemId(SalaryDeductionRecordDO record) {
+        if (record.getSalaryItemId() != null) return record.getSalaryItemId();
+        return switch (record.getDeductionType()) {
+            case "social_security" -> 2102L;
+            case "housing_fund" -> 2301L;
+            case "individual_tax" -> 2302L;
+            case "advance" -> 2103L;
+            default -> 2105L;
+        };
+    }
+
+    private String defaultSalaryItemName(String type) {
+        return switch (type) {
+            case "social_security" -> "社保扣款";
+            case "housing_fund" -> "公积金扣款";
+            case "individual_tax" -> "个税扣款";
+            case "advance" -> "借支扣款";
+            default -> "其他扣款";
+        };
     }
 
     private BigDecimal nvl(BigDecimal value) {

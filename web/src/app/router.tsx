@@ -26,7 +26,8 @@ import {
   CompensationDashboardPage,
   CompensationSalaryPage,
   PerformanceIndicatorPage,
-  PerformanceScorePage
+  PerformanceScorePage,
+  SalaryDeductionPage
 } from "../features/compensation/pages/CompensationPages";
 import {
   DailyWorkReportPage,
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
       { path: "projects/risks", element: <ProjectRiskPage /> },
       { path: "projects/dashboard", element: <ProjectDashboardPage /> },
       { path: "compensation/attendance", element: <AttendancePage /> },
+      { path: "compensation/deductions", element: <SalaryDeductionPage /> },
       { path: "compensation/indicators", element: <PerformanceIndicatorPage /> },
       { path: "compensation/scores", element: <PerformanceScorePage /> },
       { path: "compensation/bonus-pools", element: <BonusPoolPage /> },

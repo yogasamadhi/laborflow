@@ -12,6 +12,7 @@ import com.company.labor.module.compensation.mapper.PerformancePlanMapper;
 import com.company.labor.module.compensation.mapper.PerformanceScoreMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusPoolMapper;
+import com.company.labor.module.compensation.mapper.SalaryDeductionRecordMapper;
 import com.company.labor.module.compensation.service.impl.CompensationServiceImpl;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.service.ProjectManagementService;
@@ -35,6 +36,7 @@ class CompensationSnapshotTest {
                 mock(PerformanceScoreMapper.class),
                 bonusPoolMapper,
                 mock(ProjectBonusAllocationMapper.class),
+                mock(SalaryDeductionRecordMapper.class),
                 projectManagementService,
                 mock(SalaryMonthlyMapper.class),
                 mock(OperationLogService.class));

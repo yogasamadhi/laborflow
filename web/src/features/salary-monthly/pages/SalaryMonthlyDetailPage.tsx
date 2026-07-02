@@ -528,7 +528,8 @@ function sourceTypeText(type: string) {
     fixed_salary: "固定工资",
     attendance_deduction: "考勤扣款",
     performance_salary: "绩效工资",
-    project_bonus: "项目奖金"
+    project_bonus: "项目奖金",
+    salary_deduction: "工资扣款"
   };
   return map[type] ?? type;
 }

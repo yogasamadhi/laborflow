@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.company.labor.module.compensation.mapper.AttendanceRecordMapper;
 import com.company.labor.module.compensation.mapper.PerformanceScoreMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper;
+import com.company.labor.module.compensation.mapper.SalaryDeductionRecordMapper;
 import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.file.service.FileBindingGuard;
@@ -45,6 +46,7 @@ class SalaryMonthlyAuditRecordTest {
                 mock(AttendanceRecordMapper.class),
                 mock(PerformanceScoreMapper.class),
                 mock(ProjectBonusAllocationMapper.class),
+                mock(SalaryDeductionRecordMapper.class),
                 mock(SalarySourceRecordMapper.class),
                 mock(FileBindingGuard.class));
 

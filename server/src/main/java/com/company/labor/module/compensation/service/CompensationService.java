@@ -7,12 +7,18 @@ import com.company.labor.module.compensation.domain.entity.PerformancePlanDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceScoreDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocationDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusPoolDO;
+import com.company.labor.module.compensation.domain.entity.SalaryDeductionRecordDO;
 import com.company.labor.module.compensation.domain.vo.CompensationDashboardVO;
 
 public interface CompensationService {
     Page<AttendanceRecordDO> attendanceRecords(long page, long pageSize, Long employeeId, String month);
     AttendanceRecordDO saveAttendance(AttendanceRecordDO record);
     AttendanceRecordDO updateAttendance(Long id, AttendanceRecordDO record);
+
+    Page<SalaryDeductionRecordDO> salaryDeductions(long page, long pageSize, Long employeeId, String month, String type);
+    SalaryDeductionRecordDO saveSalaryDeduction(SalaryDeductionRecordDO record);
+    SalaryDeductionRecordDO updateSalaryDeduction(Long id, SalaryDeductionRecordDO record);
+    void deleteSalaryDeduction(Long id);
 
     Page<PerformanceIndicatorDO> indicators(long page, long pageSize, Long positionId, String status);
     PerformanceIndicatorDO saveIndicator(PerformanceIndicatorDO indicator);

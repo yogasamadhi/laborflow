@@ -12,6 +12,7 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.compensation.mapper.AttendanceRecordMapper;
 import com.company.labor.module.compensation.mapper.PerformanceScoreMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper;
+import com.company.labor.module.compensation.mapper.SalaryDeductionRecordMapper;
 import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.file.service.FileBindingGuard;
@@ -48,6 +49,7 @@ class SalaryGenerationRulesTest {
                 mock(AttendanceRecordMapper.class),
                 mock(PerformanceScoreMapper.class),
                 mock(ProjectBonusAllocationMapper.class),
+                mock(SalaryDeductionRecordMapper.class),
                 sourceRecordMapper,
                 mock(FileBindingGuard.class));
         ReflectionTestUtils.setField(service, "baseMapper", monthlyMapper);
@@ -97,6 +99,7 @@ class SalaryGenerationRulesTest {
                 mock(AttendanceRecordMapper.class),
                 mock(PerformanceScoreMapper.class),
                 mock(ProjectBonusAllocationMapper.class),
+                mock(SalaryDeductionRecordMapper.class),
                 sourceRecordMapper,
                 mock(FileBindingGuard.class));
         ReflectionTestUtils.setField(service, "baseMapper", monthlyMapper);

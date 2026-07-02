@@ -9,6 +9,7 @@ import com.company.labor.module.compensation.domain.entity.PerformancePlanDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceScoreDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocationDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusPoolDO;
+import com.company.labor.module.compensation.domain.entity.SalaryDeductionRecordDO;
 import com.company.labor.module.compensation.domain.vo.CompensationDashboardVO;
 import com.company.labor.module.compensation.service.CompensationService;
 import com.company.labor.security.RoleExpressions;
@@ -49,6 +50,31 @@ public class CompensationController {
     @PutMapping("/attendance/{id}")
     public Result<AttendanceRecordDO> updateAttendance(@PathVariable Long id, @Valid @RequestBody CompensationWriteDTO.AttendanceRecordRequest dto) {
         return Result.success(service.updateAttendance(id, copy(dto, AttendanceRecordDO.class)));
+    }
+
+    @GetMapping("/deductions")
+    public Result<PageResult<SalaryDeductionRecordDO>> salaryDeductions(@RequestParam(defaultValue = "1") long page,
+                                                                        @RequestParam(defaultValue = "20") long pageSize,
+                                                                        @RequestParam(required = false) Long employeeId,
+                                                                        @RequestParam(required = false) String month,
+                                                                        @RequestParam(required = false) String type) {
+        return Result.success(PageResult.of(service.salaryDeductions(page, pageSize, employeeId, month, type)));
+    }
+
+    @PostMapping("/deductions")
+    public Result<SalaryDeductionRecordDO> saveSalaryDeduction(@Valid @RequestBody CompensationWriteDTO.SalaryDeductionRecordRequest dto) {
+        return Result.success(service.saveSalaryDeduction(copy(dto, SalaryDeductionRecordDO.class)));
+    }
+
+    @PutMapping("/deductions/{id}")
+    public Result<SalaryDeductionRecordDO> updateSalaryDeduction(@PathVariable Long id, @Valid @RequestBody CompensationWriteDTO.SalaryDeductionRecordRequest dto) {
+        return Result.success(service.updateSalaryDeduction(id, copy(dto, SalaryDeductionRecordDO.class)));
+    }
+
+    @PostMapping("/deductions/{id}/delete")
+    public Result<Void> deleteSalaryDeduction(@PathVariable Long id) {
+        service.deleteSalaryDeduction(id);
+        return Result.success();
     }
 
     @GetMapping("/indicators")

@@ -11,11 +11,12 @@ import type { Employee } from "../../employee/types";
 type Project = { id: string; name: string };
 type Position = { id: string; name: string };
 type Attendance = { id: string; employeeId: string; attendanceMonth: string; projectId?: string; workDays: number; leaveDays: number; overtimeDays: number; absentDays: number; fieldDays: number; projectSiteDays: number; deductionAmount: number };
+type SalaryDeduction = { id: string; employeeId: string; deductionMonth: string; deductionType: string; salaryItemId?: string; salaryItemName: string; amount: number; status: string; remark?: string };
 type Indicator = { id: string; positionId?: string; name: string; category?: string; scoreWeight: number; dataSource: string; status: string };
 type Score = { id: string; performanceMonth: string; projectId?: string; employeeId: string; positionId?: string; score: number; performanceAmount: number; autoMetricSnapshot?: string; status: string };
 type BonusPool = { id: string; projectId: string; bonusMonth?: string; finalGrossProfit: number; bonusRatio: number; bonusPoolAmount: number; releaseCondition?: string; releaseStatus: string; dashboardSnapshot?: string };
 type BonusAllocation = { id: string; bonusPoolId: string; projectId: string; employeeId: string; roleName?: string; allocationRatio: number; allocationAmount: number; paymentMonth: string; status: string };
-type Dashboard = { month?: string; attendanceDeductionAmount: number; performanceAmount: number; projectBonusAmount: number; salaryActualAmount: number; scoredEmployeeCount: number; confirmedScoreCount: number; bonusAllocationCount: number };
+type Dashboard = { month?: string; attendanceDeductionAmount: number; salaryDeductionAmount: number; performanceAmount: number; projectBonusAmount: number; salaryActualAmount: number; scoredEmployeeCount: number; confirmedScoreCount: number; bonusAllocationCount: number };
 
 function useCompLookups() {
   const employees = useQuery({ queryKey: ["comp-employees"], queryFn: () => getData<PageResult<Employee>>("/employees", { page: 1, pageSize: 500 }) });
@@ -41,6 +42,18 @@ function Badge({ status }: { status?: string }) {
 
 const thisMonth = new Date().toISOString().slice(0, 7);
 
+const deductionTypes = [
+  { value: "social_security", label: "社保扣款" },
+  { value: "housing_fund", label: "公积金扣款" },
+  { value: "individual_tax", label: "个税扣款" },
+  { value: "advance", label: "借支扣款" },
+  { value: "other", label: "其他扣款" }
+];
+
+function deductionTypeText(type?: string) {
+  return deductionTypes.find(item => item.value === type)?.label ?? type ?? "-";
+}
+
 export function AttendancePage() {
   const queryClient = useQueryClient();
   const lookups = useCompLookups();
@@ -57,6 +70,28 @@ export function AttendancePage() {
       <Button type="submit">{form.id ? "保存" : "录入"}</Button>
     </form>
     <div className="panel table-wrap"><table><thead><tr><th>员工</th><th>月份</th><th>出勤</th><th>请假</th><th>加班</th><th>缺勤</th><th>驻场</th><th>扣款</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.employees, row.employeeId)}</td><td>{row.attendanceMonth}</td><td>{row.workDays}</td><td>{row.leaveDays}</td><td>{row.overtimeDays}</td><td>{row.absentDays}</td><td>{row.projectSiteDays}</td><td>{money(row.deductionAmount)}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+  </Page>;
+}
+
+export function SalaryDeductionPage() {
+  const queryClient = useQueryClient();
+  const { employees } = useCompLookups();
+  const [form, setForm] = useState<Partial<SalaryDeduction>>({ deductionMonth: thisMonth, deductionType: "social_security", amount: 0, status: "active" });
+  const { data } = useQuery({ queryKey: ["salary-deductions"], queryFn: () => getData<PageResult<SalaryDeduction>>("/compensation/deductions", { page: 1, pageSize: 200 }) });
+  const save = useMutation({ mutationFn: () => form.id ? putData(`/compensation/deductions/${form.id}`, form) : postData("/compensation/deductions", form), onSuccess: () => { setForm({ deductionMonth: thisMonth, deductionType: "social_security", amount: 0, status: "active" }); queryClient.invalidateQueries({ queryKey: ["salary-deductions"] }); } });
+  const remove = useMutation({ mutationFn: (id: string) => postData(`/compensation/deductions/${id}/delete`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["salary-deductions"] }) });
+  return <Page title="工资扣款">
+    <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
+      <Field label="员工"><SelectInput value={form.employeeId ?? ""} onChange={e => setForm({ ...form, employeeId: e.target.value })}>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</SelectInput></Field>
+      <Field label="月份"><TextInput type="month" value={form.deductionMonth ?? thisMonth} onChange={e => setForm({ ...form, deductionMonth: e.target.value })} /></Field>
+      <Field label="类型"><SelectInput value={form.deductionType ?? "other"} onChange={e => setForm({ ...form, deductionType: e.target.value })}>{deductionTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</SelectInput></Field>
+      <Field label="金额"><TextInput type="number" step="0.01" value={form.amount ?? 0} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></Field>
+      <Field label="名称"><TextInput value={form.salaryItemName ?? ""} onChange={e => setForm({ ...form, salaryItemName: e.target.value })} placeholder="默认按类型生成" /></Field>
+      <Field label="状态"><SelectInput value={form.status ?? "active"} onChange={e => setForm({ ...form, status: e.target.value })}><option value="active">生效</option><option value="inactive">停用</option></SelectInput></Field>
+      <Field label="备注"><TextInput value={form.remark ?? ""} onChange={e => setForm({ ...form, remark: e.target.value })} /></Field>
+      <Button type="submit" disabled={save.isPending}>{form.id ? "保存" : "录入"}</Button>
+    </form>
+    <div className="panel table-wrap"><table><thead><tr><th>员工</th><th>月份</th><th>类型</th><th>名称</th><th>金额</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(employees, row.employeeId)}</td><td>{row.deductionMonth}</td><td>{deductionTypeText(row.deductionType)}</td><td>{row.salaryItemName}</td><td>{money(row.amount)}</td><td><Badge status={row.status} /></td><td>{row.remark ?? "-"}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button>{" "}<Button variant="danger" onClick={() => remove.mutate(row.id)} disabled={remove.isPending}>删除</Button></td></tr>)}</tbody></table></div>
   </Page>;
 }
 
@@ -112,7 +147,7 @@ export function BonusAllocationPage() {
 }
 
 export function CompensationSalaryPage() {
-  return <Page title="工资表"><div className="panel"><Link to="/salary/monthly"><Button>进入月度工资表</Button></Link><p className="muted">月度工资生成已纳入固定工资、考勤扣款、绩效工资、项目奖金和手工调整来源。</p></div></Page>;
+  return <Page title="工资表"><div className="panel"><Link to="/salary/monthly"><Button>进入月度工资表</Button></Link></div></Page>;
 }
 
 export function CompensationDashboardPage() {
@@ -120,6 +155,7 @@ export function CompensationDashboardPage() {
   const { data } = useQuery({ queryKey: ["compensation-dashboard", month], queryFn: () => getData<Dashboard>("/compensation/dashboard", { month }) });
   const cards = [
     ["考勤扣款", money(data?.attendanceDeductionAmount)],
+    ["工资扣款", money(data?.salaryDeductionAmount)],
     ["绩效工资", money(data?.performanceAmount)],
     ["项目奖金", money(data?.projectBonusAmount)],
     ["工资实发", money(data?.salaryActualAmount)],

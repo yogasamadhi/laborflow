@@ -57,6 +57,7 @@ const groups = [
     title: "薪酬与绩效",
     links: [
       { to: "/compensation/attendance", label: "考勤管理", roles: compensationRoles },
+      { to: "/compensation/deductions", label: "工资扣款", roles: compensationRoles },
       { to: "/compensation/indicators", label: "绩效指标", roles: compensationRoles },
       { to: "/compensation/scores", label: "绩效评分", roles: compensationRoles },
       { to: "/compensation/bonus-pools", label: "项目奖金池", roles: compensationRoles },

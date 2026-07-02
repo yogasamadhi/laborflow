@@ -7,6 +7,7 @@ import lombok.Data;
 public class CompensationDashboardVO {
     private String month;
     private BigDecimal attendanceDeductionAmount;
+    private BigDecimal salaryDeductionAmount;
     private BigDecimal performanceAmount;
     private BigDecimal projectBonusAmount;
     private BigDecimal salaryActualAmount;

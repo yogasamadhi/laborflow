@@ -10,10 +10,12 @@ import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
 import com.company.labor.module.compensation.domain.entity.AttendanceRecordDO;
 import com.company.labor.module.compensation.domain.entity.PerformanceScoreDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocationDO;
+import com.company.labor.module.compensation.domain.entity.SalaryDeductionRecordDO;
 import com.company.labor.module.compensation.domain.entity.SalarySourceRecordDO;
 import com.company.labor.module.compensation.mapper.AttendanceRecordMapper;
 import com.company.labor.module.compensation.mapper.PerformanceScoreMapper;
 import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper;
+import com.company.labor.module.compensation.mapper.SalaryDeductionRecordMapper;
 import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
@@ -63,6 +65,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final PerformanceScoreMapper performanceScoreMapper;
     private final ProjectBonusAllocationMapper bonusAllocationMapper;
+    private final SalaryDeductionRecordMapper salaryDeductionRecordMapper;
     private final SalarySourceRecordMapper salarySourceRecordMapper;
     private final FileBindingGuard fileBindingGuard;
 
@@ -167,6 +170,18 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             BigDecimal attendanceDeduction = attendance == null || attendance.getDeductionAmount() == null ? BigDecimal.ZERO : attendance.getDeductionAmount();
             deduction = deduction.add(attendanceDeduction);
 
+            List<SalaryDeductionRecordDO> salaryDeductions = salaryDeductionRecordMapper.selectList(new LambdaQueryWrapper<SalaryDeductionRecordDO>()
+                    .eq(SalaryDeductionRecordDO::getDeleted, 0)
+                    .eq(SalaryDeductionRecordDO::getStatus, "active")
+                    .eq(SalaryDeductionRecordDO::getEmployeeId, employee.getId())
+                    .eq(SalaryDeductionRecordDO::getDeductionMonth, monthly.getSalaryMonth())
+                    .orderByAsc(SalaryDeductionRecordDO::getId));
+            BigDecimal salaryDeductionAmount = BigDecimal.ZERO;
+            for (SalaryDeductionRecordDO salaryDeduction : salaryDeductions) {
+                salaryDeductionAmount = salaryDeductionAmount.add(salaryDeduction.getAmount() == null ? BigDecimal.ZERO : salaryDeduction.getAmount());
+            }
+            deduction = deduction.add(salaryDeductionAmount);
+
             List<PerformanceScoreDO> scores = rules.performanceSalary()
                     ? performanceScoreMapper.selectList(new LambdaQueryWrapper<PerformanceScoreDO>()
                             .eq(PerformanceScoreDO::getDeleted, 0)
@@ -219,6 +234,20 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             if (attendanceDeduction.compareTo(BigDecimal.ZERO) != 0) {
                 detailItemMapper.insert(detailItem(detail.getId(), 2204L, "考勤扣款", "deduction", attendanceDeduction, "来自考勤记录"));
                 source(monthlyId, detail.getId(), employee.getId(), "attendance_deduction", attendance == null ? null : attendance.getId(), "考勤扣款", attendanceDeduction.negate(), "请假/缺勤扣款");
+            }
+            for (SalaryDeductionRecordDO salaryDeduction : salaryDeductions) {
+                BigDecimal amount = salaryDeduction.getAmount() == null ? BigDecimal.ZERO : salaryDeduction.getAmount();
+                if (amount.compareTo(BigDecimal.ZERO) == 0) {
+                    continue;
+                }
+                detailItemMapper.insert(detailItem(
+                        detail.getId(),
+                        salaryDeduction.getSalaryItemId(),
+                        salaryDeduction.getSalaryItemName(),
+                        "deduction",
+                        amount,
+                        salaryDeductionRemark(salaryDeduction)));
+                source(monthlyId, detail.getId(), employee.getId(), "salary_deduction", salaryDeduction.getId(), salaryDeduction.getSalaryItemName(), amount.negate(), salaryDeductionRemark(salaryDeduction));
             }
             if (performanceAmount.compareTo(BigDecimal.ZERO) != 0) {
                 detailItemMapper.insert(detailItem(detail.getId(), 2201L, "绩效奖金", "earning", performanceAmount, "来自绩效评分"));
@@ -557,6 +586,20 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         row.setRemark(remark);
         row.setCreatedAt(LocalDateTime.now());
         salarySourceRecordMapper.insert(row);
+    }
+
+    private String salaryDeductionRemark(SalaryDeductionRecordDO record) {
+        return textOrDefault(record.getRemark(), deductionTypeName(record.getDeductionType()));
+    }
+
+    private String deductionTypeName(String type) {
+        return switch (type) {
+            case "social_security" -> "社保";
+            case "housing_fund" -> "公积金";
+            case "individual_tax" -> "个税";
+            case "advance" -> "借支";
+            default -> "其他扣款";
+        };
     }
 
     private void summarize(Long monthlyId) {
