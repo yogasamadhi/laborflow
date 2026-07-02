@@ -4,7 +4,14 @@ import com.company.labor.common.result.Result;
 import com.company.labor.module.file.domain.entity.FileRecordDO;
 import com.company.labor.module.file.service.FileRecordService;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,8 +32,29 @@ public class FileController {
     }
 
     @GetMapping("/{id}")
-    public Result<FileRecordDO> detail(@PathVariable Long id) {
-        return Result.success(service.getById(id));
+    public Result<FileRecordDO> detail(@PathVariable Long id, Authentication authentication) {
+        return Result.success(service.getAuthorizedRecord(id, authentication));
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Resource> download(@PathVariable Long id, Authentication authentication) throws IOException {
+        FileRecordService.FileDownload download = service.loadForDownload(id, authentication);
+        FileRecordDO record = download.record();
+        return ResponseEntity.ok()
+                .contentType(mediaType(record.getContentType()))
+                .contentLength(record.getFileSize() == null ? download.resource().contentLength() : record.getFileSize())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(record.getOriginalName(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.resource());
+    }
+
+    private MediaType mediaType(String contentType) {
+        try {
+            return MediaType.parseMediaType(contentType);
+        } catch (Exception ex) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 }
-

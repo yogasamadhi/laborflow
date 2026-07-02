@@ -5,20 +5,28 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.file.domain.entity.FileRecordDO;
 import com.company.labor.module.file.mapper.FileRecordMapper;
 import com.company.labor.module.file.service.FileRecordService;
+import com.company.labor.module.project.service.ProjectAccessService;
+import com.company.labor.security.AccessControlSupport;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.PathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@RequiredArgsConstructor
 public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRecordDO> implements FileRecordService {
     private static final Map<String, Set<String>> ALLOWED_CONTENT_TYPES = Map.ofEntries(
             Map.entry("jpg", Set.of("image/jpeg")),
@@ -38,6 +46,8 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
     private String uploadDir;
     @Value("${laborflow.file.max-size-bytes:10485760}")
     private long maxUploadSizeBytes;
+    private final JdbcTemplate jdbcTemplate;
+    private final ProjectAccessService projectAccessService;
 
     @Override
     public FileRecordDO store(MultipartFile file) throws IOException {
@@ -61,6 +71,26 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
         record.setCreatedAt(LocalDateTime.now());
         save(record);
         return record;
+    }
+
+    @Override
+    public FileRecordDO getAuthorizedRecord(Long id, Authentication authentication) {
+        FileRecordDO record = getById(id);
+        if (record == null) {
+            throw new BusinessException("文件不存在");
+        }
+        requireDownloadAccess(record, authentication);
+        return record;
+    }
+
+    @Override
+    public FileDownload loadForDownload(Long id, Authentication authentication) throws IOException {
+        FileRecordDO record = getAuthorizedRecord(id, authentication);
+        Path filePath = storedPath(record);
+        if (!Files.isRegularFile(filePath)) {
+            throw new BusinessException("文件不存在或已被移除");
+        }
+        return new FileDownload(record, new PathResource(filePath));
     }
 
     private String validate(MultipartFile file) {
@@ -108,5 +138,69 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
             }
         }
         return false;
+    }
+
+    private Path storedPath(FileRecordDO record) {
+        if (!StringUtils.hasText(record.getFileName())) {
+            throw new BusinessException("文件路径不存在");
+        }
+        Path uploadRoot = Path.of(uploadDir).toAbsolutePath().normalize();
+        Path filePath = uploadRoot.resolve(record.getFileName()).normalize();
+        if (!filePath.startsWith(uploadRoot)) {
+            throw new BusinessException("非法文件路径");
+        }
+        return filePath;
+    }
+
+    private void requireDownloadAccess(FileRecordDO record, Authentication authentication) {
+        Long currentUserId = AccessControlSupport.currentUserId(authentication);
+        if (currentUserId != null && currentUserId.equals(record.getCreatedBy())) {
+            return;
+        }
+        List<Long> projectIds = associatedProjectIds(record.getId());
+        if (!projectIds.isEmpty()) {
+            if (projectAccessService.hasProjectWideAccess(authentication)) {
+                return;
+            }
+            if (projectAccessService.authorizedProjectIds(authentication).stream().anyMatch(projectIds::contains)) {
+                return;
+            }
+        }
+        if (currentUserId != null && associatedCreatorIds(record.getId()).contains(currentUserId)) {
+            return;
+        }
+        throw new BusinessException("无权下载该文件");
+    }
+
+    private List<Long> associatedProjectIds(Long fileId) {
+        String sql = """
+                SELECT project_id FROM daily_work_report r
+                  JOIN daily_work_report_file f ON f.daily_work_report_id = r.id
+                 WHERE f.file_id = ? AND r.deleted = 0
+                UNION
+                SELECT project_id FROM variation_order o
+                  JOIN variation_order_file f ON f.variation_order_id = o.id
+                 WHERE f.file_id = ? AND o.deleted = 0
+                UNION
+                SELECT project_id FROM project_payment_record
+                 WHERE voucher_file_id = ? AND deleted = 0
+                UNION
+                SELECT project_id FROM project_document_archive
+                 WHERE file_id = ? AND deleted = 0
+                """;
+        return jdbcTemplate.queryForList(sql, Long.class, fileId, fileId, fileId, fileId);
+    }
+
+    private List<Long> associatedCreatorIds(Long fileId) {
+        String sql = """
+                SELECT created_by FROM daily_work_report r
+                  JOIN daily_work_report_file f ON f.daily_work_report_id = r.id
+                 WHERE f.file_id = ? AND r.deleted = 0 AND r.created_by IS NOT NULL
+                UNION
+                SELECT created_by FROM variation_order o
+                  JOIN variation_order_file f ON f.variation_order_id = o.id
+                 WHERE f.file_id = ? AND o.deleted = 0 AND o.created_by IS NOT NULL
+                """;
+        return jdbcTemplate.queryForList(sql, Long.class, fileId, fileId);
     }
 }

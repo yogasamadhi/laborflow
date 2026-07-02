@@ -1,11 +1,14 @@
 package com.company.labor.module.file.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.file.service.impl.FileRecordServiceImpl;
+import com.company.labor.module.project.service.ProjectAccessService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -14,7 +17,7 @@ class FileRecordServiceSecurityTest {
 
     @BeforeEach
     void setUp() {
-        service = new FileRecordServiceImpl();
+        service = new FileRecordServiceImpl(mock(JdbcTemplate.class), mock(ProjectAccessService.class));
         ReflectionTestUtils.setField(service, "uploadDir", "/tmp/laborflow-upload-test");
         ReflectionTestUtils.setField(service, "maxUploadSizeBytes", 8L);
     }
