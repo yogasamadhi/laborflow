@@ -34,6 +34,8 @@ DEFAULT_JAVA_HOME = Path("/Users/h/code/env/jdk-21/Contents/Home")
 DEFAULT_MAVEN = Path("/Users/h/code/env/maven-3.9/bin/mvn")
 
 processes: list[subprocess.Popen[str]] = []
+managed_ports: set[int] = set()
+stopping = False
 
 
 def log(message: str) -> None:
@@ -115,6 +117,11 @@ def run_checked(cmd: list[str], cwd: Path, env: dict[str, str] | None = None) ->
 
 def popen_stream(name: str, cmd: list[str], cwd: Path, env: dict[str, str] | None = None) -> subprocess.Popen[str]:
     log(f"starting {name}: {' '.join(cmd)}")
+    popen_kwargs: dict[str, object] = {}
+    if os.name == "nt":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        popen_kwargs["start_new_session"] = True
     try:
         proc = subprocess.Popen(
             prepare_cmd(cmd),
@@ -128,6 +135,7 @@ def popen_stream(name: str, cmd: list[str], cwd: Path, env: dict[str, str] | Non
             encoding="utf-8",
             errors="replace",
             bufsize=1,
+            **popen_kwargs,
         )
     except FileNotFoundError:
         fail(f"command not found: {cmd[0]}")
@@ -144,6 +152,10 @@ def popen_stream(name: str, cmd: list[str], cwd: Path, env: dict[str, str] | Non
 
 
 def stop_children() -> None:
+    global stopping
+    if stopping:
+        return
+    stopping = True
     for proc in processes:
         if proc.poll() is None:
             if os.name == "nt":
@@ -155,7 +167,10 @@ def stop_children() -> None:
                     stderr=subprocess.DEVNULL,
                 )
             else:
-                proc.terminate()
+                try:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
     deadline = time.time() + 8
     for proc in processes:
         if proc.poll() is None:
@@ -163,7 +178,150 @@ def stop_children() -> None:
             try:
                 proc.wait(timeout=remaining)
             except subprocess.TimeoutExpired:
-                proc.kill()
+                if os.name == "nt":
+                    subprocess.run(
+                        ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                else:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                try:
+                    proc.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    pass
+    for port in sorted(managed_ports):
+        kill_processes_on_port(f"port {port}", port)
+
+
+def process_exists(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        result = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        return str(pid) in result.stdout
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def find_listening_pids(port: int) -> set[int]:
+    pids: set[int] = set()
+    if os.name == "nt":
+        result = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        for line in result.stdout.splitlines():
+            parts = line.split()
+            if len(parts) < 5 or parts[0].upper() != "TCP" or parts[3].upper() != "LISTENING":
+                continue
+            local_address = parts[1].rsplit(":", 1)
+            if len(local_address) == 2 and local_address[1] == str(port):
+                try:
+                    pids.add(int(parts[-1]))
+                except ValueError:
+                    pass
+        return pids
+
+    if command_exists("lsof"):
+        result = subprocess.run(
+            ["lsof", "-nP", f"-tiTCP:{port}", "-sTCP:LISTEN"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        for raw_pid in result.stdout.splitlines():
+            try:
+                pids.add(int(raw_pid.strip()))
+            except ValueError:
+                pass
+        return pids
+
+    if command_exists("fuser"):
+        result = subprocess.run(
+            ["fuser", f"{port}/tcp"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        for raw_pid in result.stdout.split():
+            try:
+                pids.add(int(raw_pid.strip()))
+            except ValueError:
+                pass
+    return pids
+
+
+def kill_processes_on_port(service: str, port: int) -> bool:
+    pids = {pid for pid in find_listening_pids(port) if pid != os.getpid()}
+    if not pids:
+        return False
+
+    log(f"{service} is using port {port}; stopping PID(s): {', '.join(map(str, sorted(pids)))}")
+    for pid in sorted(pids):
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        else:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        if not any(process_exists(pid) for pid in pids):
+            return True
+        time.sleep(0.2)
+
+    remaining = [pid for pid in sorted(pids) if process_exists(pid)]
+    if remaining:
+        log(f"force stopping PID(s): {', '.join(map(str, remaining))}")
+    for pid in remaining:
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        else:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    return True
 
 
 def parse_database_host_port(env: dict[str, str]) -> tuple[str, int]:
@@ -188,8 +346,15 @@ def parse_port(env: dict[str, str], name: str, default: int) -> int:
 def ensure_port_available(service: str, host: str, port: int, env_name: str) -> None:
     try:
         with socket.create_connection((host, port), timeout=1):
+            pass
+    except OSError:
+        return
+
+    kill_processes_on_port(service, port)
+    try:
+        with socket.create_connection((host, port), timeout=1):
             fail(
-                f"{service} port {port} is already in use. "
+                f"{service} port {port} is still in use after cleanup. "
                 f"Stop the existing process or set {env_name} to another port."
             )
     except OSError:
@@ -311,6 +476,7 @@ def main() -> None:
 
     server_port = parse_port(env, "SERVER_PORT", 8089)
     web_port = parse_port(env, "WEB_PORT", 5175)
+    managed_ports.update({server_port, web_port})
     ensure_port_available("API", "localhost", server_port, "SERVER_PORT")
     ensure_port_available("Web", "localhost", web_port, "WEB_PORT")
 
@@ -324,7 +490,16 @@ def main() -> None:
     wait_forever()
 
 
+def shutdown(_sig: int, _frame: object) -> None:
+    log("stopping...")
+    stop_children()
+    sys.exit(0)
+
+
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, lambda _sig, _frame: (log("stopping..."), stop_children(), sys.exit(0)))
-    signal.signal(signal.SIGTERM, lambda _sig, _frame: (log("stopping..."), stop_children(), sys.exit(0)))
-    main()
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+    try:
+        main()
+    finally:
+        stop_children()
