@@ -40,11 +40,28 @@ class ProductionConfigurationValidatorTest {
                 .withProperty("laborflow.jwt.secret", "prod-secret-with-more-than-thirty-two-bytes")
                 .withProperty("spring.datasource.url", "jdbc:postgresql://postgres.internal:5432/laborflow")
                 .withProperty("spring.datasource.password", "different-production-password")
-                .withProperty("laborflow.upload-dir", "/var/lib/laborflow/uploads");
+                .withProperty("laborflow.file.storage.type", "object")
+                .withProperty("laborflow.file.storage.object.endpoint", "https://object.internal")
+                .withProperty("laborflow.file.storage.object.bucket", "laborflow");
         environment.setActiveProfiles("production");
 
         ProductionConfigurationValidator validator = new ProductionConfigurationValidator(environment);
 
         assertDoesNotThrow(() -> validator.run(null));
+    }
+
+    @Test
+    void rejectsProductionLocalFileStorage() {
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("laborflow.jwt.secret", "prod-secret-with-more-than-thirty-two-bytes")
+                .withProperty("spring.datasource.url", "jdbc:postgresql://postgres.internal:5432/laborflow")
+                .withProperty("spring.datasource.password", "different-production-password")
+                .withProperty("laborflow.file.storage.type", "local")
+                .withProperty("laborflow.file.storage.local.base-dir", "/mnt/uploads");
+        environment.setActiveProfiles("production");
+
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(environment);
+
+        assertThrows(IllegalStateException.class, () -> validator.run(null));
     }
 }

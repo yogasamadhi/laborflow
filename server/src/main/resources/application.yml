@@ -39,3 +39,12 @@ laborflow:
   upload-dir: ${UPLOAD_DIR:./uploads}
   file:
     max-size-bytes: ${UPLOAD_MAX_SIZE_BYTES:10485760}
+    storage:
+      type: ${FILE_STORAGE_TYPE:local}
+      local:
+        base-dir: ${FILE_STORAGE_LOCAL_BASE_DIR:${UPLOAD_DIR:./uploads}}
+      object:
+        endpoint: ${OBJECT_STORAGE_ENDPOINT:}
+        bucket: ${OBJECT_STORAGE_BUCKET:}
+        auth-header-name: ${OBJECT_STORAGE_AUTH_HEADER_NAME:Authorization}
+        auth-header-value: ${OBJECT_STORAGE_AUTH_HEADER_VALUE:}

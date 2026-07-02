@@ -12,6 +12,7 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.file.domain.entity.FileRecordDO;
 import com.company.labor.module.file.mapper.FileRecordMapper;
 import com.company.labor.module.file.service.impl.FileRecordServiceImpl;
+import com.company.labor.module.file.storage.FileStorageService;
 import com.company.labor.module.project.service.ProjectAccessService;
 import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.security.LoginUser;
@@ -23,6 +24,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.io.PathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -35,19 +37,21 @@ class FileDownloadAuthorizationTest {
     private FileRecordServiceImpl service;
     private JdbcTemplate jdbcTemplate;
     private ProjectAccessService projectAccessService;
+    private FileStorageService fileStorageService;
 
     @BeforeEach
     void setUp() {
         jdbcTemplate = mock(JdbcTemplate.class);
         projectAccessService = mock(ProjectAccessService.class);
-        service = new FileRecordServiceImpl(jdbcTemplate, projectAccessService);
-        ReflectionTestUtils.setField(service, "uploadDir", uploadRoot.toString());
+        fileStorageService = mock(FileStorageService.class);
+        service = new FileRecordServiceImpl(jdbcTemplate, projectAccessService, fileStorageService);
         ReflectionTestUtils.setField(service, "baseMapper", fileMapper(record(1L, 10L)));
     }
 
     @Test
     void downloadsOwnFileFromPrivateUploadDirectory() throws IOException {
         Files.writeString(uploadRoot.resolve("proof.pdf"), "ok");
+        when(fileStorageService.load("proof.pdf")).thenReturn(new PathResource(uploadRoot.resolve("proof.pdf")));
 
         FileRecordService.FileDownload download = service.loadForDownload(1L, authentication(10L, null, "EMPLOYEE"));
 
@@ -63,6 +67,7 @@ class FileDownloadAuthorizationTest {
         when(projectAccessService.hasProjectWideAccess(authentication)).thenReturn(false);
         when(projectAccessService.authorizedProjectIds(authentication)).thenReturn(Set.of(99L));
         stubBusinessAssociations(List.of(99L), List.of());
+        when(fileStorageService.load("proof.pdf")).thenReturn(new PathResource(uploadRoot.resolve("proof.pdf")));
 
         FileRecordService.FileDownload download = service.loadForDownload(1L, authentication);
 

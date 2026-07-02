@@ -81,7 +81,7 @@
 | L4-01 | backend | done | 上传文件安全校验 | `FileRecordServiceImpl`、文件配置、异常处理 | 文件大小、扩展名、MIME、空文件、危险文件名均由 service 入库/落盘前校验；非法文件拒绝写入；已通过 `FileRecordServiceSecurityTest`、`git diff --check`、`mvn test` |
 | L4-02 | backend | done | 私有文件访问与下载授权 | 文件 controller/service、WebMvc 静态资源配置 | 新增 `/api/files/{id}/download` 鉴权下载，文件详情同样校验权限；仅上传者、授权业务关联项目成员或项目管理角色可访问已绑定业务文件；不再注册 `/uploads/**` 静态资源；已通过 `FileDownloadAuthorizationTest`、`git diff --check`、`mvn test` |
 | L4-03 | backend/web | done | 凭证和附件归属校验 | 工资凭证、日报照片、签证附件、资料归档 | 附件绑定业务前统一校验文件存在、上传者或项目/工资权限合法；日报/签证同一业务禁止重复绑定同一附件，回款凭证和资料归档禁止重复使用同一附件；工资凭证改为私有文件上传/下载；已通过 `FileBindingGuardTest`、`ProjectAttachmentBindingValidationTest`、`git diff --check`、`mvn test`、`pnpm build` |
-| L4-04 | infra/backend | todo | 支持对象存储适配 | 文件存储接口、本地存储实现、对象存储实现配置 | 本地和对象存储可切换；生产配置不依赖应用容器本地磁盘 |
+| L4-04 | infra/backend | done | 支持对象存储适配 | 文件存储接口、本地存储实现、对象存储实现配置 | 文件服务通过 `FileStorageService` 切换 local/object；默认 local 保持开发可用，object 使用 HTTP 对象存储配置；生产 profile 要求 `FILE_STORAGE_TYPE=object` 且配置 endpoint/bucket；已通过 `FileRecordStorageSwitchTest`、`ProductionConfigurationValidatorTest`、`git diff --check`、`mvn test` |
 
 ### P5：工资、薪酬与财务业务闭环
 
@@ -365,4 +365,14 @@ Pushed: yes after loop push
 验证命令: git diff --check; mvn -q -Dtest=FileBindingGuardTest,ProjectAttachmentBindingValidationTest,ProjectApprovalEvidenceTest,SalaryMonthlyAuditRecordTest test (in server/); mvn test (in server/); pnpm build (in web/)
 结果: passed
 备注: Added a shared file binding guard, validated project attachment ownership/authorization, rejected duplicate attachment use, and moved salary payment proof entry to private file upload/download paths.
+```
+
+```text
+Loop: L4-04
+Commit: this loop commit
+Branch: codex/production-loopmap-execution
+Pushed: yes after loop push
+验证命令: git diff --check; mvn -q -Dtest=FileRecordServiceSecurityTest,FileDownloadAuthorizationTest,FileRecordStorageSwitchTest,ProductionConfigurationValidatorTest test (in server/); mvn test (in server/)
+结果: passed
+备注: Introduced pluggable file storage, kept local storage as the development default, added an HTTP object-storage adapter, changed uploaded file paths to private download URLs, and required object storage configuration in production.
 ```

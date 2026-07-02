@@ -1,8 +1,6 @@
 package com.company.labor.config;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -37,7 +35,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         List<String> errors = new ArrayList<>();
         validateJwtSecret(errors);
         validateDatabase(errors);
-        validateUploadDirectory(errors);
+        validateFileStorage(errors);
 
         if (!errors.isEmpty()) {
             throw new IllegalStateException("Production configuration is incomplete: " + String.join("; ", errors));
@@ -74,20 +72,25 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         }
     }
 
-    private void validateUploadDirectory(List<String> errors) {
-        String uploadDir = environment.getProperty("laborflow.upload-dir");
-        if (!StringUtils.hasText(uploadDir)) {
-            errors.add("UPLOAD_DIR must be configured");
+    private void validateFileStorage(List<String> errors) {
+        String storageType = environment.getProperty("laborflow.file.storage.type", "local");
+        if ("object".equalsIgnoreCase(storageType)) {
+            validateObjectStorage(errors);
             return;
         }
+        if (!"local".equalsIgnoreCase(storageType)) {
+            errors.add("FILE_STORAGE_TYPE must be local or object");
+            return;
+        }
+        errors.add("FILE_STORAGE_TYPE must be object in production");
+    }
 
-        try {
-            Path normalized = Path.of(uploadDir).normalize();
-            if ("uploads".equals(normalized.toString())) {
-                errors.add("UPLOAD_DIR must not use the local development default");
-            }
-        } catch (InvalidPathException ex) {
-            errors.add("UPLOAD_DIR must be a valid path");
+    private void validateObjectStorage(List<String> errors) {
+        if (!StringUtils.hasText(environment.getProperty("laborflow.file.storage.object.endpoint"))) {
+            errors.add("OBJECT_STORAGE_ENDPOINT must be configured");
+        }
+        if (!StringUtils.hasText(environment.getProperty("laborflow.file.storage.object.bucket"))) {
+            errors.add("OBJECT_STORAGE_BUCKET must be configured");
         }
     }
 }

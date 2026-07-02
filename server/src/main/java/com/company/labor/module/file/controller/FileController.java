@@ -40,14 +40,16 @@ public class FileController {
     public ResponseEntity<Resource> download(@PathVariable Long id, Authentication authentication) throws IOException {
         FileRecordService.FileDownload download = service.loadForDownload(id, authentication);
         FileRecordDO record = download.record();
-        return ResponseEntity.ok()
+        ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
                 .contentType(mediaType(record.getContentType()))
-                .contentLength(record.getFileSize() == null ? download.resource().contentLength() : record.getFileSize())
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(record.getOriginalName(), StandardCharsets.UTF_8)
                         .build()
-                        .toString())
-                .body(download.resource());
+                        .toString());
+        if (record.getFileSize() != null) {
+            builder.contentLength(record.getFileSize());
+        }
+        return builder.body(download.resource());
     }
 
     private MediaType mediaType(String contentType) {

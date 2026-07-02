@@ -5,11 +5,10 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.file.domain.entity.FileRecordDO;
 import com.company.labor.module.file.mapper.FileRecordMapper;
 import com.company.labor.module.file.service.FileRecordService;
+import com.company.labor.module.file.storage.FileStorageService;
 import com.company.labor.module.project.service.ProjectAccessService;
 import com.company.labor.security.AccessControlSupport;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -18,7 +17,6 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.PathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -42,34 +40,28 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
             Map.entry("docx", Set.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
     );
 
-    @Value("${laborflow.upload-dir}")
-    private String uploadDir;
     @Value("${laborflow.file.max-size-bytes:10485760}")
     private long maxUploadSizeBytes;
     private final JdbcTemplate jdbcTemplate;
     private final ProjectAccessService projectAccessService;
+    private final FileStorageService fileStorageService;
 
     @Override
     public FileRecordDO store(MultipartFile file) throws IOException {
         String original = validate(file);
         String extension = extension(original);
-        Path uploadRoot = Path.of(uploadDir).toAbsolutePath().normalize();
-        Files.createDirectories(uploadRoot);
         String fileName = UUID.randomUUID() + suffix(extension);
-        Path target = uploadRoot.resolve(fileName).normalize();
-        if (!target.startsWith(uploadRoot)) {
-            throw new BusinessException("非法文件路径");
-        }
-        file.transferTo(target);
+        fileStorageService.store(file, fileName);
 
         FileRecordDO record = new FileRecordDO();
         record.setOriginalName(original);
         record.setFileName(fileName);
-        record.setFilePath("/uploads/" + fileName);
         record.setFileSize(file.getSize());
         record.setContentType(file.getContentType());
         record.setCreatedAt(LocalDateTime.now());
         save(record);
+        record.setFilePath("/api/files/" + record.getId() + "/download");
+        updateById(record);
         return record;
     }
 
@@ -86,11 +78,10 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
     @Override
     public FileDownload loadForDownload(Long id, Authentication authentication) throws IOException {
         FileRecordDO record = getAuthorizedRecord(id, authentication);
-        Path filePath = storedPath(record);
-        if (!Files.isRegularFile(filePath)) {
-            throw new BusinessException("文件不存在或已被移除");
+        if (!StringUtils.hasText(record.getFileName())) {
+            throw new BusinessException("文件路径不存在");
         }
-        return new FileDownload(record, new PathResource(filePath));
+        return new FileDownload(record, fileStorageService.load(record.getFileName()));
     }
 
     private String validate(MultipartFile file) {
@@ -138,18 +129,6 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
             }
         }
         return false;
-    }
-
-    private Path storedPath(FileRecordDO record) {
-        if (!StringUtils.hasText(record.getFileName())) {
-            throw new BusinessException("文件路径不存在");
-        }
-        Path uploadRoot = Path.of(uploadDir).toAbsolutePath().normalize();
-        Path filePath = uploadRoot.resolve(record.getFileName()).normalize();
-        if (!filePath.startsWith(uploadRoot)) {
-            throw new BusinessException("非法文件路径");
-        }
-        return filePath;
     }
 
     private void requireDownloadAccess(FileRecordDO record, Authentication authentication) {

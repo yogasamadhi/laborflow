@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.file.service.impl.FileRecordServiceImpl;
+import com.company.labor.module.file.storage.FileStorageService;
 import com.company.labor.module.project.service.ProjectAccessService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,8 +18,7 @@ class FileRecordServiceSecurityTest {
 
     @BeforeEach
     void setUp() {
-        service = new FileRecordServiceImpl(mock(JdbcTemplate.class), mock(ProjectAccessService.class));
-        ReflectionTestUtils.setField(service, "uploadDir", "/tmp/laborflow-upload-test");
+        service = new FileRecordServiceImpl(mock(JdbcTemplate.class), mock(ProjectAccessService.class), mock(FileStorageService.class));
         ReflectionTestUtils.setField(service, "maxUploadSizeBytes", 8L);
     }
 
