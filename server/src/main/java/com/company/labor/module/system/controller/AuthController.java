@@ -2,9 +2,11 @@ package com.company.labor.module.system.controller;
 
 import com.company.labor.common.result.Result;
 import com.company.labor.module.system.domain.dto.LoginDTO;
+import com.company.labor.module.system.domain.dto.RegisterDTO;
 import com.company.labor.module.system.domain.dto.WechatSessionDTO;
 import com.company.labor.module.system.domain.vo.LoginVO;
 import com.company.labor.module.system.domain.vo.WechatSessionVO;
+import com.company.labor.module.system.service.AuthRegistrationService;
 import com.company.labor.module.system.service.LoginSecurityService;
 import com.company.labor.module.system.service.WechatBindingService;
 import com.company.labor.module.system.service.WechatAuthService;
@@ -31,8 +33,16 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSecurityService loginSecurityService;
+    private final AuthRegistrationService authRegistrationService;
     private final WechatAuthService wechatAuthService;
     private final WechatBindingService wechatBindingService;
+
+    @PostMapping("/register")
+    public Result<LoginVO> register(@Valid @RequestBody RegisterDTO dto, HttpServletRequest request) {
+        LoginUser loginUser = authRegistrationService.register(dto);
+        loginSecurityService.recordLoginSuccess(loginUser, clientIp(request));
+        return Result.success(loginVO(loginUser, jwtTokenProvider.createLoginToken(loginUser)));
+    }
 
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
@@ -50,8 +60,7 @@ public class AuthController {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         loginSecurityService.recordLoginSuccess(loginUser, clientIp(request));
         wechatBindingService.bindLoginUser(dto.getWechatOpenid(), dto.getWechatNickname(), loginUser);
-        JwtTokenProvider.JwtToken token = jwtTokenProvider.createLoginToken(loginUser);
-        return Result.success(new LoginVO(token.value(), token.expiresAt(), loginUser.getUser().getId(), loginUser.getUser().getEmployeeId(), loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles()));
+        return Result.success(loginVO(loginUser, jwtTokenProvider.createLoginToken(loginUser)));
     }
 
     @GetMapping("/me")
@@ -68,6 +77,11 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout() {
         return Result.success();
+    }
+
+    private LoginVO loginVO(LoginUser loginUser, JwtTokenProvider.JwtToken token) {
+        return new LoginVO(token.value(), token.expiresAt(), loginUser.getUser().getId(), loginUser.getUser().getEmployeeId(),
+                loginUser.getUsername(), loginUser.getUser().getNickname(), loginUser.getRoles());
     }
 
     private String clientIp(HttpServletRequest request) {

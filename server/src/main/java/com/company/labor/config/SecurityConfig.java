@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/login", "/api/auth/wechat/session").permitAll();
+                    auth.requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/wechat/session").permitAll();
                     if (securityExposurePolicy.isProduction()) {
                         auth.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").hasRole("ADMIN");
                     } else {
