@@ -62,7 +62,7 @@ async function approve(item, remark) {
   if (item.type === "report_pm") return project.confirmDailyReport(item.businessId, "pm", { remark });
   if (item.type === "report_final") return project.confirmDailyReport(item.businessId, "final", { remark });
   if (item.type === "variation") return project.confirmVariationOrder(item.businessId, { remark });
-  if (item.type === "settlement") return project.confirmSettlement(item.businessId);
+  if (item.type === "settlement") return project.confirmSettlement(item.businessId, { remark });
   throw new Error("不支持的待办类型");
 }
 
@@ -70,6 +70,7 @@ async function reject(item, remark) {
   if (item.type === "salary") return salary.rejectMonthly(item.businessId, remark);
   if (item.type === "report_pm" || item.type === "report_final") return project.rejectDailyReport(item.businessId, { remark });
   if (item.type === "variation") return project.rejectVariationOrder(item.businessId, { remark });
+  if (item.type === "settlement") return project.rejectSettlement(item.businessId, { remark });
   throw new Error("当前待办不支持驳回");
 }
 

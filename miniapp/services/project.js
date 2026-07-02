@@ -101,8 +101,16 @@ function settlements(params) {
   return request.get("/team-settlements", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
 
-function confirmSettlement(id) {
-  return request.post("/team-settlements/" + id + "/confirm");
+function confirmSettlement(id, data) {
+  return request.post("/team-settlements/" + id + "/confirm", data || {});
+}
+
+function rejectSettlement(id, data) {
+  return request.post("/team-settlements/" + id + "/reject", data || {});
+}
+
+function markSettlementPaid(id, data) {
+  return request.post("/team-settlements/" + id + "/mark-paid", data || {});
 }
 
 module.exports = {
@@ -131,5 +139,7 @@ module.exports = {
   variationConfirms,
   variationFiles,
   settlements,
-  confirmSettlement
+  confirmSettlement,
+  rejectSettlement,
+  markSettlementPaid
 };

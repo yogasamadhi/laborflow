@@ -381,15 +381,22 @@ public class ProjectManagementController {
 
     @PostMapping("/api/team-settlements/{id}/confirm")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<Void> confirmTeamSettlement(@PathVariable Long id) {
-        service.confirmTeamSettlement(id);
+    public Result<Void> confirmTeamSettlement(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
+        service.confirmTeamSettlement(id, dto);
+        return Result.success();
+    }
+
+    @PostMapping("/api/team-settlements/{id}/reject")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
+    public Result<Void> rejectTeamSettlement(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
+        service.rejectTeamSettlement(id, dto);
         return Result.success();
     }
 
     @PostMapping("/api/team-settlements/{id}/mark-paid")
     @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
-    public Result<Void> markTeamSettlementPaid(@PathVariable Long id) {
-        service.markTeamSettlementPaid(id);
+    public Result<Void> markTeamSettlementPaid(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
+        service.markTeamSettlementPaid(id, dto);
         return Result.success();
     }
 

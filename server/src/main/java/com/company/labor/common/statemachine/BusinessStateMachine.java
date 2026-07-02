@@ -71,7 +71,7 @@ public final class BusinessStateMachine {
         allow(map, Flow.VARIATION_ORDER, "rejected", "submitted");
         allow(map, Flow.VARIATION_ORDER, "submitted", "confirmed", "rejected");
 
-        allow(map, Flow.TEAM_SETTLEMENT, "draft", "confirmed");
+        allow(map, Flow.TEAM_SETTLEMENT, "draft", "confirmed", "rejected");
         allow(map, Flow.TEAM_SETTLEMENT_PAYMENT, "unpaid", "paid");
 
         allow(map, Flow.PROJECT_BONUS_POOL, "draft", "released");

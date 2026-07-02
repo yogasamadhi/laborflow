@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.company.labor.module.common.domain.entity.BaseDO;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -27,6 +28,13 @@ public class TeamSettlementDO extends BaseDO {
     private BigDecimal actualPayAmount;
     private String settlementStatus;
     private String paymentStatus;
+    private Long auditorId;
+    private String auditorName;
+    private LocalDateTime auditedAt;
+    private String rejectedReason;
     private LocalDate paidDate;
+    private Long paidBy;
+    private String paidOperatorName;
+    private String paymentRemark;
     private String remark;
 }

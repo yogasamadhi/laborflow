@@ -82,8 +82,9 @@ public interface ProjectManagementService {
 
     Page<TeamSettlementDO> teamSettlements(long page, long pageSize, Long projectId, Long teamId, String settlementMonth);
     TeamSettlementDO generateTeamSettlement(GenerateTeamSettlementDTO dto);
-    void confirmTeamSettlement(Long id);
-    void markTeamSettlementPaid(Long id);
+    void confirmTeamSettlement(Long id, ProjectActionDTO dto);
+    void rejectTeamSettlement(Long id, ProjectActionDTO dto);
+    void markTeamSettlementPaid(Long id, ProjectActionDTO dto);
 
     Page<VariationOrderDO> variationOrders(long page, long pageSize, Long projectId, String status, Long createdBy);
     VariationOrderDO saveVariationOrder(VariationOrderDO order);

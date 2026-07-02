@@ -612,6 +612,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         TeamDO team = requireTeam(dto.getTeamId());
         requireText(dto.getSettlementMonth(), "结算月份必填");
         YearMonth month = YearMonth.parse(dto.getSettlementMonth());
+        if (teamSettlementMapper.selectCount(new LambdaQueryWrapper<TeamSettlementDO>()
+                .eq(TeamSettlementDO::getDeleted, 0)
+                .eq(TeamSettlementDO::getProjectId, dto.getProjectId())
+                .eq(TeamSettlementDO::getTeamId, dto.getTeamId())
+                .eq(TeamSettlementDO::getSettlementMonth, dto.getSettlementMonth())) > 0) {
+            throw new BusinessException("该班组本月结算已生成，不能重复结算");
+        }
         LocalDate start = month.atDay(1);
         LocalDate end = month.plusMonths(1).atDay(1);
         Set<Long> settledReportIds = new HashSet<>();
@@ -641,6 +648,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         settlement.setDeductionAmount(nvl(dto.getDeductionAmount()));
         settlement.setSettlementStatus("draft");
         settlement.setPaymentStatus("unpaid");
+        settlement.setRejectedReason(null);
         settlement.setRemark(dto.getRemark());
         settlement.setDeleted(0);
 
@@ -683,23 +691,38 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
-    public void confirmTeamSettlement(Long id) {
+    public void confirmTeamSettlement(Long id, ProjectActionDTO dto) {
         TeamSettlementDO settlement = requireTeamSettlement(id);
         String statusBefore = settlement.getSettlementStatus();
         BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT, statusBefore, "confirmed");
         settlement.setSettlementStatus("confirmed");
+        settlement.setRejectedReason(null);
+        fillSettlementAuditor(settlement, dto);
         teamSettlementMapper.updateById(settlement);
         operationLogService.record("project", id, "confirm_team_settlement", "确认班组结算：" + statusBefore + " -> confirmed");
     }
 
     @Override
-    public void markTeamSettlementPaid(Long id) {
+    public void rejectTeamSettlement(Long id, ProjectActionDTO dto) {
+        TeamSettlementDO settlement = requireTeamSettlement(id);
+        String statusBefore = settlement.getSettlementStatus();
+        BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT, statusBefore, "rejected");
+        settlement.setSettlementStatus("rejected");
+        settlement.setRejectedReason(dto == null ? null : dto.getRemark());
+        fillSettlementAuditor(settlement, dto);
+        teamSettlementMapper.updateById(settlement);
+        operationLogService.record("project", id, "reject_team_settlement", "驳回班组结算：" + statusBefore + " -> rejected");
+    }
+
+    @Override
+    public void markTeamSettlementPaid(Long id, ProjectActionDTO dto) {
         TeamSettlementDO settlement = requireTeamSettlement(id);
         BusinessStateMachine.requireCurrent(Flow.TEAM_SETTLEMENT, settlement.getSettlementStatus(), "confirmed");
         String statusBefore = settlement.getPaymentStatus();
         BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT_PAYMENT, statusBefore, "paid");
         settlement.setPaymentStatus("paid");
         settlement.setPaidDate(LocalDate.now());
+        fillSettlementPayer(settlement, dto);
         teamSettlementMapper.updateById(settlement);
         operationLogService.record("project", id, "mark_team_settlement_paid", "标记班组结算已支付：" + statusBefore + " -> paid");
     }
@@ -1337,6 +1360,30 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             confirm.setConfirmerId(dto.getOperatorId());
             confirm.setConfirmerName(dto.getOperatorName());
         }
+    }
+
+    private void fillSettlementAuditor(TeamSettlementDO settlement, ProjectActionDTO dto) {
+        LoginUser loginUser = auditUserProvider.currentLoginUser();
+        if (loginUser != null) {
+            settlement.setAuditorId(loginUser.getUser().getId());
+            settlement.setAuditorName(loginUser.getUsername());
+        } else if (dto != null) {
+            settlement.setAuditorId(dto.getOperatorId());
+            settlement.setAuditorName(dto.getOperatorName());
+        }
+        settlement.setAuditedAt(LocalDateTime.now());
+    }
+
+    private void fillSettlementPayer(TeamSettlementDO settlement, ProjectActionDTO dto) {
+        LoginUser loginUser = auditUserProvider.currentLoginUser();
+        if (loginUser != null) {
+            settlement.setPaidBy(loginUser.getUser().getId());
+            settlement.setPaidOperatorName(loginUser.getUsername());
+        } else if (dto != null) {
+            settlement.setPaidBy(dto.getOperatorId());
+            settlement.setPaidOperatorName(dto.getOperatorName());
+        }
+        settlement.setPaymentRemark(dto == null ? null : dto.getRemark());
     }
 
     private String reportStatus(Long id) {

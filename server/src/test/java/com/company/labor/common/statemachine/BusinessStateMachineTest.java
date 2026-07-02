@@ -14,6 +14,7 @@ class BusinessStateMachineTest {
         BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, "submitted", "pm_confirmed");
         BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, "pm_confirmed", "rejected");
         BusinessStateMachine.requireTransition(Flow.VARIATION_ORDER, "rejected", "submitted");
+        BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT, "draft", "rejected");
         BusinessStateMachine.requireTransition(Flow.TEAM_SETTLEMENT_PAYMENT, "unpaid", "paid");
         BusinessStateMachine.requireTransition(Flow.PROJECT_BONUS_POOL, "draft", "released");
         BusinessStateMachine.requireTransition(Flow.PERFORMANCE_SCORE, "draft", "confirmed");
