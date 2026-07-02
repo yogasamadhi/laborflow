@@ -189,12 +189,15 @@ public final class ProjectWriteDTO {
     public static class ProjectPaymentRecordRequest {
         @NotNull(message = "项目必填")
         private Long projectId;
-        @Pattern(regexp = "receivable|received", message = "回款记录类型不合法")
+        @Pattern(regexp = "receivable|received|invoice|retention_withheld|retention_returned", message = "项目收款记录类型不合法")
         private String recordType;
         private LocalDate paymentDate;
-        @DecimalMin(value = "0.00", message = "回款金额不能小于 0")
+        @DecimalMin(value = "0.00", message = "金额不能小于 0")
         private BigDecimal amount;
         private String payerName;
+        private String invoiceNo;
+        private LocalDate invoiceDate;
+        private LocalDate retentionDueDate;
         private Long voucherFileId;
         private String remark;
     }

@@ -18,12 +18,12 @@ type ContractItem = { id: string; projectId: string; projectSectionId?: string; 
 type Settlement = { id: string; projectId: string; teamId: string; projectName?: string; teamName?: string; settlementMonth: string; confirmedQuantity: number; settlementAmount: number; compensationAmount: number; deductionAmount: number; actualPayAmount: number; settlementStatus: string; paymentStatus: string; rejectedReason?: string };
 type Variation = { id: string; projectId: string; projectSectionId?: string; occurrenceDate: string; variationType: string; reason?: string; responsibleParty?: string; increasedQuantity?: number; estimatedAmount?: number; confirmedAmount?: number; confirmRemark?: string; laborCount?: number; status: string; rejectedReason?: string };
 type CostRecord = { id: string; projectId: string; costDate: string; costType: string; amount: number; description?: string };
-type PaymentRecord = { id: string; projectId: string; recordType: string; paymentDate: string; amount: number; payerName?: string; voucherFileId?: string; remark?: string };
+type PaymentRecord = { id: string; projectId: string; recordType: string; paymentDate: string; amount: number; payerName?: string; invoiceNo?: string; invoiceDate?: string; retentionDueDate?: string; voucherFileId?: string; remark?: string };
 type MachineryEquipment = { id: string; name: string; equipmentType: string; ownerName?: string; unitPrice: number; status?: string };
 type MachineryWorkRecord = { id: string; projectId: string; projectSectionId?: string; machineryEquipmentId: string; workDate: string; shiftCount: number; unitPrice: number; amount: number; idleReason?: string; operatorName?: string };
 type MaterialRecord = { id: string; projectId: string; projectSectionId?: string; materialName: string; recordType: string; recordDate: string; quantity: number; unit?: string; unitPrice: number; amount: number; supplierName?: string; impactNote?: string };
 type DocumentArchive = { id: string; projectId: string; projectSectionId?: string; workProcessId?: string; archiveDate: string; documentType: string; fileId: string; uploaderName?: string; remark?: string };
-type Dashboard = { projectName: string; contractAmount: number; completedOutputValue: number; confirmedQuantity: number; teamPayableAmount: number; otherCostAmount: number; machineryCostAmount: number; materialCostAmount: number; totalCostAmount: number; grossProfit: number; receivableAmount: number; confirmedVariationAmount: number; pendingVariationAmount: number; receivedAmount: number; paymentProgress: number; risks: { type: string; level: string; message: string }[] };
+type Dashboard = { projectName: string; contractAmount: number; completedOutputValue: number; confirmedQuantity: number; teamPayableAmount: number; otherCostAmount: number; machineryCostAmount: number; materialCostAmount: number; totalCostAmount: number; grossProfit: number; receivableAmount: number; invoicedAmount: number; confirmedVariationAmount: number; pendingVariationAmount: number; receivedAmount: number; retentionAmount: number; retentionReturnedAmount: number; retentionBalanceAmount: number; paymentProgress: number; risks: { type: string; level: string; message: string }[] };
 type ApprovalRecord = { id: string; confirmStage: string; confirmStatus: string; confirmerName?: string; statusBefore?: string; statusAfter?: string; remark?: string; createdAt?: string };
 type EvidenceFile = { id: string; fileId: string; fileType: string; createdAt?: string };
 type EvidenceTarget = { type: "daily" | "variation"; id: string; title: string };
@@ -318,6 +318,17 @@ function timeText(value?: string) {
   return value ? value.replace("T", " ").slice(0, 16) : "-";
 }
 
+function paymentRecordTypeText(type?: string) {
+  const map: Record<string, string> = {
+    receivable: "应收款",
+    received: "实际回款",
+    invoice: "发票",
+    retention_withheld: "质保金预留",
+    retention_returned: "质保金返还"
+  };
+  return type ? map[type] ?? type : "-";
+}
+
 export function TeamSettlementPage() {
   const queryClient = useQueryClient();
   const lookups = useLookups();
@@ -379,14 +390,17 @@ export function ProjectPaymentPage() {
   return <Page title="项目回款管理">
     <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
       <Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value })}>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
-      <Field label="类型"><SelectInput value={form.recordType ?? "received"} onChange={e => setForm({ ...form, recordType: e.target.value })}><option value="receivable">应收款</option><option value="received">实际回款</option></SelectInput></Field>
+      <Field label="类型"><SelectInput value={form.recordType ?? "received"} onChange={e => setForm({ ...form, recordType: e.target.value })}><option value="receivable">应收款</option><option value="received">实际回款</option><option value="invoice">发票</option><option value="retention_withheld">质保金预留</option><option value="retention_returned">质保金返还</option></SelectInput></Field>
       <Field label="日期"><TextInput type="date" value={form.paymentDate ?? ""} onChange={e => setForm({ ...form, paymentDate: e.target.value })} /></Field>
       <Field label="金额"><TextInput type="number" value={form.amount ?? 0} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></Field>
       <Field label="付款单位"><TextInput value={form.payerName ?? ""} onChange={e => setForm({ ...form, payerName: e.target.value })} /></Field>
+      <Field label="发票号"><TextInput value={form.invoiceNo ?? ""} onChange={e => setForm({ ...form, invoiceNo: e.target.value })} /></Field>
+      <Field label="开票日期"><TextInput type="date" value={form.invoiceDate ?? ""} onChange={e => setForm({ ...form, invoiceDate: e.target.value })} /></Field>
+      <Field label="质保到期"><TextInput type="date" value={form.retentionDueDate ?? ""} onChange={e => setForm({ ...form, retentionDueDate: e.target.value })} /></Field>
       <Field label="凭证"><input type="file" onChange={e => setFile(e.target.files?.[0])} /></Field>
       <Button type="submit">{form.id ? "保存" : "登记"}</Button>
     </form>
-    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>类型</th><th>日期</th><th>金额</th><th>付款单位</th><th>凭证</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(projects, row.projectId)}</td><td>{row.recordType === "receivable" ? "应收款" : "实际回款"}</td><td>{row.paymentDate}</td><td>{money(row.amount)}</td><td>{row.payerName ?? "-"}</td><td>{row.voucherFileId ?? "-"}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>类型</th><th>日期</th><th>金额</th><th>付款单位</th><th>发票号</th><th>质保到期</th><th>凭证</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(projects, row.projectId)}</td><td>{paymentRecordTypeText(row.recordType)}</td><td>{row.paymentDate}</td><td>{money(row.amount)}</td><td>{row.payerName ?? "-"}</td><td>{row.invoiceNo ?? "-"}</td><td>{row.retentionDueDate ?? "-"}</td><td>{row.voucherFileId ?? "-"}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
   </Page>;
 }
 
@@ -487,8 +501,10 @@ export function ProjectDashboardPage() {
   const cards = useMemo(() => [
     ["合同金额", money(data?.contractAmount)],
     ["应收款", money(data?.receivableAmount)],
+    ["已开票", money(data?.invoicedAmount)],
     ["实际回款", money(data?.receivedAmount)],
     ["回款进度", `${Number(data?.paymentProgress ?? 0).toFixed(1)}%`],
+    ["质保金余额", money(data?.retentionBalanceAmount)],
     ["已完成产值", money(data?.completedOutputValue)],
     ["已确认签证", money(data?.confirmedVariationAmount)],
     ["已确认工程量", data?.confirmedQuantity ?? 0],

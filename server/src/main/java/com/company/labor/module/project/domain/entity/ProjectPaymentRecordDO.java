@@ -20,6 +20,9 @@ public class ProjectPaymentRecordDO extends BaseDO {
     private LocalDate paymentDate;
     private BigDecimal amount;
     private String payerName;
+    private String invoiceNo;
+    private LocalDate invoiceDate;
+    private LocalDate retentionDueDate;
     private Long voucherFileId;
     private String remark;
 }

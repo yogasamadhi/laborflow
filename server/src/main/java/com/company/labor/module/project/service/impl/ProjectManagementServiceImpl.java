@@ -890,9 +890,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public ProjectPaymentRecordDO savePaymentRecord(ProjectPaymentRecordDO record) {
         requireProject(record.getProjectId());
-        if (record.getPaymentDate() == null) record.setPaymentDate(LocalDate.now());
-        record.setRecordType(defaultText(record.getRecordType(), "received"));
-        record.setAmount(nvl(record.getAmount()));
+        normalizePaymentRecord(record);
         validatePaymentVoucher(record.getVoucherFileId(), record.getProjectId(), null);
         record.setDeleted(0);
         paymentRecordMapper.insert(record);
@@ -904,6 +902,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectPaymentRecordDO old = requirePaymentRecord(id);
         record.setId(id);
         record.setProjectId(old.getProjectId());
+        normalizePaymentRecord(record);
         validatePaymentVoucher(record.getVoucherFileId(), record.getProjectId(), id);
         paymentRecordMapper.updateById(record);
         return paymentRecordMapper.selectById(id);
@@ -1074,6 +1073,9 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
         BigDecimal receivableAmount = BigDecimal.ZERO;
         BigDecimal receivedAmount = BigDecimal.ZERO;
+        BigDecimal invoicedAmount = BigDecimal.ZERO;
+        BigDecimal retentionAmount = BigDecimal.ZERO;
+        BigDecimal retentionReturned = BigDecimal.ZERO;
         boolean hasExplicitReceivable = false;
         for (ProjectPaymentRecordDO record : paymentRecordMapper.selectList(new LambdaQueryWrapper<ProjectPaymentRecordDO>()
                 .eq(ProjectPaymentRecordDO::getDeleted, 0)
@@ -1081,10 +1083,18 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             if ("receivable".equals(record.getRecordType())) {
                 hasExplicitReceivable = true;
                 receivableAmount = receivableAmount.add(nvl(record.getAmount()));
-            } else {
+            } else if ("received".equals(record.getRecordType())) {
+                receivedAmount = receivedAmount.add(nvl(record.getAmount()));
+            } else if ("invoice".equals(record.getRecordType())) {
+                invoicedAmount = invoicedAmount.add(nvl(record.getAmount()));
+            } else if ("retention_withheld".equals(record.getRecordType())) {
+                retentionAmount = retentionAmount.add(nvl(record.getAmount()));
+            } else if ("retention_returned".equals(record.getRecordType())) {
+                retentionReturned = retentionReturned.add(nvl(record.getAmount()));
                 receivedAmount = receivedAmount.add(nvl(record.getAmount()));
             }
         }
+        BigDecimal retentionBalance = retentionAmount.subtract(retentionReturned).max(BigDecimal.ZERO);
         BigDecimal confirmedVariation = BigDecimal.ZERO;
         for (VariationOrderDO order : variationOrderMapper.selectList(new LambdaQueryWrapper<VariationOrderDO>()
                 .eq(VariationOrderDO::getDeleted, 0)
@@ -1171,9 +1181,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         vo.setTotalCostAmount(totalCost);
         vo.setGrossProfit(outputValue.add(confirmedVariation).subtract(totalCost));
         vo.setReceivableAmount(receivableAmount);
+        vo.setInvoicedAmount(invoicedAmount);
         vo.setConfirmedVariationAmount(confirmedVariation);
         vo.setPendingVariationAmount(pendingVariation);
         vo.setReceivedAmount(receivedAmount);
+        vo.setRetentionAmount(retentionAmount);
+        vo.setRetentionReturnedAmount(retentionReturned);
+        vo.setRetentionBalanceAmount(retentionBalance);
         vo.setPaymentProgress(paymentProgress);
         vo.setRisks(risks);
         return vo;
@@ -1443,6 +1457,17 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         record.setUnitPrice(nvl(record.getUnitPrice()));
         if (record.getAmount() == null || record.getAmount().compareTo(BigDecimal.ZERO) == 0) {
             record.setAmount(record.getQuantity().multiply(record.getUnitPrice()));
+        }
+    }
+
+    private void normalizePaymentRecord(ProjectPaymentRecordDO record) {
+        if (record.getPaymentDate() == null) {
+            record.setPaymentDate(LocalDate.now());
+        }
+        record.setRecordType(defaultText(record.getRecordType(), "received"));
+        record.setAmount(nvl(record.getAmount()));
+        if ("invoice".equals(record.getRecordType()) && record.getInvoiceDate() == null) {
+            record.setInvoiceDate(record.getPaymentDate());
         }
     }
 
