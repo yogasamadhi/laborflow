@@ -5,6 +5,7 @@
 
 本图只覆盖先前讨论的非部署事项：业务验收、端到端回归、权限与脱敏、测试门禁、
 数据迁移验证、Web/小程序体验、界面美化、交互体验升级、产品文档和最终上线 gate。
+它是正式上线前改进的执行地图，不替代每个 loop 的实际执行记录。
 
 暂不覆盖：
 
@@ -14,27 +15,77 @@
 
 这些部署和运维事项继续留在 `docs/LOOPMAP.md` 的 P8/P10 或后续 infra loop 中处理。
 
-## 1. 执行约定
+## 1. 目标与范围
+
+总体目标：
+
+- 把当前“业务功能基本完整”的 LaborFlow 推进到“非部署事项已具备正式上线可信度”。
+- 让每一项上线前改进都能按 `docs/LOOPRULE.md` 拆成单个可审查、可验证、可回滚的 loop。
+- 让业务验收、权限回归、迁移验证、Web/小程序体验和最终 gate 都有可执行入口和证据记录。
+
+参考源：
+
+- `docs/LOOPRULE.md`
+- 当前代码与功能评估结果
+- `docs/LOOPMAP.md` 中已完成的生产化、安全、权限、工资、项目经营闭环
+- 本文档后续新增的 UAT、视觉 QA、smoke、回归记录和上线审查文档
+
+目标端：
+
+- 后端：`server`
+- Web 管理端：`web`
+- 微信小程序现场端：`miniapp`
+- 产品、验收和上线准备文档：`docs` 与根目录项目说明
+
+明确不覆盖：
+
+- 部署、运维、HTTPS、域名、反向代理、监控、备份恢复等 infra 工作。
+- 真实生产环境账号、密钥、证书和对象存储开通。
+- 与正式上线无关的技术栈替换、目录大搬迁或泛化重构。
+
+## 2. 兼容与安全约束
+
+执行本图任何 loop 时，不得回退以下基线：
+
+- 认证与授权：JWT 生命周期、停用用户 token 失效、RBAC、项目数据范围、员工工资本人可见规则不得弱化。
+- 审计与证据链：工资、项目、绩效、系统用户、微信绑定的关键操作日志不得减少。
+- 文件安全：私有文件下载授权、附件归属校验、上传安全校验不得绕过。
+- 数据可信：工资来源快照、项目结算快照、签证确认金额、数据库约束和状态机校验不得放松。
+- 敏感信息：身份证、银行卡、手机号、工资等敏感字段不得在无权限角色中完整暴露。
+- 历史兼容：已有工资、项目、附件、用户、微信绑定等历史数据迁移和展示不得破坏。
+- 凭据安全：不得提交真实 `.env`、token、cookie、私钥、微信 app secret 或生产连接串。
+
+涉及上述约束的 loop 必须在 `验收` 或 `验证` 中写明正向、越权、失败或回归检查。
+
+## 3. 执行约定
 
 每个 loop 必须遵循 `docs/LOOPRULE.md`：
 
-1. 开始前检查工作区：`git status --short --branch`。
-2. 如有远程仓库，开始前同步：`git fetch origin`。
-3. 一个 loop 只完成一个明确目标，不夹带无关重构。
-4. 完成后运行本 loop 对应验证，审查 `git diff --check` 和 `git diff`。
-5. 每个 loop 建议一个 commit；如项目要求推送，推送成功后才可标记为 `done`。
-6. 无法运行的验证必须记录原因、影响范围和替代检查。
+1. 每次只执行一个 loop；前一个 loop 未闭环前，不开始下一个 loop。
+2. 开始前记录目标分支并检查工作区：`git status --short --branch`、`git branch --show-current`。
+3. 开始前同步目标分支：`git fetch origin`、`git merge --ff-only origin/<target-branch>`。
+4. 从已同步目标分支创建专用分支：`git switch -c loop/<loop-id>-<short-topic>`。
+5. 只改本 loop 范围内文件，不夹带无关重构、缓存、构建产物、密钥或临时文件。
+6. 在 loop 分支上运行验证、审查 `git diff --check` 和 `git diff`，并提交一个可解释的功能 commit。
+7. 切回目标分支，再次同步远端后用 `git merge --no-ff <loop-branch>` 合入。
+8. 合并后重新运行受影响验证，检查 `git diff --check` 和 `git diff origin/<target-branch>...HEAD`。
+9. 推送目标分支：`git push origin <target-branch>`。
+10. 推送成功并确认对齐后，清理 loop 分支：`git branch -d <loop-branch>`；如保留分支，必须记录原因、位置和清理责任。
+11. 无法运行的验证必须记录原因、影响范围和替代检查。
+
+本地图中的所有计划 loop 默认只能是 `todo`。只有满足 `docs/LOOPRULE.md` 第 7 节完成定义，
+并在本文完成记录区追加记录后，才能标记为 `done`。
 
 状态说明：
 
 | 状态 | 含义 |
 | --- | --- |
 | todo | 尚未开始 |
-| doing | 正在执行 |
-| partial | 已完成一部分，但未满足验收 |
-| done | 已实现、验证、审查、提交，并按项目版本控制流程完成记录 |
+| doing | 当前正在执行，且已有明确目标分支和 loop 分支 |
+| partial | 已做一部分，但未满足验收、验证、提交、推送或分支清理要求 |
+| done | 已实现、验证、审查、提交、合并回目标分支、推送远端，并清理 loop 分支；如需保留 loop 分支，已记录原因、位置和清理责任 |
 
-## 2. 当前基线
+## 4. 当前基线
 
 截至本图编写时，已观察到的基线：
 
@@ -50,7 +101,36 @@
 - 小程序已有现场端页面，但缺少可重复 smoke checklist、弱网/上传失败/重复提交验证。
 - 产品文档口径仍需与当前功能重新对齐。
 
-## 3. Launch Gate
+仍不可信或尚未闭环的检查：
+
+- 空库 Flyway 迁移和旧库升级尚未形成自动化或可重复演练。
+- Web 关键页面缺少可重复视觉/交互回归记录。
+- 小程序真机弱网、上传失败、重复提交、待办审批尚未形成可重复验收记录。
+- CI 尚未把后端、Web、小程序和文档检查统一纳入 PR 门禁。
+
+## 5. Loop 表字段与写法
+
+本文各 Loop 表至少包含 `docs/LOOPRULE.md` 要求的字段：
+
+| 字段 | 含义 |
+| --- | --- |
+| Loop | 稳定编号 |
+| Owner | 负责人、角色或执行 agent |
+| 状态 | `todo`、`doing`、`partial`、`done` |
+| 目标 | 本 loop 要完成的单一目标 |
+| 主要范围 | 涉及目录、模块、接口、页面或文档 |
+| 验收 | 可验证的完成标准 |
+| 验证 | 本 loop 必须运行或人工执行的检查 |
+
+写法约束：
+
+- `验收` 写可观察结果，不写笼统动作。
+- `验证` 写真实命令、页面路径、接口路径、截图对象或手工 smoke 方法。
+- 视觉和交互 loop 必须说明截图、录屏、多视口或状态覆盖方式。
+- 涉及认证、权限、数据写入、迁移、工资发放、项目结算、文件访问的 loop，应扩大验证范围。
+- 如果执行时发现某个 loop 同时包含多个目标，必须先拆分，不得硬做成一个大变更。
+
+## 6. Launch Gate
 
 | Gate | 目标 | 必须通过的条件 |
 | --- | --- | --- |
@@ -60,7 +140,7 @@
 | G2D | 体验验收通过 | Web 与小程序关键流程完成视觉、交互、响应式、错误反馈、可访问性验收 |
 | G3 | 非部署正式上线就绪 | 本图必需 loop 全部 `done`，或有明确延期说明；无 P0/P1 未关闭缺陷 |
 
-## 4. Loop Map
+## 7. Loop Map
 
 ### P20：上线范围、角色与业务验收口径
 
@@ -155,7 +235,7 @@
 | L2-27-04 | release/qa | todo | 建立 UAT 问题跟踪与签字表 | 新增 `docs/UAT_SIGNOFF.md` | 各角色验收结果、问题、处理状态、签字/确认人可记录 | `git diff --check` |
 | L2-27-05 | release | todo | 正式上线非部署 Gate 审查 | `docs/LAUNCH_READINESS_REVIEW.md` | 本图所有必需 loop 已 done 或明确延期；测试、UAT、权限、迁移、文档证据齐全 | 完整回归命令；人工 gate 审查 |
 
-## 5. 建议执行顺序
+## 8. 建议执行顺序
 
 1. 先做 P20：冻结范围、角色矩阵和验收清单，避免后续 loop 目标漂移。
 2. 再做 P23 与 P26：把集成测试、迁移验证和 CI 门禁立起来，让后续变更可回归。
@@ -163,11 +243,18 @@
 4. 然后做 P24 与 P25：补 Web 和小程序正式版体验、界面美化、交互升级。
 5. 最后做 P27：文档、UAT、缺陷策略和最终 gate 收口。
 
-## 6. 每类 Loop 的最小验证建议
+依赖与阻塞条件：
+
+- P21/P22 的业务和权限回归，应在 P20 的上线范围与角色矩阵明确后执行。
+- P23 的迁移和集成测试基线，应优先于大量业务改动完成，否则回归可信度不足。
+- P24/P25 的体验升级应引用 P20/P21 的关键流程和 P24/P25 的视觉 QA 清单。
+- P27 的最终 gate 必须等待 P20-P26 中必需 loop 全部 `done` 或有明确延期批准。
+
+## 9. 每类 Loop 的最小验证建议
 
 | 变更类型 | 最小验证 |
 | --- | --- |
-| 文档-only | `git diff --check`，人工检查路径、命令、角色名称是否真实存在 |
+| 文档-only | `git diff --check`；人工检查路径、命令、角色名称是否真实存在；审查 `git diff` |
 | 后端 Java 代码 | `JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test` |
 | 后端集成测试/迁移 | `mvn test` 或 `mvn verify`，并记录测试数据库或 Testcontainers 方式 |
 | Web 代码 | `pnpm typecheck`、`pnpm test`、`pnpm build`，按项目实际脚本调整 |
@@ -179,7 +266,15 @@
 | 权限/安全 | 至少验证匿名 401、越权 403、授权 200、敏感字段脱敏 |
 | 端到端业务 | 按 `docs/UAT_CHECKLIST.md` 记录步骤、数据、结果和异常 |
 
-## 7. Done 条件补充
+合并回目标分支后，必须重新运行本 loop 受影响验证，并执行：
+
+```bash
+git status --short --branch
+git diff --check
+git diff origin/<target-branch>...HEAD
+```
+
+## 10. Done 条件补充
 
 本图中的 loop 除满足 `docs/LOOPRULE.md` 的完成定义外，还必须满足：
 
@@ -190,29 +285,41 @@
 - 若涉及权限、数据范围、敏感信息、文件访问、工资发放、项目结算或迁移，必须有自动化测试或明确人工验证记录。
 - 若引入延期项，必须写入正式上线范围或缺陷策略文档，不能只在聊天或提交说明中口头记录。
 - 若本地沙箱无法运行某验证，必须用非沙箱、CI 或人工替代验证，并记录原因。
+- 未推送目标分支、未合并回目标分支、未清理 loop 分支且未记录保留原因时，不得标记为 `done`。
+- 如果工作区或分支状态有未解释残留，不得标记为 `done`。
 
-## 8. 完成记录模板
+## 11. 完成记录
 
-每完成一个 loop，在对应表格中把状态改为 `done`，并在此处追加记录：
+每完成一个 loop，在对应表格中把状态改为 `done`，并在本节追加一条记录。不要覆盖历史记录。
 
 ```text
 Loop:
+Target branch:
+Loop branch:
 Commit:
-Branch:
-Pushed:
-验证命令:
-结果:
-备注:
+Merge commit:
+Verification:
+Diff review:
+Remote sync:
+Push:
+Loop branch cleanup:
+Current branch/worktree:
+Notes:
 ```
 
 示例：
 
 ```text
 Loop: L2-20-03
+Target branch: main
+Loop branch: loop/L2-20-03-uat-checklist
 Commit: <commit-sha>
-Branch: codex/launch-readiness
-Pushed: yes
-验证命令: git diff --check
-结果: passed
-备注: Added UAT checklist covering finance, project manager, boss, employee/site worker, and admin roles.
+Merge commit: <merge-sha>
+Verification: git diff --check; reviewed docs/UAT_CHECKLIST.md manually
+Diff review: passed; reviewed final diff against origin/main
+Remote sync: fetched and fast-forwarded main before branch creation and before merge
+Push: pushed main to origin
+Loop branch cleanup: deleted local loop/L2-20-03-uat-checklist
+Current branch/worktree: main, clean
+Notes: Added UAT checklist covering finance, project manager, boss, employee/site worker, and admin roles.
 ```
