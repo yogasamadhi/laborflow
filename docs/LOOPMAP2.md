@@ -146,7 +146,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L2-20-01 | product/docs | todo | 冻结正式上线功能范围 | `docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md`、新增上线范围文档 | 列出本次上线功能、延期功能、明确不做事项；与 Web/后端/小程序真实能力一致 | `git diff --check` |
+| L2-20-01 | product/docs | partial | 冻结正式上线功能范围 | `docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md`、新增上线范围文档 | 列出本次上线功能、延期功能、明确不做事项；与 Web/后端/小程序真实能力一致 | `git diff --check` |
 | L2-20-02 | product/backend/web | todo | 建立角色与权限矩阵 | 新增 `docs/ROLE_PERMISSION_MATRIX.md`、后端 controller、Web 菜单 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员的菜单、接口、数据范围清晰成表 | `rg -n "PreAuthorize|roles" server/src/main/java web/src`; `git diff --check` |
 | L2-20-03 | product/docs | todo | 编写业务验收清单 | 新增 `docs/UAT_CHECKLIST.md` | 财务、项目经理、老板/管理层、员工/现场人员、管理员均有端到端验收用例 | `git diff --check` |
 | L2-20-04 | product/docs | todo | 编写初始化验收清单 | `README.md`、新增 `docs/INITIALIZATION_CHECKLIST.md` | 管理员创建、角色初始化、工资项、工序库、测试账号、微信绑定准备步骤清晰 | `git diff --check` |
@@ -322,4 +322,19 @@ Push: pushed main to origin
 Loop branch cleanup: deleted local loop/L2-20-03-uat-checklist
 Current branch/worktree: main, clean
 Notes: Added UAT checklist covering finance, project manager, boss, employee/site worker, and admin roles.
+```
+
+```text
+Loop: L2-20-01
+Target branch: master
+Loop branch: loop/L2-20-01-launch-scope
+Commit: a3c7921 loop: freeze formal launch scope
+Merge commit: a94fc48 merge: complete L2-20-01 launch scope
+Verification: git diff --check passed; reviewed current Web routes, miniapp page registry, and backend controller surface against the frozen scope
+Diff review: passed; reviewed git diff --stat and git diff --name-status origin/master...HEAD after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: blocked; the execution environment rejected exporting repository contents to the unverified external Gitee remote, so no push was attempted successfully
+Loop branch cleanup: retained local loop/L2-20-01-launch-scope until master is pushed; cleanup responsibility: next authorized loop executor
+Current branch/worktree: master, clean locally and ahead of origin/master by the loop commit, merge commit, and this record
+Notes: Added docs/LAUNCH_SCOPE.md as the current formal-release scope; PROJECT_BRIEF.md and ROADMAP.md now label the old staged plan as historical design baseline. The implementation and merge are verified locally, but this loop remains partial until an explicitly authorized push succeeds and the loop branch is deleted.
 ```
