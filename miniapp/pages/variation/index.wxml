@@ -3,11 +3,24 @@
     <view>
       <text class="eyebrow">现场上报</text>
       <text class="title">签证变更</text>
+      <text class="subtitle">草稿可继续编辑，已驳回记录可修改后重新提交。</text>
     </view>
     <van-button round size="small" type="primary" icon="plus" bind:tap="create">新增</van-button>
   </view>
 
-  <van-empty wx:if="{{rows.length === 0}}" image="search" description="暂无签证" />
+  <view wx:if="{{loadError}}" class="status-banner error-banner">
+    <view>
+      <text class="status-banner-title">签证暂时无法加载</text>
+      <text class="status-banner-copy">{{loadError}}</text>
+    </view>
+    <text class="status-banner-action" bind:tap="load">重试</text>
+  </view>
+
+  <view wx:if="{{loading && !hasLoaded}}" class="loading-state">
+    <van-loading size="42rpx" vertical>正在加载签证</van-loading>
+  </view>
+
+  <van-empty wx:if="{{hasLoaded && !loading && rows.length === 0 && !loadError}}" image="search" description="暂无签证" />
 
   <view wx:for="{{rows}}" wx:key="id" class="card">
     <view class="row">

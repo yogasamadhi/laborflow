@@ -12,6 +12,14 @@
   border-top: 1rpx solid #edf2f0;
 }
 
+.payslip-note {
+  display: block;
+  margin-bottom: 18rpx;
+  color: #526561;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
 .actual {
   display: block;
   margin-top: 8rpx;

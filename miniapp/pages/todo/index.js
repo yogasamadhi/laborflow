@@ -6,8 +6,14 @@ Page({
   data: {
     rows: [],
     isManager: false,
-    remark: "",
-    loading: false
+    loading: false,
+    loadError: "",
+    hasLoaded: false,
+    activeItemId: "",
+    activeItem: null,
+    actionMode: "",
+    actionRemark: "",
+    processing: false
   },
 
   onShow() {
@@ -21,65 +27,70 @@ Page({
   },
 
   async load() {
-    this.setData({ loading: true });
+    if (!this.data.isManager) return;
+    this.setData({ loading: true, loadError: "" });
     try {
       const rows = await todo.list();
       this.setData({
         rows: rows.map((item) => Object.assign({}, item, {
-          statusText: format.status(item.status)
-        }))
+          statusText: format.status(item.status),
+          statusTagType: format.statusTagType(item.status)
+        })),
+        hasLoaded: true
       });
     } catch (error) {
-      wx.showToast({ title: error.message, icon: "none" });
+      const message = error.message || "待办加载失败";
+      this.setData({ loadError: message, hasLoaded: true });
+      wx.showToast({ title: message, icon: "none" });
     } finally {
       this.setData({ loading: false });
     }
   },
 
-  onRemark(event) {
+  beginAction(event) {
+    if (this.data.loading || this.data.processing) return;
+    const item = event.currentTarget.dataset.item;
+    const actionMode = event.currentTarget.dataset.action;
+    this.setData({
+      activeItemId: item.id,
+      activeItem: item,
+      actionMode,
+      actionRemark: ""
+    });
+  },
+
+  cancelAction() {
+    if (this.data.processing) return;
+    this.setData({ activeItemId: "", activeItem: null, actionMode: "", actionRemark: "" });
+  },
+
+  onActionRemark(event) {
     const value = event.detail && event.detail.value !== undefined ? event.detail.value : event.detail;
-    this.setData({ remark: value });
+    this.setData({ actionRemark: value });
   },
 
-  approve(event) {
-    const item = event.currentTarget.dataset.item;
-    wx.showModal({
-      title: "确认同意",
-      content: item.title,
-      success: async (res) => {
-        if (!res.confirm) return;
-        await this.doAction("approve", item);
-      }
-    });
-  },
-
-  reject(event) {
-    const item = event.currentTarget.dataset.item;
-    wx.showModal({
-      title: "确认驳回",
-      content: item.title,
-      success: async (res) => {
-        if (!res.confirm) return;
-        await this.doAction("reject", item);
-      }
-    });
-  },
-
-  async doAction(action, item) {
-    this.setData({ loading: true });
+  async confirmAction() {
+    const item = this.data.activeItem;
+    const remark = String(this.data.actionRemark || "").trim();
+    if (!item || this.data.processing) return;
+    if (this.data.actionMode === "reject" && !remark) {
+      wx.showToast({ title: "驳回时请填写处理原因", icon: "none" });
+      return;
+    }
+    this.setData({ processing: true });
     try {
-      if (action === "approve") {
-        await todo.approve(item, this.data.remark);
+      if (this.data.actionMode === "approve") {
+        await todo.approve(item, remark);
       } else {
-        await todo.reject(item, this.data.remark);
+        await todo.reject(item, remark);
       }
-      wx.showToast({ title: "已处理", icon: "success" });
-      this.setData({ remark: "" });
+      wx.showToast({ title: this.data.actionMode === "approve" ? "已同意" : "已驳回", icon: "success" });
+      this.setData({ activeItemId: "", activeItem: null, actionMode: "", actionRemark: "" });
       await this.load();
     } catch (error) {
-      wx.showToast({ title: error.message, icon: "none" });
+      wx.showToast({ title: error.message || "处理失败，请重试", icon: "none" });
     } finally {
-      this.setData({ loading: false });
+      this.setData({ processing: false });
     }
   }
 });

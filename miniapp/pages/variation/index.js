@@ -4,7 +4,9 @@ const format = require("../../utils/format");
 Page({
   data: {
     rows: [],
-    loading: false
+    loading: false,
+    hasLoaded: false,
+    loadError: ""
   },
 
   onShow() {
@@ -16,7 +18,7 @@ Page({
   },
 
   async load() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: "" });
     try {
       const data = await project.myVariationOrders();
       const rows = format.pageRecords(data).map((item) => Object.assign({}, item, {
@@ -30,9 +32,11 @@ Page({
         increasedQuantityText: item.increasedQuantity || 0,
         reasonText: item.reason || "-"
       }));
-      this.setData({ rows });
+      this.setData({ rows, hasLoaded: true });
     } catch (error) {
-      wx.showToast({ title: error.message, icon: "none" });
+      const message = error.message || "签证加载失败";
+      this.setData({ loadError: message, hasLoaded: true });
+      wx.showToast({ title: message, icon: "none" });
     } finally {
       this.setData({ loading: false });
     }

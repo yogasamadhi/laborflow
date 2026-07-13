@@ -3,17 +3,30 @@
     <view>
       <text class="eyebrow">现场填报</text>
       <text class="title">工程量日报</text>
+      <text class="subtitle">草稿可继续编辑，已驳回记录可修改后重新提交。</text>
     </view>
     <van-button round size="small" type="primary" icon="plus" bind:tap="create">新增</van-button>
   </view>
 
-  <van-empty wx:if="{{rows.length === 0}}" image="search" description="暂无日报" />
+  <view wx:if="{{loadError}}" class="status-banner error-banner">
+    <view>
+      <text class="status-banner-title">日报暂时无法加载</text>
+      <text class="status-banner-copy">{{loadError}}</text>
+    </view>
+    <text class="status-banner-action" bind:tap="load">重试</text>
+  </view>
+
+  <view wx:if="{{loading && !hasLoaded}}" class="loading-state">
+    <van-loading size="42rpx" vertical>正在加载日报</van-loading>
+  </view>
+
+  <van-empty wx:if="{{hasLoaded && !loading && rows.length === 0 && !loadError}}" image="search" description="暂无日报" />
 
   <view wx:for="{{rows}}" wx:key="id" class="card">
     <view class="row">
       <view>
         <text class="row-title">{{item.workDateText}}</text>
-      <text class="muted small">项目 #{{item.projectId}} / 工序 #{{item.workProcessId}}</text>
+        <text class="muted small">项目 #{{item.projectId}} / 工序 #{{item.workProcessId}}</text>
       </view>
       <van-tag plain type="{{item.statusTagType}}">{{item.statusText}}</van-tag>
     </view>

@@ -222,3 +222,79 @@ button {
   padding: 24rpx;
   background: #fbfefd;
 }
+
+.status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+  padding: 22rpx 24rpx;
+  color: #173f35;
+  background: #e7f1ed;
+  border: 1rpx solid #c7ddd4;
+  border-radius: 8rpx;
+}
+
+.error-banner {
+  color: #8a3528;
+  background: #fff0ec;
+  border-color: #f1c4ba;
+}
+
+.status-banner-title,
+.status-banner-copy,
+.upload-title,
+.upload-copy {
+  display: block;
+}
+
+.status-banner-title,
+.upload-title {
+  font-weight: 700;
+}
+
+.status-banner-copy,
+.upload-copy {
+  margin-top: 6rpx;
+  color: #526561;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.error-banner .status-banner-copy {
+  color: #9a4739;
+}
+
+.status-banner-action {
+  flex: 0 0 auto;
+  padding: 10rpx 0 10rpx 18rpx;
+  color: #2f6f5e;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.error-banner .status-banner-action {
+  color: #c2412d;
+}
+
+.upload-panel {
+  margin: 24rpx;
+  padding: 20rpx;
+  background: #f5faf8;
+  border: 1rpx solid #d9e5e1;
+  border-radius: 8rpx;
+}
+
+.photo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  margin: 48rpx 0;
+}

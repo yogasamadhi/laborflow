@@ -10,6 +10,7 @@ const MODULES = [
   "services/file.js",
   "services/project.js"
 ].map((file) => path.join(MINIAPP_ROOT, file));
+const LOGIN_PAGE = path.join(MINIAPP_ROOT, "pages/login/index.js");
 
 function createRuntime() {
   const storage = new Map();
@@ -35,7 +36,7 @@ function createRuntime() {
     },
     uploadFile(options) {
       uploads.push(options);
-      uploadHandler(options);
+      return uploadHandler(options);
     },
     reLaunch(options) {
       relaunches.push(options.url);
@@ -66,6 +67,28 @@ function loadModules() {
     fileService: require(path.join(MINIAPP_ROOT, "services/file.js")),
     projectService: require(path.join(MINIAPP_ROOT, "services/project.js"))
   };
+}
+
+function loadLoginPage() {
+  let definition;
+  const originalPage = global.Page;
+  global.Page = (page) => {
+    definition = page;
+  };
+  delete require.cache[LOGIN_PAGE];
+  require(LOGIN_PAGE);
+  global.Page = originalPage;
+  return definition;
+}
+
+function createPageInstance(definition) {
+  const instance = Object.assign({}, definition, {
+    data: Object.assign({}, definition.data)
+  });
+  instance.setData = (patch) => {
+    Object.assign(instance.data, patch);
+  };
+  return instance;
 }
 
 function loginPayload(overrides) {
@@ -222,4 +245,53 @@ test("file upload clears an expired session but preserves forbidden-session stat
   }));
   await assert.rejects(fileService.upload("/tmp/photo.jpg"), /无上传权限/);
   assert.equal(auth.getToken(), "token-123");
+});
+
+test("file selection exposes successfully uploaded files when a later upload fails", async () => {
+  const runtime = createRuntime();
+  const { auth, fileService } = loadModules();
+  const progress = [];
+  auth.setLogin(loginPayload());
+  global.wx.chooseMedia = (options) => {
+    assert.equal(options.count, 2);
+    options.success({ tempFiles: [{ tempFilePath: "/tmp/one.jpg" }, { tempFilePath: "/tmp/two.jpg" }] });
+  };
+  runtime.setUploadHandler((options) => {
+    if (runtime.uploads.length === 1) {
+      options.success({ statusCode: 200, data: JSON.stringify({ code: 0, data: { id: 51 } }) });
+      return {
+        onProgressUpdate(listener) {
+          listener({ progress: 70 });
+        }
+      };
+    }
+    options.fail({ errMsg: "request:fail timeout" });
+    return { onProgressUpdate() {} };
+  });
+
+  await assert.rejects(fileService.chooseAndUpload({ maxCount: 2, onProgress: (event) => progress.push(event) }), (error) => {
+    assert.deepEqual(error.uploadedFiles, [{ id: 51 }]);
+    return true;
+  });
+  assert.deepEqual(progress, [
+    { current: 1, total: 2, progress: 70 },
+    { current: 1, total: 2, progress: 100 }
+  ]);
+});
+
+test("login initialization absorbs background session failures and reports explicit wx.login failures", async () => {
+  createRuntime();
+  const page = createPageInstance(loadLoginPage());
+  const toasts = [];
+  global.wx.login = () => {
+    throw new Error("wx.login unavailable");
+  };
+  global.wx.showToast = (options) => toasts.push(options);
+
+  await assert.rejects(page.refreshWechatSession(true), /wx\.login unavailable/);
+  assert.deepEqual(toasts, [{ title: "wx.login unavailable", icon: "none" }]);
+
+  page.refreshWechatSession = () => Promise.reject(new Error("background session unavailable"));
+  page.onLoad();
+  await new Promise((resolve) => setImmediate(resolve));
 });
