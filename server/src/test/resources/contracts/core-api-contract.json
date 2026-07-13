@@ -1,0 +1,61 @@
+{
+  "contract": "laborflow-core-api",
+  "version": 1,
+  "envelope": {
+    "fields": ["code", "message", "data"],
+    "successCode": 0
+  },
+  "login": {
+    "path": "/api/auth/login",
+    "dataFields": ["token", "expiresAt", "userId", "employeeId", "username", "nickname", "roles"],
+    "nonNullDataFields": ["token", "expiresAt", "userId", "username", "roles"],
+    "requiredRole": "ADMIN"
+  },
+  "setupWrites": [
+    {
+      "name": "project-create",
+      "path": "/api/projects",
+      "body": {
+        "name": "contract-snapshot-project",
+        "contractAmount": 1000.00,
+        "status": "in_progress"
+      },
+      "dataFields": ["id", "name", "contractAmount", "status"]
+    },
+    {
+      "name": "salary-monthly-create",
+      "path": "/api/salary/monthly",
+      "body": {
+        "salaryMonth": "2030-01",
+        "title": "contract-snapshot-salary"
+      },
+      "dataFields": ["id", "salaryMonth", "title", "status", "totalEmployeeCount", "totalActualAmount"]
+    }
+  ],
+  "authenticatedReads": [
+    {
+      "name": "auth-me",
+      "path": "/api/auth/me",
+      "dataFields": ["userId", "employeeId", "username", "nickname", "roles"],
+      "nonNullDataFields": ["userId", "username", "roles"]
+    },
+    {
+      "name": "projects-page",
+      "path": "/api/projects?page=1&pageSize=10",
+      "dataFields": ["records", "total", "page", "pageSize"],
+      "recordFields": ["id", "name", "contractAmount", "status"]
+    },
+    {
+      "name": "salary-monthly-page",
+      "path": "/api/salary/monthly?page=1&pageSize=10",
+      "dataFields": ["records", "total", "page", "pageSize"],
+      "recordFields": ["id", "salaryMonth", "title", "status", "totalEmployeeCount", "totalActualAmount"]
+    },
+    {
+      "name": "salary-overview",
+      "path": "/api/statistics/salary/overview",
+      "dataFields": ["payableAmount", "deductionAmount", "actualAmount", "paidAmount", "unpaidAmount", "paidCount", "unpaidCount"],
+      "nonNullDataFields": ["payableAmount", "deductionAmount", "actualAmount", "paidAmount", "unpaidAmount", "paidCount", "unpaidCount"]
+    }
+  ]
+}
