@@ -54,8 +54,11 @@ http.interceptors.response.use(
         const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
         window.location.assign(`/login?reason=session-expired&next=${encodeURIComponent(next)}`);
       }
-    } else if (apiError.status === 403) {
-      emitRequestError({ status: apiError.status, message: apiError.message || "当前账号无权执行此操作" });
+    } else {
+      emitRequestError({
+        status: apiError.status,
+        message: apiError.message || (apiError.status === 403 ? "当前账号无权执行此操作" : "请求失败，请稍后重试")
+      });
     }
     return Promise.reject(apiError);
   }

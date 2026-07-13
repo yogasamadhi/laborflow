@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LogOut, X } from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut, Menu, PanelLeftClose, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { canAccessRoles, canAccessRoute, roleGroups } from "../../lib/access";
@@ -88,7 +88,8 @@ export function AppLayout() {
   const location = useLocation();
   const [user, setUser] = useState<LoginUser | null>(() => (getToken() ? getLoginUser() : null));
   const [isCheckingAuth, setIsCheckingAuth] = useState(() => Boolean(getToken()) && !getLoginUser());
-  const [accessError, setAccessError] = useState<string | null>(null);
+  const [requestNotice, setRequestNotice] = useState<RequestErrorDetail | null>(null);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const roles = user?.roles ?? [];
   const visibleGroups = useMemo(() => {
     return groups
@@ -104,6 +105,11 @@ export function AppLayout() {
       return location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
     }))?.title;
   }, [location.pathname, visibleGroups]);
+  const activeLink = useMemo(() => visibleGroups
+    .flatMap((group) => group.links.map((link) => ({ ...link, group: group.title })))
+    .find((link) => link.end
+      ? location.pathname === link.to
+      : location.pathname === link.to || location.pathname.startsWith(`${link.to}/`)), [location.pathname, visibleGroups]);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial = Object.fromEntries(groups.map((group, index) => [group.title, index === 0]));
     return activeGroup ? { ...initial, [activeGroup]: true } : initial;
@@ -117,7 +123,7 @@ export function AppLayout() {
   useEffect(() => {
     function handleRequestError(event: Event) {
       const detail = (event as CustomEvent<RequestErrorDetail>).detail;
-      if (detail?.status === 403) setAccessError(detail.message);
+      if (detail) setRequestNotice(detail);
     }
     window.addEventListener(REQUEST_ERROR_EVENT, handleRequestError);
     return () => window.removeEventListener(REQUEST_ERROR_EVENT, handleRequestError);
@@ -154,6 +160,10 @@ export function AppLayout() {
     }
   }, [activeGroup]);
 
+  useEffect(() => {
+    setIsNavigationOpen(false);
+  }, [location.pathname]);
+
   function logout() {
     clearToken();
     setUser(null);
@@ -165,9 +175,21 @@ export function AppLayout() {
   const routeAllowed = canAccessRoute(location.pathname, roles);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <h1 className="brand">LaborFlow</h1>
+    <div className={`app-shell${isNavigationOpen ? " nav-open" : ""}`}>
+      <button
+        className="mobile-nav-scrim"
+        type="button"
+        aria-label="关闭导航"
+        tabIndex={isNavigationOpen ? 0 : -1}
+        onClick={() => setIsNavigationOpen(false)}
+      />
+      <aside className={`sidebar${isNavigationOpen ? " is-open" : ""}`} aria-label="主导航">
+        <div className="sidebar-brand-row">
+          <h1 className="brand">LaborFlow</h1>
+          <button className="icon-button sidebar-close" type="button" onClick={() => setIsNavigationOpen(false)} aria-label="关闭导航" title="关闭导航">
+            <PanelLeftClose size={18} />
+          </button>
+        </div>
         {visibleGroups.map((group) => (
           <div className="nav-group" key={group.title}>
             <button
@@ -182,7 +204,7 @@ export function AppLayout() {
             {openGroups[group.title] && (
               <div className="nav-links">
                 {group.links.map((link) => (
-                  <NavLink className="nav-link" end={link.end} key={link.to} to={link.to}>
+                  <NavLink className="nav-link" end={link.end} key={link.to} to={link.to} onClick={() => setIsNavigationOpen(false)}>
                     {link.label}
                   </NavLink>
                 ))}
@@ -193,16 +215,30 @@ export function AppLayout() {
       </aside>
       <main className="main">
         <div className="topbar">
-          <div className="muted">建筑劳务经营与薪酬管理平台</div>
-          <Button variant="secondary" onClick={logout}>
-            <LogOut size={16} />
-            退出
-          </Button>
+          <div className="topbar-context">
+            <button className="icon-button nav-trigger" type="button" onClick={() => setIsNavigationOpen(true)} aria-label="打开导航" title="打开导航">
+              <Menu size={20} />
+            </button>
+            <div>
+              <span className="topbar-section">{activeLink?.group || "工作台"}</span>
+              <strong>{activeLink?.label || "仪表盘"}</strong>
+            </div>
+          </div>
+          <div className="topbar-actions">
+            <div className="user-summary">
+              <strong>{user.nickname || user.username}</strong>
+              <span>{roles.join(" · ") || "已登录"}</span>
+            </div>
+            <Button variant="secondary" onClick={logout}>
+              <LogOut size={16} />
+              退出
+            </Button>
+          </div>
         </div>
-        {accessError ? (
-          <div className="access-notice form-error" role="alert">
-            <span>{accessError}</span>
-            <button className="icon-button" type="button" onClick={() => setAccessError(null)} aria-label="关闭权限提示">
+        {requestNotice ? (
+          <div className={`access-notice ${requestNotice.status === 403 ? "form-warning" : "form-error"}`} role="alert">
+            <span>{requestNotice.message}</span>
+            <button className="icon-button" type="button" onClick={() => setRequestNotice(null)} aria-label="关闭请求提示" title="关闭请求提示">
               <X size={16} />
             </button>
           </div>

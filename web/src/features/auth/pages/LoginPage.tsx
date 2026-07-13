@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { LogIn, UserPlus } from "lucide-react";
+import { LockKeyhole, LogIn, UserPlus } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { postData } from "../../../lib/axios";
@@ -73,11 +73,22 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
+      <section className="login-brand" aria-labelledby="login-brand-title">
+        <div className="login-mark" aria-hidden="true">LF</div>
+        <p className="login-kicker">建筑劳务运营平台</p>
+        <h1 id="login-brand-title">LaborFlow</h1>
+        <p>薪酬、项目与现场协同</p>
+      </section>
       <form className="login-card grid" onSubmit={submit}>
-        <h1 className="page-title">{isRegister ? "注册 LaborFlow" : "登录 LaborFlow"}</h1>
-        <p className="muted">建筑劳务经营与薪酬管理平台</p>
-        {accessMessage ? <div className="form-error" role="status">{accessMessage}</div> : null}
-        <div className="toolbar">
+        <div className="login-form-heading">
+          <LockKeyhole size={20} aria-hidden="true" />
+          <div>
+            <h2>{isRegister ? "创建账号" : "登录"}</h2>
+            <p>使用已授权的账号继续</p>
+          </div>
+        </div>
+        {accessMessage ? <div className="form-info" role="status">{accessMessage}</div> : null}
+        <div className="login-mode-switch" aria-label="账号操作">
           <Button type="button" variant={mode === "login" ? "primary" : "secondary"} onClick={() => switchMode("login")}>
             <LogIn size={16} />
             登录
@@ -108,7 +119,7 @@ export function LoginPage() {
             <TextInput type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} maxLength={64} required />
           </Field>
         ) : null}
-        {formError || mutation.error ? <div className="badge badge-red">{formError || errorMessage(mutation.error, isRegister ? "注册失败" : "登录失败")}</div> : null}
+        {formError || mutation.error ? <div className="form-error" role="alert">{formError || errorMessage(mutation.error, isRegister ? "注册失败" : "登录失败")}</div> : null}
         <Button type="submit" disabled={mutation.isPending}>
           {isRegister ? <UserPlus size={16} /> : <LogIn size={16} />}
           {mutation.isPending ? "提交中" : isRegister ? "注册并登录" : "登录"}

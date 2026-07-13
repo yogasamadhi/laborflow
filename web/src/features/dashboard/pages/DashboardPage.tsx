@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getData } from "../../../lib/axios";
+import { DataErrorState, RouteLoadingState } from "../../../components/common/AccessState";
 import { money } from "../../../lib/utils";
 import { Page } from "../../../components/common/Page";
 
@@ -14,7 +15,7 @@ type Overview = {
 };
 
 export function DashboardPage() {
-  const { data } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: ["salary-overview"],
     queryFn: () => getData<Overview>("/statistics/salary/overview")
   });
@@ -29,7 +30,10 @@ export function DashboardPage() {
   ];
 
   return (
-    <Page title="仪表盘">
+    <Page title="经营概览" description="工资执行与支付情况">
+      {isPending ? <RouteLoadingState /> : null}
+      {error ? <DataErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /> : null}
+      {!isPending && !error ? (
       <div className="grid grid-3">
         {cards.map(([label, value]) => (
           <div className="card" key={label}>
@@ -38,7 +42,7 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
+      ) : null}
     </Page>
   );
 }
-

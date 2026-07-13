@@ -1,14 +1,21 @@
 import type { PropsWithChildren, ReactNode } from "react";
 
-export function Page({ title, actions, children }: PropsWithChildren<{ title: string; actions?: ReactNode }>) {
+export function Page({
+  title,
+  description,
+  actions,
+  children
+}: PropsWithChildren<{ title: string; description?: string; actions?: ReactNode }>) {
   return (
     <div className="page">
       <div className="page-header">
-        <h2 className="page-title">{title}</h2>
-        <div>{actions}</div>
+        <div className="page-heading">
+          <h2 className="page-title">{title}</h2>
+          {description ? <p className="page-description">{description}</p> : null}
+        </div>
+        {actions ? <div className="page-actions">{actions}</div> : null}
       </div>
       {children}
     </div>
   );
 }
-
