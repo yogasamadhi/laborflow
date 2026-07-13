@@ -96,6 +96,8 @@ source regression is documented in
 The authorization, salary-scope, project-scope, sensitive-user-field, and Web
 no-permission regression is documented in
 [`docs/ACCESS_CONTROL_E2E_REGRESSION.md`](docs/ACCESS_CONTROL_E2E_REGRESSION.md).
+The cross-module operation-log regression and administrator smoke record are
+documented in [`docs/AUDIT_LOG_E2E_REGRESSION.md`](docs/AUDIT_LOG_E2E_REGRESSION.md).
 
 
 ## 目录
