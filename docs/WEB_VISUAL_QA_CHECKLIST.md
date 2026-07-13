@@ -40,7 +40,7 @@ shared-shell or API change is reviewed.
 
 | Build item | Before `L2-24-01` | Current baseline | Result |
 | --- | --- | --- | --- |
-| Initial `index` JavaScript | 1,605.36 kB / 505.39 kB gzip | 396.80 kB / 127.42 kB gzip | Route-level lazy loading removes feature pages from the initial route |
+| Initial `index` JavaScript | 1,605.36 kB / 505.39 kB gzip | 396.80 kB / 127.43 kB gzip | Route-level lazy loading removes feature pages from the initial route |
 | Project feature chunk | Included in initial bundle | 60.25 kB / 9.83 kB gzip | Loaded only for project routes |
 | Compensation feature chunk | Included in initial bundle | 19.26 kB / 3.71 kB gzip | Loaded only for compensation routes |
 | Salary statistics chart chunk | Included in initial bundle | 1,036.92 kB / 343.96 kB gzip | ECharts remains isolated to the salary-statistics route |
