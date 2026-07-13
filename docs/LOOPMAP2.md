@@ -632,3 +632,18 @@ Loop branch cleanup: local loop/L2-21-04-salary-sources-e2e is deleted after tar
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: This regression intentionally disables fixed salary so the expected payable, deduction, and actual amounts are attributable only to attendance, statutory deduction, performance, and project bonus sources. Existing aggregation behavior required no production code change; the new test and Web smoke record make the cross-module contract repeatable. Permission-negative coverage remains in P22.
 ```
+
+```text
+Loop: LOOPMAP2-pending-compression
+Target branch: master
+Loop branch: loop/loopmap2-pending-compression
+Commit(s): 42615b8 loop: compress pending readiness loops
+Merge commit: eb3b779 merge: compress pending readiness loops
+Verification: node scripts/ci/check-docs.mjs passed for 24 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check; the pending Loop count is 10; git diff --check and git diff --check origin/master...HEAD passed
+Diff review: passed; reviewed the complete map diff, confirmed no existing `done` row changed, and reviewed the merged diff stat against origin/master
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/loopmap2-pending-compression is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Consolidated only never-executed plan items into ten independent capability loops. Access control, audit traceability, and file-ownership security remain separate risk boundaries; tests, visual evidence, and documents now close with their capability loop rather than a later micro-loop.
+```
