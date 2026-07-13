@@ -1,14 +1,18 @@
 const salary = require("./salary");
 const project = require("./project");
+const auth = require("../utils/auth");
 const format = require("../utils/format");
 
 async function list() {
+  const canReviewSalary = auth.hasAnyRole(["ADMIN", "BOSS"]);
+  const canReviewProject = auth.hasAnyRole(["ADMIN", "BOSS", "MANAGER"]);
+  const canReviewSettlement = auth.hasAnyRole(["ADMIN", "BOSS", "MANAGER", "FINANCE"]);
   const [monthlies, submittedReports, pmReports, variations, settlements] = await Promise.all([
-    salary.monthlyList({ status: "pending_approval" }).catch(() => ({ records: [] })),
-    project.dailyReports({ status: "submitted" }).catch(() => ({ records: [] })),
-    project.dailyReports({ status: "pm_confirmed" }).catch(() => ({ records: [] })),
-    project.variationOrders({ status: "submitted" }).catch(() => ({ records: [] })),
-    project.settlements().catch(() => ({ records: [] }))
+    canReviewSalary ? salary.monthlyList({ status: "pending_approval" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
+    canReviewProject ? project.dailyReports({ status: "submitted" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
+    canReviewProject ? project.dailyReports({ status: "pm_confirmed" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
+    canReviewProject ? project.variationOrders({ status: "submitted" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
+    canReviewSettlement ? project.settlements().catch(() => ({ records: [] })) : Promise.resolve({ records: [] })
   ]);
 
   const rows = [];

@@ -27,8 +27,15 @@ class AccessControlSupportTest {
     @Test
     void recognizesProjectManagementRoles() {
         assertThat(AccessControlSupport.hasProjectManageRole(authentication("MANAGER"))).isTrue();
-        assertThat(AccessControlSupport.hasProjectManageRole(authentication("FINANCE"))).isTrue();
+        assertThat(AccessControlSupport.hasProjectManageRole(authentication("FINANCE"))).isFalse();
         assertThat(AccessControlSupport.hasProjectManageRole(authentication("EMPLOYEE"))).isFalse();
+    }
+
+    @Test
+    void recognizesProjectFinanceRoles() {
+        assertThat(AccessControlSupport.hasProjectFinanceRole(authentication("FINANCE"))).isTrue();
+        assertThat(AccessControlSupport.hasProjectFinanceRole(authentication("MANAGER"))).isTrue();
+        assertThat(AccessControlSupport.hasProjectFinanceRole(authentication("EMPLOYEE"))).isFalse();
     }
 
     @Test

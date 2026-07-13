@@ -112,10 +112,10 @@ Page({
   },
 
   roleText(roles) {
+    if (roles.indexOf("ADMIN") >= 0) return "系统管理员";
     if (roles.indexOf("BOSS") >= 0) return "老板/管理层";
     if (roles.indexOf("FINANCE") >= 0) return "财务";
-    if (roles.indexOf("PROJECT_MANAGER") >= 0 || roles.indexOf("PM") >= 0) return "项目经理";
-    if (roles.indexOf("ADMIN") >= 0) return "系统管理员";
+    if (roles.indexOf("MANAGER") >= 0) return "项目经理/管理人员";
     return "现场/员工";
   }
 });
