@@ -25,6 +25,7 @@ Page({
     projectNames: [],
     sections: [],
     sectionNames: [],
+    sectionsLoading: false,
     typeNames: ["设计变更", "现场签证", "工程量增减", "工期影响", "其他"],
     uploadedFiles: [],
     attachedFileIds: [],
@@ -139,6 +140,7 @@ Page({
   },
 
   async loadSections(projectId) {
+    this.setData({ sectionsLoading: true });
     try {
       const data = await project.sections(projectId);
       const rows = format.pageRecords(data);
@@ -150,6 +152,8 @@ Page({
       });
     } catch (error) {
       wx.showToast({ title: error.message, icon: "none" });
+    } finally {
+      this.setData({ sectionsLoading: false });
     }
   },
 

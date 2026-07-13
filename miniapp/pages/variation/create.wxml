@@ -21,7 +21,7 @@
       <picker range="{{projectNames}}" disabled="{{lookupLoading}}" bindchange="onProjectChange">
         <van-cell title="项目" value="{{projectText}}" icon="hotel-o" is-link />
       </picker>
-      <picker range="{{sectionNames}}" disabled="{{lookupLoading || !form.projectId}}" bindchange="onSectionChange">
+      <picker range="{{sectionNames}}" disabled="{{lookupLoading || sectionsLoading || !form.projectId}}" bindchange="onSectionChange">
         <van-cell title="发生位置" value="{{sectionText}}" icon="location-o" is-link />
       </picker>
       <picker range="{{typeNames}}" bindchange="onTypeChange">

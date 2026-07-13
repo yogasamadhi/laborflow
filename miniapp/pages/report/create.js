@@ -29,6 +29,7 @@ Page({
     processNames: [],
     teams: [],
     teamNames: [],
+    sectionsLoading: false,
     uploadedFiles: [],
     attachedFileIds: [],
     photoCount: 0,
@@ -154,6 +155,7 @@ Page({
   },
 
   async loadSections(projectId) {
+    this.setData({ sectionsLoading: true });
     try {
       const sections = await project.sections(projectId);
       const rows = format.pageRecords(sections);
@@ -165,6 +167,8 @@ Page({
       });
     } catch (error) {
       wx.showToast({ title: error.message, icon: "none" });
+    } finally {
+      this.setData({ sectionsLoading: false });
     }
   },
 
