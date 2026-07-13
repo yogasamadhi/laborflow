@@ -176,7 +176,7 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- |
 | L2-23-01 | backend | done | 建立后端集成测试基线 | Testcontainers 或测试数据库 profile、Flyway、认证测试工具 | 集成测试能启动真实数据库或隔离测试库，自动执行迁移 | `mvn test` 或 `mvn verify` |
-| L2-23-02 | backend/database | todo | 空库 Flyway 迁移验证 | `server/src/main/resources/db/migration`、测试或脚本 | 从空库可完整迁移到最新版本；默认角色、工资项、工序库符合初始化口径 | 迁移测试；`mvn test` |
+| L2-23-02 | backend/database | done | 空库 Flyway 迁移验证 | `server/src/main/resources/db/migration`、测试或脚本 | 从空库可完整迁移到最新版本；默认角色、工资项、工序库符合初始化口径 | 迁移测试；`mvn test` |
 | L2-23-03 | backend/database | todo | 旧库升级迁移演练 | 匿名 fixture、迁移脚本、升级文档 | 含历史工资、项目、附件、用户、微信绑定的旧数据可升级且核心数据不丢 | 升级演练记录；迁移测试 |
 | L2-23-04 | backend | todo | API 请求校验与错误响应集成测试 | Controller、DTO、GlobalExceptionHandler | 必填、状态、金额、月份、权限错误均返回统一可读错误 | `mvn test` |
 | L2-23-05 | backend | todo | 关键 API 合约快照 | OpenAPI 或 contract fixture、核心接口响应结构 | 前后端依赖的核心字段有合约记录，破坏性变更能被发现 | `mvn test`; contract check |
@@ -397,4 +397,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-23-01-integration-baseline is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added Testcontainers PostgreSQL and JUnit Jupiter dependencies, a real HTTP integration test, and local/CI Docker requirements in README.
+```
+
+```text
+Loop: L2-23-02
+Target branch: master
+Loop branch: loop/L2-23-02-flyway-empty-db
+Commit: b35f198 loop: verify empty database migrations
+Merge commit: 2b6b9e9 merge: complete L2-23-02 empty migration
+Verification: server mvn test passed (91 tests); Testcontainers PostgreSQL 18 applied Flyway V1-V21 from an empty database; assertions verified V21, five active default role codes, required active salary items, and 17 active work processes; git diff --check passed
+Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-23-02-flyway-empty-db is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: The empty-database baseline now fails when the latest migration version or initialization data drifts from the documented contract.
 ```
