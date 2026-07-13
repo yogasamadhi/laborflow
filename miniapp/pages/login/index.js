@@ -13,40 +13,45 @@ Page({
   },
 
   onLoad() {
-    this.refreshWechatSession(false);
+    this.refreshWechatSession(false).catch(() => {});
   },
 
   refreshWechatSession(showError) {
     return new Promise((resolve, reject) => {
-      wx.login({
-        success: async (res) => {
-          if (!res.code) {
+      try {
+        wx.login({
+          success: async (res) => {
+            if (!res.code) {
+              const error = new Error("微信登录凭证获取失败");
+              if (showError) wx.showToast({ title: error.message, icon: "none" });
+              reject(error);
+              return;
+            }
+            try {
+              const session = await authService.wechatSession(res.code);
+              this.setData({
+                wechatOpenid: session.openid || "",
+                wechatBound: !!session.bound,
+                authButtonText: session.bound
+                  ? "微信已绑定"
+                  : (this.data.nickname ? "已授权：" + this.data.nickname : "微信授权")
+              });
+              resolve(session);
+            } catch (error) {
+              if (showError) wx.showToast({ title: error.message, icon: "none" });
+              reject(error);
+            }
+          },
+          fail: () => {
             const error = new Error("微信登录凭证获取失败");
             if (showError) wx.showToast({ title: error.message, icon: "none" });
             reject(error);
-            return;
           }
-          try {
-            const session = await authService.wechatSession(res.code);
-            this.setData({
-              wechatOpenid: session.openid || "",
-              wechatBound: !!session.bound,
-              authButtonText: session.bound
-                ? "微信已绑定"
-                : (this.data.nickname ? "已授权：" + this.data.nickname : "微信授权")
-            });
-            resolve(session);
-          } catch (error) {
-            if (showError) wx.showToast({ title: error.message, icon: "none" });
-            reject(error);
-          }
-        },
-        fail: () => {
-          const error = new Error("微信登录凭证获取失败");
-          if (showError) wx.showToast({ title: error.message, icon: "none" });
-          reject(error);
-        }
-      });
+        });
+      } catch (error) {
+        if (showError) wx.showToast({ title: error.message || "微信登录凭证获取失败", icon: "none" });
+        reject(error);
+      }
     });
   },
 
