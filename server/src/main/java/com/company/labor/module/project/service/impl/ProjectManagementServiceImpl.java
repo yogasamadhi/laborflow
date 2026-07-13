@@ -553,10 +553,12 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
     public void attachDailyReportFile(Long id, FileAttachDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
         if (dto == null || dto.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(dto.getFileId(), report.getProjectId());
+        fileBindingGuard.requireFileNotBoundToOtherBusiness(dto.getFileId(), FileBindingGuard.DAILY_WORK_REPORT);
         requireDailyReportFileNotBound(id, dto.getFileId());
         DailyWorkReportFileDO file = new DailyWorkReportFileDO();
         file.setDailyWorkReportId(id);
@@ -807,10 +809,12 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
     public void attachVariationOrderFile(Long id, FileAttachDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
         if (dto == null || dto.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(dto.getFileId(), order.getProjectId());
+        fileBindingGuard.requireFileNotBoundToOtherBusiness(dto.getFileId(), FileBindingGuard.VARIATION_ORDER);
         requireVariationOrderFileNotBound(id, dto.getFileId());
         VariationOrderFileDO file = new VariationOrderFileDO();
         file.setVariationOrderId(id);
@@ -889,6 +893,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
     public ProjectPaymentRecordDO savePaymentRecord(ProjectPaymentRecordDO record) {
         requireProject(record.getProjectId());
         normalizePaymentRecord(record);
@@ -899,6 +904,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
     public ProjectPaymentRecordDO updatePaymentRecord(Long id, ProjectPaymentRecordDO record) {
         ProjectPaymentRecordDO old = requirePaymentRecord(id);
         record.setId(id);
@@ -1004,6 +1010,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
     public ProjectDocumentArchiveDO saveDocumentArchive(ProjectDocumentArchiveDO archive) {
         requireProject(archive.getProjectId());
         if (archive.getProjectSectionId() != null) requireSection(archive.getProjectSectionId());
@@ -1012,6 +1019,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         requireText(archive.getDocumentType(), "资料类型必填");
         if (archive.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(archive.getFileId(), archive.getProjectId());
+        fileBindingGuard.requireFileNotBoundToOtherBusiness(archive.getFileId(), FileBindingGuard.PROJECT_DOCUMENT);
         requireDocumentArchiveFileNotUsed(archive.getFileId(), null);
         archive.setDeleted(0);
         documentArchiveMapper.insert(archive);
@@ -1019,12 +1027,14 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
     public ProjectDocumentArchiveDO updateDocumentArchive(Long id, ProjectDocumentArchiveDO archive) {
         ProjectDocumentArchiveDO old = requireDocumentArchive(id);
         archive.setId(id);
         archive.setProjectId(old.getProjectId());
         if (archive.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(archive.getFileId(), archive.getProjectId());
+        fileBindingGuard.requireFileNotBoundToOtherBusiness(archive.getFileId(), FileBindingGuard.PROJECT_DOCUMENT);
         requireDocumentArchiveFileNotUsed(archive.getFileId(), id);
         documentArchiveMapper.updateById(archive);
         return documentArchiveMapper.selectById(id);
@@ -1642,6 +1652,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             return;
         }
         fileBindingGuard.requireProjectFileBindable(fileId, projectId);
+        fileBindingGuard.requireFileNotBoundToOtherBusiness(fileId, FileBindingGuard.PROJECT_PAYMENT);
         if (paymentRecordMapper.selectCount(new LambdaQueryWrapper<ProjectPaymentRecordDO>()
                 .eq(ProjectPaymentRecordDO::getDeleted, 0)
                 .eq(ProjectPaymentRecordDO::getVoucherFileId, fileId)
