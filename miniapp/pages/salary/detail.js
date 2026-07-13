@@ -9,7 +9,11 @@ Page({
     detail: null,
     items: [],
     loading: false,
-    confirming: false
+    confirming: false,
+    hasLoaded: false,
+    loadError: "",
+    canConfirmPayslip: false,
+    payslipNotice: ""
   },
 
   onLoad(query) {
@@ -22,7 +26,7 @@ Page({
   },
 
   async load() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: "" });
     try {
       const [detail, items] = await Promise.all([
         salary.detail(this.data.detailId),
@@ -34,8 +38,7 @@ Page({
         tagType: item.salaryItemType === "deduction" ? "danger" : "primary",
         amountClass: item.salaryItemType === "deduction" ? "deduction" : "money"
       }));
-      this.setData({
-        detail: detail ? Object.assign({}, detail, {
+      const mappedDetail = detail ? Object.assign({}, detail, {
           payableAmountText: format.money(detail.payableAmount),
           deductionAmountText: format.money(detail.deductionAmount),
           actualAmountText: format.money(detail.actualAmount),
@@ -44,18 +47,27 @@ Page({
           paymentStatusTagType: detail.paymentStatus === "paid" ? "primary" : "warning",
           payslipStatusText: payslipStatusText(detail.payslipStatus),
           payslipStatusTagType: detail.payslipStatus === "confirmed" ? "primary" : "warning"
-        }) : null,
-        items: mappedItems
+        }) : null;
+      this.setData({
+        detail: mappedDetail,
+        items: mappedItems,
+        hasLoaded: true,
+        canConfirmPayslip: !!mappedDetail && mappedDetail.payslipStatus !== "confirmed" && mappedDetail.payslipStatus !== "exception",
+        payslipNotice: mappedDetail && mappedDetail.payslipStatus === "exception"
+          ? "该工资条已标记为异常，请联系管理员核对后再处理。"
+          : (mappedDetail && mappedDetail.payslipStatus === "confirmed" ? "本工资条已确认，无需重复操作。" : "确认前请核对工资项目、扣减和实发金额。")
       });
     } catch (error) {
-      wx.showToast({ title: error.message, icon: "none" });
+      const message = error.message || "工资条加载失败";
+      this.setData({ loadError: message, hasLoaded: true });
+      wx.showToast({ title: message, icon: "none" });
     } finally {
       this.setData({ loading: false });
     }
   },
 
   confirmPayslip() {
-    if (!this.data.detail || this.data.confirming || this.data.detail.payslipStatus === "confirmed") {
+    if (!this.data.detail || !this.data.canConfirmPayslip || this.data.confirming) {
       return;
     }
     wx.showModal({

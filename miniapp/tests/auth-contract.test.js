@@ -35,7 +35,7 @@ function createRuntime() {
     },
     uploadFile(options) {
       uploads.push(options);
-      uploadHandler(options);
+      return uploadHandler(options);
     },
     reLaunch(options) {
       relaunches.push(options.url);
@@ -222,4 +222,36 @@ test("file upload clears an expired session but preserves forbidden-session stat
   }));
   await assert.rejects(fileService.upload("/tmp/photo.jpg"), /无上传权限/);
   assert.equal(auth.getToken(), "token-123");
+});
+
+test("file selection exposes successfully uploaded files when a later upload fails", async () => {
+  const runtime = createRuntime();
+  const { auth, fileService } = loadModules();
+  const progress = [];
+  auth.setLogin(loginPayload());
+  global.wx.chooseMedia = (options) => {
+    assert.equal(options.count, 2);
+    options.success({ tempFiles: [{ tempFilePath: "/tmp/one.jpg" }, { tempFilePath: "/tmp/two.jpg" }] });
+  };
+  runtime.setUploadHandler((options) => {
+    if (runtime.uploads.length === 1) {
+      options.success({ statusCode: 200, data: JSON.stringify({ code: 0, data: { id: 51 } }) });
+      return {
+        onProgressUpdate(listener) {
+          listener({ progress: 70 });
+        }
+      };
+    }
+    options.fail({ errMsg: "request:fail timeout" });
+    return { onProgressUpdate() {} };
+  });
+
+  await assert.rejects(fileService.chooseAndUpload({ maxCount: 2, onProgress: (event) => progress.push(event) }), (error) => {
+    assert.deepEqual(error.uploadedFiles, [{ id: 51 }]);
+    return true;
+  });
+  assert.deepEqual(progress, [
+    { current: 1, total: 2, progress: 70 },
+    { current: 1, total: 2, progress: 100 }
+  ]);
 });

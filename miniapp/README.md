@@ -35,6 +35,9 @@ npm run check
 regression tests. The identity/session contract and the required DevTools
 smoke steps are in
 [`docs/MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](../docs/MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md).
+The field-workspace visual, interaction, upload, and weak-network evidence is
+defined in
+[`docs/MINIAPP_VISUAL_QA_CHECKLIST.md`](../docs/MINIAPP_VISUAL_QA_CHECKLIST.md).
 
 The Gitee PR workflow and activation requirements are documented in
 [`docs/CI_MINIAPP_GATE.md`](../docs/CI_MINIAPP_GATE.md). Record manual

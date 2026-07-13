@@ -2,7 +2,22 @@
   <view class="page-header">
     <text class="eyebrow">{{month}}</text>
     <text class="title">工资条明细</text>
+    <text class="subtitle">确认后无法重复提交，请先核对明细与金额。</text>
   </view>
+
+  <view wx:if="{{loadError}}" class="status-banner error-banner">
+    <view>
+      <text class="status-banner-title">工资条暂时无法加载</text>
+      <text class="status-banner-copy">{{loadError}}</text>
+    </view>
+    <text class="status-banner-action" bind:tap="load">重试</text>
+  </view>
+
+  <view wx:if="{{loading && !hasLoaded}}" class="loading-state">
+    <van-loading size="42rpx" vertical>正在加载工资条</van-loading>
+  </view>
+
+  <van-empty wx:if="{{hasLoaded && !loading && !detail && !loadError}}" image="search" description="未找到工资条" />
 
   <view class="card" wx:if="{{detail}}">
     <view class="row">
@@ -31,12 +46,13 @@
         <text>{{detail.paymentDateText}}</text>
       </view>
     </view>
-    <view class="payslip-action" wx:if="{{detail.payslipStatus !== 'confirmed'}}">
-      <van-button block type="primary" loading="{{confirming}}" disabled="{{confirming}}" bind:tap="confirmPayslip">确认工资条无误</van-button>
+    <view class="payslip-action">
+      <text class="payslip-note">{{payslipNotice}}</text>
+      <van-button wx:if="{{canConfirmPayslip}}" block type="primary" loading="{{confirming}}" disabled="{{confirming}}" bind:tap="confirmPayslip">确认工资条无误</van-button>
     </view>
   </view>
 
-  <view class="card">
+  <view class="card" wx:if="{{detail}}">
     <text class="section-title">工资项目</text>
     <van-empty wx:if="{{items.length === 0}}" image="search" description="暂无明细项" />
     <view wx:for="{{items}}" wx:key="id" class="item-row">

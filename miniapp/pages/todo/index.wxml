@@ -2,6 +2,7 @@
   <view class="page-header">
     <text class="eyebrow">管理审批</text>
     <text class="title">待办事项</text>
+    <text class="subtitle">每次只处理一项，提交前请核对当前状态与处理意见。</text>
   </view>
 
   <view wx:if="{{!isManager}}" class="card empty-card">
@@ -10,23 +11,41 @@
   </view>
 
   <block wx:if="{{isManager}}">
-    <view class="form-card">
-      <van-field value="{{remark}}" bind:change="onRemark" label="处理意见" type="textarea" autosize placeholder="同意可留空，驳回建议填写原因" />
+    <view wx:if="{{loadError}}" class="status-banner error-banner">
+      <view>
+        <text class="status-banner-title">待办暂时无法加载</text>
+        <text class="status-banner-copy">{{loadError}}</text>
+      </view>
+      <text class="status-banner-action" bind:tap="load">重试</text>
     </view>
 
-    <van-empty wx:if="{{rows.length === 0}}" image="search" description="暂无待办" />
+    <view wx:if="{{loading && !hasLoaded}}" class="loading-state">
+      <van-loading size="42rpx" vertical>正在加载待办</van-loading>
+    </view>
 
-    <view wx:for="{{rows}}" wx:key="id" class="card">
+    <van-empty wx:if="{{hasLoaded && !loading && rows.length === 0 && !loadError}}" image="search" description="暂无待办" />
+
+    <view wx:for="{{rows}}" wx:key="id" class="card todo-card">
       <view class="row">
         <view>
           <text class="todo-title">{{item.title}}</text>
           <text class="muted small">{{item.desc}}</text>
         </view>
-        <van-tag plain type="warning">{{item.statusText}}</van-tag>
+        <van-tag plain type="{{item.statusTagType}}">{{item.statusText}}</van-tag>
       </view>
       <view class="button-row">
-        <van-button block plain type="danger" icon="close" data-item="{{item}}" bind:tap="reject">驳回</van-button>
-        <van-button block type="primary" icon="success" data-item="{{item}}" bind:tap="approve">同意</van-button>
+        <van-button block plain type="danger" icon="close" disabled="{{loading || processing}}" data-item="{{item}}" data-action="reject" bind:tap="beginAction">驳回</van-button>
+        <van-button block type="primary" icon="success" disabled="{{loading || processing}}" data-item="{{item}}" data-action="approve" bind:tap="beginAction">同意</van-button>
+      </view>
+
+      <view wx:if="{{activeItemId === item.id}}" class="action-panel">
+        <text class="action-title">{{actionMode === 'approve' ? '确认同意这项待办' : '确认驳回这项待办'}}</text>
+        <text class="action-copy">{{actionMode === 'approve' ? '处理意见可选，提交后将按当前流程推进。' : '驳回原因将同步给提交人，请写清楚需要修改的内容。'}}</text>
+        <van-field value="{{actionRemark}}" bind:change="onActionRemark" label="处理意见" type="textarea" autosize placeholder="{{actionMode === 'reject' ? '驳回原因（必填）' : '可选说明'}}" />
+        <view class="button-row action-buttons">
+          <van-button block plain disabled="{{processing}}" bind:tap="cancelAction">取消</van-button>
+          <van-button block type="{{actionMode === 'reject' ? 'danger' : 'primary'}}" loading="{{processing}}" disabled="{{processing}}" bind:tap="confirmAction">确认{{actionMode === 'reject' ? '驳回' : '同意'}}</van-button>
+        </view>
       </view>
     </view>
   </block>

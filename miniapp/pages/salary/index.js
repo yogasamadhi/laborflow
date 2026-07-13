@@ -7,9 +7,11 @@ Page({
     history: null,
     records: [],
     employeeNameText: "员工",
-    totalActualText: "0.00",
+    totalActualText: "¥0.00",
     unbound: false,
-    loading: false
+    loading: false,
+    hasLoaded: false,
+    loadError: ""
   },
 
   onShow() {
@@ -22,8 +24,10 @@ Page({
       this.setData({
         unbound: true,
         employeeNameText: "未绑定员工",
-        totalActualText: "0.00",
-        records: []
+        totalActualText: "¥0.00",
+        records: [],
+        hasLoaded: true,
+        loadError: ""
       });
       return;
     }
@@ -36,7 +40,7 @@ Page({
   },
 
   async load() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: "" });
     try {
       const history = await salary.myHistory();
       const records = (history.records || []).map((item) => Object.assign({}, item, {
@@ -45,15 +49,20 @@ Page({
         deductionAmountText: format.money(item.deductionAmount),
         paymentDateText: item.paymentDate || "未发放",
         statusText: format.status(item.paymentStatus),
-        statusTagType: item.paymentStatus === "paid" ? "primary" : "warning"
+        statusTagType: item.paymentStatus === "paid" ? "primary" : "warning",
+        payslipStatusText: payslipStatusText(item.payslipStatus),
+        payslipStatusTagType: item.payslipStatus === "confirmed" ? "primary" : "warning"
       }));
       this.setData({ history, records });
       this.setData({
         employeeNameText: history.employeeName || "员工",
-        totalActualText: history.totalActualAmount || "0.00"
+        totalActualText: format.money(history.totalActualAmount),
+        hasLoaded: true
       });
     } catch (error) {
-      wx.showToast({ title: error.message, icon: "none" });
+      const message = error.message || "工资记录加载失败";
+      this.setData({ loadError: message, hasLoaded: true });
+      wx.showToast({ title: message, icon: "none" });
     } finally {
       this.setData({ loading: false });
     }
@@ -66,3 +75,9 @@ Page({
     });
   }
 });
+
+function payslipStatusText(status) {
+  if (status === "confirmed") return "工资条已确认";
+  if (status === "exception") return "工资条有异常";
+  return "待确认工资条";
+}

@@ -13,3 +13,37 @@
   display: block;
   font-weight: 700;
 }
+
+.todo-card {
+  padding-bottom: 24rpx;
+}
+
+.action-panel {
+  margin-top: 22rpx;
+  overflow: hidden;
+  border: 1rpx solid #d9e5e1;
+  border-radius: 8rpx;
+  background: #f5faf8;
+}
+
+.action-title,
+.action-copy {
+  display: block;
+  padding: 20rpx 24rpx 0;
+}
+
+.action-title {
+  color: #173f35;
+  font-weight: 700;
+}
+
+.action-copy {
+  padding-top: 8rpx;
+  color: #697a76;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
+.action-buttons {
+  padding: 0 24rpx 24rpx;
+}
