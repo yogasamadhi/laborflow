@@ -179,7 +179,7 @@
 | L2-23-02 | backend/database | done | 空库 Flyway 迁移验证 | `server/src/main/resources/db/migration`、测试或脚本 | 从空库可完整迁移到最新版本；默认角色、工资项、工序库符合初始化口径 | 迁移测试；`mvn test` |
 | L2-23-03 | backend/database | done | 旧库升级迁移演练 | 匿名 fixture、迁移脚本、升级文档 | 含历史工资、项目、附件、用户、微信绑定的旧数据可升级且核心数据不丢 | 升级演练记录；迁移测试 |
 | L2-23-04 | backend | done | API 请求校验与错误响应集成测试 | Controller、DTO、GlobalExceptionHandler | 必填、状态、金额、月份、权限错误均返回统一可读错误 | `mvn test` |
-| L2-23-05 | backend | todo | 关键 API 合约快照 | OpenAPI 或 contract fixture、核心接口响应结构 | 前后端依赖的核心字段有合约记录，破坏性变更能被发现 | `mvn test`; contract check |
+| L2-23-05 | backend | done | 关键 API 合约快照 | OpenAPI 或 contract fixture、核心接口响应结构 | 前后端依赖的核心字段有合约记录，破坏性变更能被发现 | `mvn test`; contract check |
 
 ### P24：Web 正式版体验与质量门禁
 
@@ -442,4 +442,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-23-04-api-validation-errors is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Global errors now return 400 for request/business validation, 409 for integrity conflicts, 403 for forbidden access, and retain the existing Result envelope; malformed JSON returns a clear request-body message.
+```
+
+```text
+Loop: L2-23-05
+Target branch: master
+Loop branch: loop/L2-23-05-api-contract-snapshots
+Commit: ee97b5a loop: snapshot core API contracts
+Merge commit: 554f772 merge: complete L2-23-05 API contracts
+Verification: server mvn test passed (97 tests); CoreApiContractIntegrationTest ran against Testcontainers PostgreSQL 18 and verified the checked-in JSON contract for Result envelope, login, current identity, project create/page, monthly salary create/page, and salary overview response fields; git diff --check passed
+Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-23-05-api-contract-snapshots is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: The versioned JSON fixture is the explicit review surface for intentional core response-shape changes; removing or renaming any captured field now fails the integration test until the contract is deliberately updated.
 ```
