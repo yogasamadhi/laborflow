@@ -99,6 +99,7 @@ class ProjectAttachmentBindingValidationTest {
                 .hasMessageContaining("附件已绑定该日报");
 
         verify(fileBindingGuard).requireProjectFileBindable(7L, 5L);
+        verify(fileBindingGuard).requireFileNotBoundToOtherBusiness(7L, FileBindingGuard.DAILY_WORK_REPORT);
         verify(dailyWorkReportFileMapper, never()).insert(any(DailyWorkReportFileDO.class));
     }
 
@@ -112,6 +113,7 @@ class ProjectAttachmentBindingValidationTest {
                 .hasMessageContaining("回款凭证已被使用");
 
         verify(fileBindingGuard).requireProjectFileBindable(7L, 5L);
+        verify(fileBindingGuard).requireFileNotBoundToOtherBusiness(7L, FileBindingGuard.PROJECT_PAYMENT);
         verify(paymentRecordMapper, never()).insert(any(ProjectPaymentRecordDO.class));
     }
 
@@ -125,6 +127,7 @@ class ProjectAttachmentBindingValidationTest {
                 .hasMessageContaining("附件已被归档");
 
         verify(fileBindingGuard).requireProjectFileBindable(7L, 5L);
+        verify(fileBindingGuard).requireFileNotBoundToOtherBusiness(7L, FileBindingGuard.PROJECT_DOCUMENT);
         verify(documentArchiveMapper, never()).insert(any(ProjectDocumentArchiveDO.class));
     }
 

@@ -552,7 +552,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         detail.setPaymentStatus("paid");
         detail.setPaymentDate(dto.getPaymentDate() == null ? LocalDate.now() : dto.getPaymentDate());
         detail.setPaymentMethod(StringUtils.hasText(dto.getPaymentMethod()) ? dto.getPaymentMethod() : "bank_transfer");
-        detail.setPaymentProofUrl(fileBindingGuard.normalizeSalaryProofUrl(dto.getPaymentProofUrl()));
+        detail.setPaymentProofUrl(fileBindingGuard.normalizeSalaryProofUrlForPayment(dto.getPaymentProofUrl()));
     }
 
     private void defaultGenerationRules(SalaryMonthlyDO monthly) {

@@ -14,6 +14,7 @@ import com.company.labor.security.AuditUserProvider;
 import com.company.labor.security.LoginUser;
 import java.util.List;
 import java.util.Set;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class FileBindingGuardTest {
     private FileRecordMapper fileRecordMapper;
     private ProjectAccessService projectAccessService;
     private AuditUserProvider auditUserProvider;
+    private JdbcTemplate jdbcTemplate;
     private FileBindingGuard guard;
 
     @BeforeEach
@@ -32,7 +34,8 @@ class FileBindingGuardTest {
         fileRecordMapper = mock(FileRecordMapper.class);
         projectAccessService = mock(ProjectAccessService.class);
         auditUserProvider = mock(AuditUserProvider.class);
-        guard = new FileBindingGuard(fileRecordMapper, projectAccessService, auditUserProvider);
+        jdbcTemplate = mock(JdbcTemplate.class);
+        guard = new FileBindingGuard(fileRecordMapper, projectAccessService, auditUserProvider, jdbcTemplate);
     }
 
     @AfterEach
