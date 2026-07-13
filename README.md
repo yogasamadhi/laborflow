@@ -93,6 +93,9 @@ regression is documented in
 The attendance, statutory-deduction, performance, and project-bonus payroll
 source regression is documented in
 [`docs/SALARY_SOURCES_E2E_REGRESSION.md`](docs/SALARY_SOURCES_E2E_REGRESSION.md).
+The authorization, salary-scope, project-scope, sensitive-user-field, and Web
+no-permission regression is documented in
+[`docs/ACCESS_CONTROL_E2E_REGRESSION.md`](docs/ACCESS_CONTROL_E2E_REGRESSION.md).
 
 
 ## 目录

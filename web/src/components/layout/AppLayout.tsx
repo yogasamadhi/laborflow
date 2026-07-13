@@ -1,16 +1,21 @@
-import { ChevronDown, ChevronRight, LogOut } from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { getData } from "../../lib/axios";
+import { canAccessRoles, canAccessRoute, roleGroups } from "../../lib/access";
+import { getData, REQUEST_ERROR_EVENT } from "../../lib/axios";
 import { clearToken, getLoginUser, getToken, LoginUser, setLoginUser } from "../../lib/auth";
+import type { RequestErrorDetail } from "../../lib/axios";
+import { AccessDeniedState, AuthLoadingState } from "../common/AccessState";
 import { Button } from "../ui/Button";
 
-const adminRoles = ["ADMIN"];
-const orgRoles = ["ADMIN", "BOSS", "MANAGER"];
-const salaryRoles = ["ADMIN", "BOSS", "FINANCE"];
-const projectRoles = ["ADMIN", "BOSS", "MANAGER"];
-const projectFinanceRoles = ["ADMIN", "BOSS", "MANAGER", "FINANCE"];
-const compensationRoles = ["ADMIN", "BOSS", "MANAGER", "FINANCE"];
+const {
+  admin: adminRoles,
+  org: orgRoles,
+  salary: salaryRoles,
+  project: projectRoles,
+  projectFinance: projectFinanceRoles,
+  compensation: compensationRoles
+} = roleGroups;
 
 const groups = [
   {
@@ -78,20 +83,18 @@ const groups = [
   }
 ];
 
-function canAccess(userRoles: string[], requiredRoles?: string[]) {
-  return !requiredRoles || requiredRoles.length === 0 || requiredRoles.some((role) => userRoles.includes(role));
-}
-
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<LoginUser | null>(() => getLoginUser());
+  const [user, setUser] = useState<LoginUser | null>(() => (getToken() ? getLoginUser() : null));
+  const [isCheckingAuth, setIsCheckingAuth] = useState(() => Boolean(getToken()) && !getLoginUser());
+  const [accessError, setAccessError] = useState<string | null>(null);
   const roles = user?.roles ?? [];
   const visibleGroups = useMemo(() => {
     return groups
       .map((group) => ({
         ...group,
-        links: group.links.filter((link) => canAccess(roles, link.roles))
+        links: group.links.filter((link) => canAccessRoles(roles, link.roles))
       }))
       .filter((group) => group.links.length > 0);
   }, [roles]);
@@ -106,8 +109,33 @@ export function AppLayout() {
     return activeGroup ? { ...initial, [activeGroup]: true } : initial;
   });
 
+  function loginPath(reason: "login-required" | "session-expired") {
+    const next = `${location.pathname}${location.search}${location.hash}`;
+    return `/login?reason=${reason}&next=${encodeURIComponent(next)}`;
+  }
+
   useEffect(() => {
-    if (user || !getToken()) return;
+    function handleRequestError(event: Event) {
+      const detail = (event as CustomEvent<RequestErrorDetail>).detail;
+      if (detail?.status === 403) setAccessError(detail.message);
+    }
+    window.addEventListener(REQUEST_ERROR_EVENT, handleRequestError);
+    return () => window.removeEventListener(REQUEST_ERROR_EVENT, handleRequestError);
+  }, []);
+
+  useEffect(() => {
+    if (!getToken()) {
+      clearToken();
+      setUser(null);
+      setIsCheckingAuth(false);
+      navigate(loginPath("login-required"), { replace: true });
+      return;
+    }
+    if (user) {
+      setIsCheckingAuth(false);
+      return;
+    }
+    setIsCheckingAuth(true);
     getData<LoginUser>("/auth/me")
       .then((currentUser) => {
         setLoginUser(currentUser);
@@ -115,9 +143,10 @@ export function AppLayout() {
       })
       .catch(() => {
         clearToken();
-        navigate("/login");
-      });
-  }, [navigate, user]);
+        navigate(loginPath("session-expired"), { replace: true });
+      })
+      .finally(() => setIsCheckingAuth(false));
+  }, [location.hash, location.pathname, location.search, navigate, user]);
 
   useEffect(() => {
     if (activeGroup) {
@@ -128,8 +157,12 @@ export function AppLayout() {
   function logout() {
     clearToken();
     setUser(null);
-    navigate("/login");
+    navigate("/login?reason=signed-out", { replace: true });
   }
+
+  if (isCheckingAuth || !user) return <AuthLoadingState />;
+
+  const routeAllowed = canAccessRoute(location.pathname, roles);
 
   return (
     <div className="app-shell">
@@ -166,7 +199,15 @@ export function AppLayout() {
             退出
           </Button>
         </div>
-        <Outlet />
+        {accessError ? (
+          <div className="access-notice form-error" role="alert">
+            <span>{accessError}</span>
+            <button className="icon-button" type="button" onClick={() => setAccessError(null)} aria-label="关闭权限提示">
+              <X size={16} />
+            </button>
+          </div>
+        ) : null}
+        {routeAllowed ? <Outlet /> : <AccessDeniedState onBack={() => navigate("/dashboard", { replace: true })} />}
       </main>
     </div>
   );

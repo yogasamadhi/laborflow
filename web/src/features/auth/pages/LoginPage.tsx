@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { LogIn, UserPlus } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { postData } from "../../../lib/axios";
 import { LoginUser, setLoginUser, setToken } from "../../../lib/auth";
 import { Button } from "../../../components/ui/Button";
@@ -19,6 +19,11 @@ function errorMessage(error: unknown, fallback: string) {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedPath = searchParams.get("next");
+  const nextPath = requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//") && !requestedPath.startsWith("/login")
+    ? requestedPath
+    : "/dashboard";
   const [mode, setMode] = useState<AuthMode>("login");
   const [username, setUsername] = useState("");
   const [nickname, setNickname] = useState("");
@@ -36,7 +41,7 @@ export function LoginPage() {
     onSuccess: (data) => {
       setToken(data.token);
       setLoginUser(data);
-      navigate("/dashboard");
+      navigate(nextPath, { replace: true });
     }
   });
 
@@ -57,12 +62,21 @@ export function LoginPage() {
   }
 
   const isRegister = mode === "register";
+  const reason = searchParams.get("reason");
+  const accessMessage = reason === "session-expired"
+    ? "登录已过期，请重新登录。"
+    : reason === "login-required"
+      ? "请先登录后继续访问。"
+      : reason === "signed-out"
+        ? "你已安全退出。"
+        : "";
 
   return (
     <div className="login-page">
       <form className="login-card grid" onSubmit={submit}>
         <h1 className="page-title">{isRegister ? "注册 LaborFlow" : "登录 LaborFlow"}</h1>
         <p className="muted">建筑劳务经营与薪酬管理平台</p>
+        {accessMessage ? <div className="form-error" role="status">{accessMessage}</div> : null}
         <div className="toolbar">
           <Button type="button" variant={mode === "login" ? "primary" : "secondary"} onClick={() => switchMode("login")}>
             <LogIn size={16} />

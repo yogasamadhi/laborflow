@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "../components/layout/AppLayout";
+import { NotFoundPage } from "../components/common/AccessState";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { EmployeeDetailPage } from "../features/employee/pages/EmployeeDetailPage";
@@ -105,7 +106,8 @@ export const router = createBrowserRouter([
       { path: "system/users", element: <SystemUserPage /> },
       { path: "system/wechat-bindings", element: <WechatBindingPage /> },
       { path: "system/roles", element: <SimpleCrudPage title="角色管理" resource="system/roles" readonly /> },
-      { path: "system/logs", element: <SimpleCrudPage title="操作日志" resource="system/logs" readonly /> }
+      { path: "system/logs", element: <SimpleCrudPage title="操作日志" resource="system/logs" readonly /> },
+      { path: "*", element: <NotFoundPage /> }
     ]
   }
 ]);

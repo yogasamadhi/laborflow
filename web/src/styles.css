@@ -427,6 +427,83 @@ th {
   width: 100%;
 }
 
+.access-page,
+.access-state {
+  align-content: center;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  min-height: 100%;
+  padding: 32px;
+}
+
+.access-page {
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.access-state {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin: 24px;
+  max-width: 560px;
+}
+
+.access-state h1,
+.access-state h2,
+.access-state p,
+.access-page h1,
+.access-page p {
+  margin: 0;
+}
+
+.access-state h2,
+.access-page h1 {
+  font-size: 20px;
+}
+
+.access-state p,
+.access-page p {
+  color: #52606f;
+  line-height: 1.6;
+}
+
+.access-state-icon {
+  color: #176b54;
+}
+
+.access-notice {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin: 16px 24px 0;
+}
+
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: currentColor;
+  cursor: pointer;
+  display: inline-flex;
+  min-height: 32px;
+  padding: 8px;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .modal-backdrop {
   align-items: center;
   background: rgba(15, 23, 42, 0.42);
@@ -497,6 +574,10 @@ th {
 
   .main {
     overflow: visible;
+  }
+
+  .access-state {
+    margin: 16px;
   }
 
   .grid-2,
