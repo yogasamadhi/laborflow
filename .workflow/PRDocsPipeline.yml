@@ -1,0 +1,21 @@
+version: '1.0'
+name: pr-docs-diff-check
+displayName: PR Docs And Diff Check
+triggers:
+  pr:
+    branches:
+      include:
+        - master
+stages:
+  - stage:
+      name: docs-diff-check
+      displayName: Docs And Diff Check
+      steps:
+        - step: build@nodejs
+          name: docs-diff-check
+          displayName: Markdown Link Migration And Diff Check
+          nodeVersion: 20.18.0
+          commands:
+            - git fetch origin master
+            - git diff --check origin/master...HEAD
+            - node scripts/ci/check-docs.mjs
