@@ -147,7 +147,7 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- |
 | L2-20-01 | product/docs | done | 冻结正式上线功能范围 | `docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md`、新增上线范围文档 | 列出本次上线功能、延期功能、明确不做事项；与 Web/后端/小程序真实能力一致 | `git diff --check` |
-| L2-20-02 | product/backend/web | todo | 建立角色与权限矩阵 | 新增 `docs/ROLE_PERMISSION_MATRIX.md`、后端 controller、Web 菜单 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员的菜单、接口、数据范围清晰成表 | `rg -n "PreAuthorize|roles" server/src/main/java web/src`; `git diff --check` |
+| L2-20-02 | product/backend/web | done | 建立角色与权限矩阵 | 新增 `docs/ROLE_PERMISSION_MATRIX.md`、后端 controller、Web 菜单 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员的菜单、接口、数据范围清晰成表 | `rg -n "PreAuthorize|roles" server/src/main/java web/src`; `git diff --check` |
 | L2-20-03 | product/docs | todo | 编写业务验收清单 | 新增 `docs/UAT_CHECKLIST.md` | 财务、项目经理、老板/管理层、员工/现场人员、管理员均有端到端验收用例 | `git diff --check` |
 | L2-20-04 | product/docs | todo | 编写初始化验收清单 | `README.md`、新增 `docs/INITIALIZATION_CHECKLIST.md` | 管理员创建、角色初始化、工资项、工序库、测试账号、微信绑定准备步骤清晰 | `git diff --check` |
 
@@ -337,4 +337,19 @@ Push: master was pushed to origin at a765434 after explicit user authorization; 
 Loop branch cleanup: deleted local loop/L2-20-01-launch-scope after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added docs/LAUNCH_SCOPE.md as the current formal-release scope; PROJECT_BRIEF.md and ROADMAP.md now label the old staged plan as historical design baseline. An initial remote-push restriction was lifted by explicit user authorization on 2026-07-13; the implementation, merge, push, and cleanup are now complete.
+```
+
+```text
+Loop: L2-20-02
+Target branch: master
+Loop branch: loop/L2-20-02-role-permission-matrix
+Commit: 74ed117 loop: align role permissions
+Merge commit: a315d37 merge: complete L2-20-02 role matrix
+Verification: server mvn test passed (84 tests); web pnpm build passed; miniapp JavaScript syntax check passed; git diff --check passed
+Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-20-02-role-permission-matrix is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added the role/data-scope matrix; separated project business management from finance access; required project access for creating or moving daily reports and variation orders; aligned Web menus and miniapp todo fetches with the same role rules.
 ```
