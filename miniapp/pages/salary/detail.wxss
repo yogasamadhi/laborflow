@@ -2,6 +2,16 @@
   margin-top: 32rpx;
 }
 
+.payslip-status-row {
+  margin-top: 20rpx;
+}
+
+.payslip-action {
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #edf2f0;
+}
+
 .actual {
   display: block;
   margin-top: 8rpx;

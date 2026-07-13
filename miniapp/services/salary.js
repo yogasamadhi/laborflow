@@ -12,8 +12,16 @@ function monthlyDetails(monthlyId, params) {
   return request.get("/salary/monthly/" + monthlyId + "/details", Object.assign({ page: 1, pageSize: 100 }, params || {}));
 }
 
+function detail(detailId) {
+  return request.get("/salary/details/" + detailId);
+}
+
 function detailItems(detailId) {
   return request.get("/salary/details/" + detailId + "/items");
+}
+
+function confirmPayslip(detailId) {
+  return request.post("/salary/details/" + detailId + "/payslip/confirm");
 }
 
 function monthlyAudits(monthlyId) {
@@ -32,7 +40,9 @@ module.exports = {
   myHistory,
   monthlyList,
   monthlyDetails,
+  detail,
   detailItems,
+  confirmPayslip,
   monthlyAudits,
   approveMonthly,
   rejectMonthly
