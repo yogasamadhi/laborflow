@@ -261,7 +261,7 @@ Gate 不能给出通过结论。
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-27-01 | docs/product/qa | todo | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
+| L2-27-01 | docs/product/qa | doing | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
 | L2-27-02 | release/qa | todo | 执行 UAT 签字与正式上线非部署 Gate | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果和未决问题可追溯，必需 Loop 完成或正式延期，且无 P0/P1 未关闭缺陷；L2-25-02 延期人工证据必须通过或获得书面批准 | 完整回归；UAT 演练与签字；小程序真实账号/弱网/录屏复测；人工 Gate 审查 |
 
 ## 8. 建议执行顺序

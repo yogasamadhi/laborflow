@@ -107,5 +107,5 @@
   的体验 loop 并保留截图或录屏。
 - 每次完整执行使用 `docs/REGRESSION_RECORD_TEMPLATE.md`（在 L2-21-05 建立）或等价
   记录格式，关联本清单的用例编号和证据。
-- 所有 `fail` 和 `blocked` 项必须在 `docs/UAT_SIGNOFF.md`（在 L2-27-04 建立）中有处理
+- 所有 `fail` 和 `blocked` 项必须在 `docs/UAT_SIGNOFF.md`（在 L2-27-02 建立）中有处理
   状态或延期批准，才能进入 G3 审查。
