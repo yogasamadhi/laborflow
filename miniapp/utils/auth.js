@@ -35,7 +35,7 @@ function hasAnyRole(expected) {
 }
 
 function isManager() {
-  return hasAnyRole(["ADMIN", "BOSS", "FINANCE", "PROJECT_MANAGER", "PM"]);
+  return hasAnyRole(["ADMIN", "BOSS", "FINANCE", "MANAGER"]);
 }
 
 module.exports = {

@@ -19,7 +19,7 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
 
     @Override
     public boolean hasProjectWideAccess(Authentication authentication) {
-        return AccessControlSupport.hasProjectManageRole(authentication);
+        return AccessControlSupport.hasProjectFinanceRole(authentication);
     }
 
     @Override

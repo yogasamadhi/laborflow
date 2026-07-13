@@ -20,6 +20,10 @@ public final class AccessControlSupport {
     }
 
     public static boolean hasProjectManageRole(Authentication authentication) {
+        return hasAnyRole(authentication, "ADMIN", "BOSS", "MANAGER");
+    }
+
+    public static boolean hasProjectFinanceRole(Authentication authentication) {
         return hasAnyRole(authentication, "ADMIN", "BOSS", "MANAGER", "FINANCE");
     }
 

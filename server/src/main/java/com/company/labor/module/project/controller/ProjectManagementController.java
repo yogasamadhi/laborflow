@@ -301,6 +301,7 @@ public class ProjectManagementController {
 
     @PostMapping("/api/daily-work-reports")
     public Result<DailyWorkReportDO> saveDailyReport(@Valid @RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
+        projectAccessService.requireProjectAccess(dto.getProjectId(), authentication);
         DailyWorkReportDO report = copy(dto, DailyWorkReportDO.class);
         Long userId = currentUserId(authentication);
         report.setCreatedBy(userId);
@@ -311,6 +312,7 @@ public class ProjectManagementController {
     @PutMapping("/api/daily-work-reports/{id}")
     public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
         requireDailyReportOwnerIfNeeded(id, authentication);
+        projectAccessService.requireProjectAccess(dto.getProjectId(), authentication);
         DailyWorkReportDO report = copy(dto, DailyWorkReportDO.class);
         report.setUpdatedBy(currentUserId(authentication));
         return Result.success(service.updateDailyReport(id, report));
@@ -416,6 +418,7 @@ public class ProjectManagementController {
 
     @PostMapping("/api/variation-orders")
     public Result<VariationOrderDO> saveVariationOrder(@Valid @RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
+        projectAccessService.requireProjectAccess(dto.getProjectId(), authentication);
         VariationOrderDO order = copy(dto, VariationOrderDO.class);
         Long userId = currentUserId(authentication);
         order.setCreatedBy(userId);
@@ -426,6 +429,7 @@ public class ProjectManagementController {
     @PutMapping("/api/variation-orders/{id}")
     public Result<VariationOrderDO> updateVariationOrder(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
         requireVariationOrderOwnerIfNeeded(id, authentication);
+        projectAccessService.requireProjectAccess(dto.getProjectId(), authentication);
         VariationOrderDO order = copy(dto, VariationOrderDO.class);
         order.setUpdatedBy(currentUserId(authentication));
         return Result.success(service.updateVariationOrder(id, order));
