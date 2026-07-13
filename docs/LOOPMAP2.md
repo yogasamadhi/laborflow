@@ -223,7 +223,7 @@
 | L2-26-02 | ci/web | done | 建立 Web 构建与测试门禁 | CI、`web` | PR 自动运行 Web typecheck/test/build；失败阻断合入 | CI dry run 或本地等价命令 |
 | L2-26-03 | ci/miniapp | done | 建立小程序语法与 smoke 门禁 | CI、`miniapp`、smoke 文档 | PR 自动运行小程序 JS 语法检查；人工 smoke checklist 有提交模板 | CI dry run；`node --check` |
 | L2-26-04 | ci/docs | done | 建立文档与 diff 检查门禁 | CI、Markdown、迁移文件 | PR 至少运行 `git diff --check`；可选检查文档链接和 migration 命名 | CI dry run |
-| L2-26-05 | ci/qa | todo | 建立回归证据归档规则 | PR 模板、回归记录模板 | 影响工资/项目/权限/迁移的 PR 必须附验证记录或说明不适用 | PR 模板检查 |
+| L2-26-05 | ci/qa | done | 建立回归证据归档规则 | PR 模板、回归记录模板 | 影响工资/项目/权限/迁移的 PR 必须附验证记录或说明不适用 | PR 模板检查 |
 
 ### P27：产品文档、操作手册与最终上线 Gate
 
@@ -517,4 +517,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-26-04-docs-diff-gate is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added a dependency-free PR gate for whitespace errors, local Markdown links, and Flyway migration filename/version integrity. Pipeline import, first remote run, and required-status branch protection remain explicit Gitee administrator settings.
+```
+
+```text
+Loop: L2-26-05
+Target branch: master
+Loop branch: loop/L2-26-05-regression-evidence
+Commit: 5c0d23d loop: add regression evidence policy
+Merge commit: 6b68442 merge: complete L2-26-05 regression evidence
+Verification: node scripts/ci/check-docs.mjs passed for 20 repository-maintained Markdown files and 21 Flyway migrations; git diff --check and git diff --check origin/master...HEAD passed; manually reviewed the root PR template, required-category checks, exception fields, detailed record template, and data-safety rules
+Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-26-05-regression-evidence is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added a repository-controlled root PULL_REQUEST_TEMPLATE.md, a detailed regression evidence record template, and a reviewer policy that blocks merge when payroll, project, permission, or migration evidence is missing or an exception is not concretely accepted. Completed evidence remains in the PR or approved QA artifact and must use redacted non-production data.
 ```
