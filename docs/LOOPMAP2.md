@@ -232,7 +232,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-24-01 | design/web/qa | done | 建立 Web 正式版公共体验、视觉与性能基线 | 登录、AppLayout、通用状态、styles/components、响应式、router、`WEB_VISUAL_QA_CHECKLIST.md` | 登录/token 状态；设计 token 与组件层级；loading/empty/error；多视口交互；路由懒加载/chunk；截图基线 | Web 共享基础和加载策略；回滚为壳层、通用组件、样式、路由加载和视觉基线整体 | 登录与访问反馈一致，页面层级可扫描，多视口不溢出，主 chunk 明显下降且关键页面有截图基线 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; chunk 对比；1366/1440/窄屏 smoke/截图 |
 | L2-24-02 | web/qa | done | 完成工资工作台关键操作与视觉体验 | 月度工资、明细、发放、导出、异常及对应视觉状态 | 生成/重算；提交/审核；批量发放；导出；确认/结果/失败；正常/空/异常截图 | 工资状态和金额操作；回滚为工资工作台及对应视觉基线整体 | 关键工资动作均有确认、结果和失败提示，金额与状态清晰可扫描且可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 工资 smoke/截图 |
-| L2-24-03 | web/qa | todo | 完成项目工作台、大列表与视觉体验 | 日报、确认、签证、结算、看板、项目列表及对应视觉状态 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈；大表格响应式；正常/空/异常截图 | 项目状态和大列表交互；回滚为项目工作台及对应视觉基线整体 | 项目核心表格可扫描，关键操作可安全完成，多视口和异常状态可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 项目 smoke/截图 |
+| L2-24-03 | web/qa | done | 完成项目工作台、大列表与视觉体验 | 日报、确认、签证、结算、看板、项目列表及对应视觉状态 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈；大表格响应式；正常/空/异常截图 | 项目状态和大列表交互；回滚为项目工作台及对应视觉基线整体 | 项目核心表格可扫描，关键操作可安全完成，多视口和异常状态可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 项目 smoke/截图 |
 
 ### P25：小程序现场端正式版体验
 
@@ -721,4 +721,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-24-02-payroll-workspace is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added shared high-impact action confirmation, state-aware monthly action guards, required reject remarks, workflow progress, and loading/empty/error/result states across monthly list/detail, payment, export, payslip, and salary anomaly views. Existing salary calculation rules, API contracts, approval authorization, and export formats remain unchanged.
+```
+
+```text
+Loop: L2-24-03
+Target branch: master
+Loop branch: loop/L2-24-03-project-workspace
+Commit(s): e7d4c34 loop: improve project workspace experience
+Merge commit: f4131d0 merge: complete L2-24-03 project workspace experience
+Verification: Post-merge pnpm --dir web typecheck passed; pnpm --dir web test passed with 4 files and 8 tests; pnpm --dir web build passed with a 397.03 kB / 127.52 kB gzip initial index chunk and a 66.46 kB / 11.57 kB gzip ProjectPages lazy chunk. node scripts/ci/check-docs.mjs passed for 30 repository-maintained Markdown files and 21 Flyway migrations. The project workspace has no remaining window.confirm/window.prompt calls or direct confirm/reject/mark-paid mutations in ProjectPages.tsx. PROJECT_WORKSPACE_QA_CHECKLIST.md defines non-production authenticated state-action, mobile, failure, and screenshot checkpoints; no live project action or authenticated screenshot is claimed because a permitted fixture account was not available in this loop.
+Diff review: passed; reviewed the complete functional diff before commit and merged diff against origin/master; git diff --check and git diff --check origin/master...HEAD passed
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-24-03-project-workspace is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added contextual confirmation for daily-report submission, project-manager/commercial confirmation and rejection, variation amount confirmation and rejection, and team-settlement confirmation, rejection, and payment. The implementation adds empty-state guidance and leaves project pricing, settlement calculation, permissions, and server state transitions unchanged.
 ```
