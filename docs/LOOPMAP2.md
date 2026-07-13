@@ -240,7 +240,12 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-25-01 | miniapp/backend/qa | done | 建立小程序身份、会话与接口契约可靠性基线 | 登录、微信绑定、token、退出、缓存、`miniapp/services`、后端 DTO/状态流 | 登录/绑定正反向；token 失效；缓存清理；字段/状态清单；contract/HTTP 回归；弱网 smoke | 身份、会话和移动端公共协议；回滚为认证、契约 fixture 和服务接线整体 | 身份流程可安全恢复，字段或状态破坏性变化会被自动化或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录/绑定/弱网 smoke |
-| L2-25-02 | design/miniapp/qa | partial | 完成小程序现场工作台的可靠交互与视觉回归 | app theme、日报、签证、上传/草稿、待办审批、工资条、`MINIAPP_VISUAL_QA_CHECKLIST.md` | 填报选择/校验；上传重试/草稿恢复；提交锁定；待办防误触；工资金额/确认；空/弱网/提交中截图录屏 | 现场写入、审批和工资确认；回滚为现场工作台页面、服务接线和视觉基线整体 | 现场人员可在弱网下完成或恢复填报、审批和工资确认，重复触发不产生重复写入，关键状态可重复视觉验收 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具全流程 smoke；真机或开发者工具截图/录屏 |
+| L2-25-02 | design/miniapp/qa | done | 完成小程序现场工作台的可靠交互与视觉基线 | app theme、日报、签证、上传/草稿、待办审批、工资条、`MINIAPP_VISUAL_QA_CHECKLIST.md` | 填报选择/校验；上传重试/草稿恢复；提交锁定；待办防误触；工资金额/确认；空/异常/提交中状态；把真实登录、弱网和录屏证据移交 L2-27-02 | 现场写入、审批和工资确认；回滚为现场工作台页面、服务接线和视觉基线整体 | 工程实现、自动化回归和未登录模拟器基线通过；真实账号下的弱网、上传、审批、工资确认和录屏不是本项通过结论，必须在 L2-27-02 Gate 完成或取得正式延期批准 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录页、空表单和启动期失败恢复检查；L2-27-02 真实账号全流程、弱网和截图/录屏 Gate |
+
+延期人工证据说明：依据用户在 2026-07-13 的明确指示，L2-25-02 不再等待真实小程序
+登录问题处理，也不声称日报、签证、上传、待办、工资确认或弱网录屏已经通过。上述
+非生产账号验收被作为 L2-27-02 的阻断 Gate；在完成或取得正式延期批准前，最终上线
+Gate 不能给出通过结论。
 
 ### P26：自动化质量门禁
 
@@ -257,7 +262,7 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-27-01 | docs/product/qa | todo | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
-| L2-27-02 | release/qa | todo | 执行 UAT 签字与正式上线非部署 Gate | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果和未决问题可追溯，必需 Loop 完成或正式延期，且无 P0/P1 未关闭缺陷 | 完整回归；UAT 演练与签字；人工 Gate 审查 |
+| L2-27-02 | release/qa | todo | 执行 UAT 签字与正式上线非部署 Gate | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果和未决问题可追溯，必需 Loop 完成或正式延期，且无 P0/P1 未关闭缺陷；L2-25-02 延期人工证据必须通过或获得书面批准 | 完整回归；UAT 演练与签字；小程序真实账号/弱网/录屏复测；人工 Gate 审查 |
 
 ## 8. 建议执行顺序
 
@@ -752,4 +757,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-25-01-miniapp-identity-contract is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: The miniapp now persists only complete login responses, refreshes profile data through the current token only, keeps 403 authorization denials distinct from expired-session 401s, clears cache on expiry/logout, omits stale authentication headers from login and WeChat session exchange, and uses the server-permitted photo attachment type. No backend business API, state machine, salary rule, or project pricing behavior changed.
+```
+
+```text
+Loop: L2-25-02
+Target branch: master
+Loop branch: loop/L2-25-02-miniapp-field-workspace
+Commit(s): f3d4132 loop: improve miniapp field workspace; 1a045c1 loop: recover from login session initialization failure; 21b3d78 loop: lock section pickers during lookup
+Merge commit: bdc8cb8 merge: complete L2-25-02 miniapp field workspace
+Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18. npm --prefix miniapp run check passed with first-party syntax checks and 8 Node tests covering session/cache contracts, attachment types, upload partial recovery, local draft scope, and login initialization failure recovery. node scripts/ci/check-docs.mjs passed for 32 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check; git diff --check and git diff --check origin/master...HEAD passed. WeChat DevTools Stable 2.01.2510290 rendered the login page in the iPhone 12/13 simulator and showed empty-account validation without a runtime crash; the local API startup check confirmed session-request failure is caught by the page. No real-account field workflow, weak-network run, screenshot archive, or recording is claimed.
+Diff review: passed; reviewed the complete functional diff before merge and the merged diff against origin/master, including draft recovery, upload, approval, salary, and login initialization changes
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin with the merge and this completion record
+Loop branch cleanup: local loop/L2-25-02-miniapp-field-workspace is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: By explicit user instruction on 2026-07-13, the real small-program sign-in issue and all authenticated field/weak-network visual evidence are deferred to L2-27-02. This is a documented final-Gate blocker, not a passed manual verification or formal launch approval.
 ```
