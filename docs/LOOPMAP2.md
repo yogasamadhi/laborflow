@@ -66,12 +66,26 @@
 3. 开始前同步目标分支：`git fetch origin`、`git merge --ff-only origin/<target-branch>`。
 4. 从已同步目标分支创建专用分支：`git switch -c loop/<loop-id>-<short-topic>`。
 5. 只改本 loop 范围内文件，不夹带无关重构、缓存、构建产物、密钥或临时文件。
-6. 在 loop 分支上运行验证、审查 `git diff --check` 和 `git diff`，并提交一个可解释的功能 commit。
+6. 在 loop 分支上按内部 checklist 运行直接受影响验证，审查累计 `git diff --check <target-branch>...HEAD` 和 `git diff <target-branch>...HEAD`，并提交一个或一组紧密相关的功能 commit。
 7. 切回目标分支，再次同步远端后用 `git merge --no-ff <loop-branch>` 合入。
 8. 合并后重新运行受影响验证，检查 `git diff --check` 和 `git diff origin/<target-branch>...HEAD`。
 9. 推送目标分支：`git push origin <target-branch>`。
 10. 推送成功并确认对齐后，清理 loop 分支：`git branch -d <loop-branch>`；如保留分支，必须记录原因、位置和清理责任。
 11. 无法运行的验证必须记录原因、影响范围和替代检查。
+
+### 3.1 粒度策略
+
+本图以“端到端能力块”而不是目录、技术层或机械实施步骤划分 loop。一个能力块可以
+跨后端、Web、小程序、测试和文档，但必须有一条完整验收链路和一个整体回滚边界；
+这些必要组成部分放在同一 loop 的内部 checklist 中，不分别创建分支和重复完整回归。
+
+- 默认合并：共享同一用户结果、状态机或质量 Gate，并可由一次聚焦 review、一次完整
+  验收和一次回滚判断的工作，保留在同一 loop。
+- 必须拆分：安全/数据持久化/公共协议的独立决策、可独立上线或回滚的结果、不同环境或
+  owner 的阻塞条件，或已大到无法在一次 review 中理解的 diff。
+- P24/P25 以管理端工作台、现场端可靠性、视觉与交互能力块组织；P21/P22 以业务链路和
+  安全边界组织。测试、CI 接线、smoke 手册和证据模板仅在自身构成独立 Gate 时单列。
+- 高风险 loop 在表格中标明风险/回滚边界；完成记录必须说明实际运行的验证和最终 diff。
 
 本地图中的所有计划 loop 默认只能是 `todo`。只有满足 `docs/LOOPRULE.md` 第 7 节完成定义，
 并在本文完成记录区追加记录后，才能标记为 `done`。
@@ -87,26 +101,26 @@
 
 ## 4. 当前基线
 
-截至本图编写时，已观察到的基线：
+当前已观察到的基线：
 
-- 后端非沙箱环境执行 `mvn test` 通过：83 tests, 0 failures, 0 errors。
-- 沙箱内 `mvn test` 可能因 Mockito/ByteBuddy 无法 self-attach 失败；这不是业务断言失败。
-- Web 执行 `pnpm build` 通过，但主 JS chunk 约 1.6 MB，存在代码分割警告。
-- 小程序 JS 执行 `node --check` 通过。
-- 未发现 `.github` CI。
-- Web 缺少独立 `typecheck/test` 脚本和关键页面测试。
-- Web 已有完整功能页面，但视觉层级、表格密度、表单引导、操作反馈和错误状态仍偏工程化。
-- 小程序已有现场端页面，但还需要更清晰的现场填报路径、弱网反馈、触控态和移动端视觉一致性。
-- 后端已有较多单元测试，但缺少数据库/Flyway/API 级集成测试基线。
-- 小程序已有现场端页面，但缺少可重复 smoke checklist、弱网/上传失败/重复提交验证。
-- 产品文档口径仍需与当前功能重新对齐。
+- 后端非沙箱完整 `mvn test` 已通过 99 tests，包含 Testcontainers PostgreSQL 18、空库
+  Flyway、历史库升级、API 合约、工资生命周期和项目结算生命周期回归。
+- Gitee Go 的后端、Web、小程序和文档 PR workflow 已入库；远端导入、首次运行和分支
+  保护仍是仓库管理员设置。
+- Web 已有 `typecheck`、Vitest 和生产构建门禁；构建通过，但主 JS chunk 约 1.60 MB，
+  代码分割是 L2-24-06 的独立性能边界。
+- 小程序已有全量 first-party JavaScript 语法检查和基础 smoke 证据模板；工资条本人读取与
+  确认已纳入工资 E2E 回归。
+- Web 与小程序已有主要业务页面，但视觉层级、表格与表单密度、异常状态、弱网、触控态
+  和多视口体验尚未完成正式版验收。
+- 产品文档、角色操作手册、缺陷策略、UAT 签字和最终非部署 Gate 尚未收口。
 
 仍不可信或尚未闭环的检查：
 
-- 空库 Flyway 迁移和旧库升级尚未形成自动化或可重复演练。
-- Web 关键页面缺少可重复视觉/交互回归记录。
-- 小程序真机弱网、上传失败、重复提交、待办审批尚未形成可重复验收记录。
-- CI 尚未把后端、Web、小程序和文档检查统一纳入 PR 门禁。
+- 签证收入、薪酬来源、权限/脱敏/文件访问等高风险业务边界仍缺少完整 E2E 或越权回归。
+- Web 关键页面缺少可重复视觉/交互回归记录和路由级代码分割验证。
+- 小程序真机弱网、上传失败、重复提交、待办审批以及视觉录屏尚未形成可重复验收记录。
+- Gitee Go 的远端实际运行与 required-status 分支保护尚待管理员完成并留存证据。
 
 ## 5. Loop 表字段与写法
 
@@ -119,16 +133,21 @@
 | 状态 | `todo`、`doing`、`partial`、`done` |
 | 目标 | 本 loop 要完成的单一目标 |
 | 主要范围 | 涉及目录、模块、接口、页面或文档 |
+| 内部 checklist | 为同一验收结果必须一起完成的紧密相关实现、测试、接线和文档步骤 |
+| 风险 / 回滚 | 高风险边界和失败时应整体撤销的范围；纯文档或独立 Gate 可注明低风险 |
 | 验收 | 可验证的完成标准 |
 | 验证 | 本 loop 必须运行或人工执行的检查 |
 
 写法约束：
 
 - `验收` 写可观察结果，不写笼统动作。
+- `内部 checklist` 不是独立 loop；它用于表达同一能力块的必要步骤。
+- `风险 / 回滚` 说明支付、权限、数据写入、迁移、公共协议或用户可见流程的隔离边界。
 - `验证` 写真实命令、页面路径、接口路径、截图对象或手工 smoke 方法。
 - 视觉和交互 loop 必须说明截图、录屏、多视口或状态覆盖方式。
 - 涉及认证、权限、数据写入、迁移、工资发放、项目结算、文件访问的 loop，应扩大验证范围。
-- 如果执行时发现某个 loop 同时包含多个目标，必须先拆分，不得硬做成一个大变更。
+- 如果执行时发现某个 loop 出现两个可独立交付/回滚的结果，必须先拆分；不要仅因跨
+  文件、跨端或同时需要测试和文档而拆分。
 
 ## 6. Launch Gate
 
@@ -144,96 +163,83 @@
 
 ### P20：上线范围、角色与业务验收口径
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-20-01 | product/docs | done | 冻结正式上线功能范围 | `docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md`、新增上线范围文档 | 列出本次上线功能、延期功能、明确不做事项；与 Web/后端/小程序真实能力一致 | `git diff --check` |
-| L2-20-02 | product/backend/web | done | 建立角色与权限矩阵 | 新增 `docs/ROLE_PERMISSION_MATRIX.md`、后端 controller、Web 菜单 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员的菜单、接口、数据范围清晰成表 | `rg -n "PreAuthorize|roles" server/src/main/java web/src`; `git diff --check` |
-| L2-20-03 | product/docs | done | 编写业务验收清单 | 新增 `docs/UAT_CHECKLIST.md` | 财务、项目经理、老板/管理层、员工/现场人员、管理员均有端到端验收用例 | `git diff --check` |
-| L2-20-04 | product/docs | done | 编写初始化验收清单 | `README.md`、新增 `docs/INITIALIZATION_CHECKLIST.md` | 管理员创建、角色初始化、工资项、工序库、测试账号、微信绑定准备步骤清晰 | `git diff --check` |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-20-01 | product/docs | done | 冻结正式上线功能范围 | `docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md`、上线范围文档 | 核对真实能力；列出延期/不做；写 Gate 入口 | 低风险；回滚为整份范围文档 | 范围、延期和不做事项与三端能力一致 | `git diff --check` |
+| L2-20-02 | product/backend/web | done | 建立角色与权限矩阵 | 权限表达式、Web 菜单、`ROLE_PERMISSION_MATRIX.md` | 汇总角色；映射接口/菜单/数据范围；校验来源代码 | 认证与数据范围；回滚为整次矩阵/接线变更 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员能力清晰成表 | `rg -n "PreAuthorize\|roles" server/src/main/java web/src`; `git diff --check` |
+| L2-20-03 | product/docs | done | 编写业务验收清单 | `docs/UAT_CHECKLIST.md` | 准备角色夹具；关键正向流；越权和异常证据 | 低风险；回滚为清单文档 | 各业务角色均有端到端验收用例 | `git diff --check` |
+| L2-20-04 | product/docs | done | 编写初始化验收清单 | `README.md`、`INITIALIZATION_CHECKLIST.md` | 管理员；角色/工资项/工序；测试账号/微信准备 | 初始化与凭据；回滚为文档和 bootstrap 接线整体 | 初始化、测试账号和微信准备步骤清晰 | `git diff --check` |
 
 ### P21：核心业务端到端回归
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-21-01 | qa/backend/web | done | 建立工资主流程 E2E 回归 | 员工、工资档案、月度工资、审批、发放、工资条 | 员工入职 -> 工资档案 -> 生成工资 -> 提交 -> 审核 -> 发放 -> 工资条确认流程可重复验证 | `mvn test`; `pnpm build`; 记录 smoke 结果 |
-| L2-21-02 | qa/backend/web/miniapp | done | 建立项目日报到班组结算 E2E 回归 | 项目、合同清单、日报、确认、班组结算、支付 | 项目创建 -> 合同清单 -> 日报 -> 工程量确认 -> 班组结算 -> 支付流程可重复验证 | `mvn test`; `pnpm build`; `node --check miniapp/**/*.js` 或等价检查 |
-| L2-21-03 | qa/backend/web/miniapp | todo | 建立签证变更收入 E2E 回归 | 签证、附件、确认金额、项目看板 | 小程序/管理端提交签证 -> 管理端确认金额 -> 项目看板收入变化可验证 | `mvn test`; `pnpm build` |
-| L2-21-04 | qa/backend/web | todo | 建立薪酬来源进入工资 E2E 回归 | 考勤、扣款、绩效、奖金、工资生成来源 | 考勤扣款、法定扣款、绩效、项目奖金能进入工资明细和来源记录 | `mvn test`; `pnpm build` |
-| L2-21-05 | qa/docs | todo | 建立回归结果记录模板 | 新增 `docs/REGRESSION_RECORD_TEMPLATE.md` | 每次回归能记录环境、账号、数据、步骤、期望、实际、截图/导出文件、缺陷链接 | `git diff --check` |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-21-01 | qa/backend/web | done | 建立工资主流程 E2E 回归 | 员工、工资档案、月度工资、审批、发放、工资条 | HTTP 夹具；角色分工；本人读取/确认；Web/小程序 smoke 手册 | 工资状态与金额；回滚为工资自助接口、确认 UI 和测试整体 | 入职到工资条确认可重复验证 | `mvn test`; `pnpm build`; 回归记录 |
+| L2-21-02 | qa/backend/web/miniapp | done | 建立项目日报到班组结算 E2E 回归 | 项目、合同清单、日报、确认、班组结算、支付 | 计价夹具；日报确认；结算支付；看板金额断言；smoke 手册 | 项目金额和结算状态；回滚为整条结算回归能力 | 项目创建到班组支付可重复验证 | `mvn test`; `pnpm build`; `npm --prefix miniapp run check` |
+| L2-21-03 | qa/backend/web/miniapp | todo | 建立签证变更收入 E2E 回归 | 签证、附件、确认金额、项目看板 | 创建/绑定附件；提交；确认金额；看板收入断言；三端 smoke | 收入与附件归属；回滚为签证确认/收入接线整体 | 小程序或管理端提交签证后，确认金额和看板收入可验证 | `mvn test`; `pnpm build`; `npm --prefix miniapp run check` |
+| L2-21-04 | qa/backend/web | todo | 建立薪酬来源进入工资 E2E 回归 | 考勤、法定扣款、绩效、项目奖金、工资来源 | 构造四类来源；生成工资；明细/来源断言；管理端 smoke | 工资金额和来源快照；回滚为薪酬汇总链路整体 | 各来源可进入工资明细并可追溯 | `mvn test`; `pnpm build` |
+| L2-21-05 | qa/docs | done | 复用统一回归结果证据模板 | `PULL_REQUEST_TEMPLATE.md`、回归证据规则和模板 | 统一 PR 分类；详细记录模板；豁免规则；数据脱敏 | 低风险；由 L2-26-05 已闭环产物整体回滚 | 每次回归可记录环境、步骤、结果和证据，不再重复建设模板 | PR 模板检查；`node scripts/ci/check-docs.mjs` |
 
 ### P22：权限、安全与敏感信息回归
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-22-01 | backend/qa | todo | 补齐后端权限集成测试 | `server/src/test`、认证、工资、项目、系统接口 | 普通员工、项目人员、财务、项目经理、管理员的正向/越权访问均有测试 | `mvn test` |
-| L2-22-02 | web/qa | todo | 验证 Web 菜单与 403 体验 | `web/src/components/layout`、axios 拦截器、关键页面 | 无权限菜单不展示；直接访问无权限路由/接口时有清晰提示，不白屏 | `pnpm build`; Web smoke |
-| L2-22-03 | backend/web | todo | 敏感信息脱敏与查看权限 | 员工、工资、系统用户、导出页面/API | 身份证、银行卡、手机号、工资金额按角色脱敏；有权限角色可查看完整信息 | `mvn test`; `pnpm build`; 权限 smoke |
-| L2-22-04 | backend/qa | todo | 审计日志覆盖回归 | 工资、项目、绩效、系统用户、微信绑定 | 关键创建、修改、审批、驳回、发放、导出、绑定/解绑操作都有可查询日志 | `mvn test`; UAT 日志抽查 |
-| L2-22-05 | backend/qa | todo | 文件访问与附件归属端到端验证 | 文件上传、工资凭证、日报照片、签证附件、资料归档 | 未授权用户不能下载私有文件；附件不能跨业务重复滥用 | `mvn test`; 文件 smoke |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-22-01 | backend/web/qa | todo | 建立访问控制与敏感数据回归 | 认证、工资、项目、系统、导出 API 与页面 | 角色正向/越权；字段/导出脱敏；完整权限查看；集成夹具 | 授权和敏感数据；回滚为访问判定/序列化/页面展示整体 | 各角色的 200/401/403 和脱敏/完整查看行为可重复验证 | `mvn test`; `pnpm build`; 权限 smoke |
+| L2-22-02 | web/qa | todo | 完成 Web 无权限导航与失败体验 | AppLayout、axios、受限路由和关键页 | 菜单过滤；路由直达；403/401 提示；加载结束和重试 | 用户可见访问反馈；回滚为导航/错误状态组件整体 | 无权限入口不展示，直达受限路由或接口不白屏且可理解 | `pnpm typecheck`; `pnpm test`; `pnpm build`; Web smoke |
+| L2-22-03 | backend/qa | todo | 建立关键审计日志回归 | 工资、项目、绩效、用户、微信绑定 | 关键动作矩阵；自动化断言；日志查询/抽查路径 | 审计可追溯；回滚为新增日志测试/接线整体 | 创建、修改、审批、驳回、发放、导出和绑定/解绑均可查询 | `mvn test`; UAT 日志抽查 |
+| L2-22-04 | backend/qa | todo | 验证文件访问与附件归属边界 | 上传、工资凭证、日报照片、签证附件、资料归档 | 授权下载；跨业务重用拒绝；私有附件 smoke；回归断言 | 私有文件与业务归属；回滚为文件授权/绑定变更整体 | 未授权无法下载，附件不能跨业务重复滥用 | `mvn test`; 文件 smoke |
 
 ### P23：后端集成测试与数据迁移可信度
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-23-01 | backend | done | 建立后端集成测试基线 | Testcontainers 或测试数据库 profile、Flyway、认证测试工具 | 集成测试能启动真实数据库或隔离测试库，自动执行迁移 | `mvn test` 或 `mvn verify` |
-| L2-23-02 | backend/database | done | 空库 Flyway 迁移验证 | `server/src/main/resources/db/migration`、测试或脚本 | 从空库可完整迁移到最新版本；默认角色、工资项、工序库符合初始化口径 | 迁移测试；`mvn test` |
-| L2-23-03 | backend/database | done | 旧库升级迁移演练 | 匿名 fixture、迁移脚本、升级文档 | 含历史工资、项目、附件、用户、微信绑定的旧数据可升级且核心数据不丢 | 升级演练记录；迁移测试 |
-| L2-23-04 | backend | done | API 请求校验与错误响应集成测试 | Controller、DTO、GlobalExceptionHandler | 必填、状态、金额、月份、权限错误均返回统一可读错误 | `mvn test` |
-| L2-23-05 | backend | done | 关键 API 合约快照 | OpenAPI 或 contract fixture、核心接口响应结构 | 前后端依赖的核心字段有合约记录，破坏性变更能被发现 | `mvn test`; contract check |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-23-01 | backend | done | 建立后端集成测试基线 | Testcontainers、Flyway、认证测试工具 | PostgreSQL 容器；空库迁移；HTTP 登录/授权；CI 前提 | 测试基础设施；回滚为测试依赖和配置整体 | 集成测试可启动隔离数据库并执行迁移 | `mvn test` |
+| L2-23-02 | backend/database | done | 空库 Flyway 迁移验证 | migration、初始化数据、测试 | 最新版本；角色；工资项；工序库断言 | 数据库结构；回滚仅撤销验证测试，迁移不倒退 | 空库可迁移到最新版本且默认数据正确 | `mvn test` |
+| L2-23-03 | backend/database | done | 旧库升级迁移演练 | 匿名 fixture、迁移、升级文档 | V12 fixture；升级；核心历史数据断言；操作指引 | 历史数据兼容；回滚为测试/文档，不回退已发布迁移 | 旧数据可升级且工资、项目、附件、用户和微信绑定不丢 | `mvn test`; 升级演练记录 |
+| L2-23-04 | backend | done | API 请求校验与错误响应集成测试 | Controller、DTO、异常处理 | 必填；状态/金额/月；权限；统一错误 envelope | 公共 API 错误协议；回滚为异常映射/测试整体 | 错误返回统一且可读 | `mvn test` |
+| L2-23-05 | backend | done | 关键 API 合约快照 | contract fixture、核心接口 | 登录/身份；项目；月度工资；字段快照 | 公共协议；回滚为合约 fixture/测试整体 | 破坏性核心字段变化可被发现 | `mvn test`; contract check |
 
 ### P24：Web 正式版体验与质量门禁
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-24-01 | web | todo | 增加 Web 类型与测试脚本 | `web/package.json`、测试框架配置 | 提供 `typecheck`、`test` 或等价脚本；CI 可直接调用 | `pnpm typecheck`; `pnpm test`; `pnpm build` |
-| L2-24-02 | web/qa | todo | 增加 Web 登录与导航 smoke | 登录页、AppLayout、权限菜单 | 登录成功、登录失败、token 失效、菜单显示可自动或半自动验证 | `pnpm test`; `pnpm build` |
-| L2-24-03 | web | todo | 统一错误、加载、空状态 | axios、通用组件、员工/工资/项目关键页 | 请求失败、无数据、加载中、无权限均有一致 UI；不会静默失败或白屏 | `pnpm build`; Web smoke |
-| L2-24-04 | web | todo | 补强工资关键操作体验 | 月度工资、明细、发放、导出、异常页 | 生成、重算、提交、审核、批量发放、导出有确认、结果反馈和失败提示 | `pnpm build`; 工资 smoke |
-| L2-24-05 | web | todo | 补强项目关键操作体验 | 日报、工程量确认、签证、结算、看板 | 项目核心表格有筛选/分页；审批/驳回/支付有确认和结果反馈 | `pnpm build`; 项目 smoke |
-| L2-24-06 | web | todo | 路由级懒加载与代码分割 | `web/src/app/router.tsx`、页面 import、Vite 配置 | 生产构建主 chunk 明显下降；关键路由按需加载；无首屏功能回归 | `pnpm build`；记录 chunk 对比 |
-| L2-24-07 | web | todo | 大列表分页、筛选和批量操作完善 | 员工、工资明细、日报、结算、绩效列表 | 大数据量下可分页筛选；批量操作有确认、进度和结果反馈 | `pnpm build`; Web smoke |
-| L2-24-08 | design/web | todo | 建立 Web 视觉设计基线 | `web/src/styles.css`、通用组件、布局组件 | 颜色、字号、间距、阴影、边框、状态色、图标使用形成统一 token/约定；页面不再呈现零散临时样式 | `pnpm build`; 视觉抽查 |
-| L2-24-09 | design/web | todo | 优化整体布局与信息层级 | AppLayout、Dashboard、工资、项目、系统页面 | 顶栏、侧栏、页面标题、操作区、筛选区、表格区层级清晰；首屏能直接进入主要工作流 | `pnpm build`; 桌面截图验收 |
-| L2-24-10 | design/web | todo | 表格与表单视觉升级 | 通用 Field、Modal、表格样式、员工/工资/项目表单 | 表格可扫描、列宽稳定、状态标签一致；表单分组、必填、错误、帮助信息清晰 | `pnpm build`; 表单 smoke |
-| L2-24-11 | design/web | todo | 关键操作微交互与反馈 | 按钮、Modal、批量操作、上传、导出、审批动作 | hover/focus/disabled/loading/success/error 状态完整；长操作有进度或明确等待反馈 | `pnpm build`; 交互 smoke |
-| L2-24-12 | design/web | todo | 空状态、异常状态与引导文案美化 | 通用状态组件、员工/工资/项目/系统页面 | 空数据、无权限、加载失败、操作失败都有业务化文案和下一步操作；不出现生硬技术错误 | `pnpm build`; 状态截图验收 |
-| L2-24-13 | design/web | todo | 响应式与窄屏体验 | 主要页面布局、表格滚动、弹窗、筛选区 | 1366px、1440px、移动窄屏/平板宽度下文字不重叠，按钮不溢出，弹窗可滚动操作 | `pnpm build`; 多视口截图验收 |
-| L2-24-14 | design/web/qa | todo | 建立 Web 视觉回归截图清单 | 新增 `docs/WEB_VISUAL_QA_CHECKLIST.md`，可选 Playwright 截图 | 登录、仪表盘、员工、工资、项目、绩效、系统关键页面有截图验收清单；后续 UI 改动可比对 | `git diff --check`; 截图 smoke |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-24-01 | web/qa | todo | 建立 Web 质量、登录导航与访问状态基线 | 登录、AppLayout、axios、通用状态组件 | 复用 P26 脚本；登录成功/失败/token 失效；菜单；loading/empty/403/error；smoke | 登录和访问反馈；回滚为通用状态/导航接线整体 | 关键入口不白屏，访问失败有一致可操作反馈 | `pnpm typecheck`; `pnpm test`; `pnpm build`; Web smoke |
+| L2-24-02 | web | todo | 完成工资工作台关键操作体验 | 月度工资、明细、发放、导出、异常 | 生成/重算；提交/审核；批量发放；导出；确认/结果/失败反馈 | 工资状态和金额操作；回滚为工资工作台整体 | 关键工资动作均有确认、结果和失败提示 | `pnpm build`; 工资 smoke |
+| L2-24-03 | web | todo | 完成项目工作台与大列表操作体验 | 日报、确认、签证、结算、看板及项目列表 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈 | 项目状态和大列表交互；回滚为项目工作台整体 | 项目核心表格可扫描并可安全完成关键操作 | `pnpm build`; 项目 smoke |
+| L2-24-04 | design/web | todo | 建立 Web 设计系统与信息层级 | `styles.css`、布局、Field、Modal、表格和表单 | token；顶栏/侧栏/标题；操作/筛选区；表格列宽；表单分组 | 跨页视觉基础；回滚为 token/通用组件整体 | 页面层级、表单和表格形成一致可扫描规范 | `pnpm build`; 桌面截图；表单 smoke |
+| L2-24-05 | design/web | todo | 完成响应式交互与业务状态体验 | 按钮、Modal、上传/导出、空/异常状态、窄屏布局 | hover/focus/disabled/loading；成功/失败文案；弹窗滚动；1366/1440/窄屏 | 用户可见交互；回滚为通用交互/响应式样式整体 | 操作反馈完整，多视口文字和控件不重叠/溢出 | `pnpm build`; 交互 smoke；多视口截图 |
+| L2-24-06 | web | todo | 路由级懒加载与代码分割 | router、页面 import、Vite 配置 | 路由边界；动态 import；chunk 对比；首屏 smoke | 生产加载性能；回滚为路由加载策略整体 | 主 chunk 明显下降，关键路由按需加载且首屏无回归 | `pnpm build`; chunk 对比；Web smoke |
+| L2-24-07 | design/web/qa | todo | 建立 Web 视觉回归基线 | `WEB_VISUAL_QA_CHECKLIST.md`、可选 Playwright | 页面清单；正常/空/错误；桌面/窄屏截图；证据归档 | QA 证据；回滚为清单/截图资产 | 关键页面后续可按同一截图基线验收 | `git diff --check`; 截图 smoke |
 
 ### P25：小程序现场端正式版体验
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-25-01 | miniapp/qa | todo | 建立小程序 smoke checklist | 新增 `docs/MINIAPP_SMOKE_CHECKLIST.md`、`miniapp` 页面 | 登录、绑定、工资查看、日报、签证、待办、上传、退出均有检查步骤 | `git diff --check`; 微信开发者工具 smoke |
-| L2-25-02 | miniapp | todo | 上传进度、失败重试与错误提示 | `miniapp/services/file.js`、日报/签证页面 | 照片上传有进度；失败可重试；错误提示可读；不会误判提交成功 | `node --check`; 小程序 smoke |
-| L2-25-03 | miniapp | todo | 草稿与弱网恢复 | 日报、签证创建页、本地缓存 | 断网/退出后草稿可恢复；提交成功后清理草稿；不会覆盖用户新输入 | `node --check`; 弱网 smoke |
-| L2-25-04 | miniapp | todo | 防重复提交 | 日报、签证、待办审批按钮 | 提交中按钮锁定；重复点击不会生成重复业务记录或重复审批 | `node --check`; 小程序 smoke |
-| L2-25-05 | miniapp/backend | todo | 小程序接口契约回归 | `miniapp/services`、后端相关接口 | 小程序字段与后端 DTO/状态流一致；后端字段变化能被 smoke 捕获 | `mvn test`; `node --check` |
-| L2-25-06 | design/miniapp | todo | 小程序视觉基线统一 | `miniapp/app.wxss`、页面 wxss、Vant 组件主题 | 首页、工资、日报、签证、待办、我的页面颜色、间距、卡片、状态标签一致；触控区域不拥挤 | `node --check`; 真机/开发者工具截图验收 |
-| L2-25-07 | design/miniapp | todo | 现场填报路径交互升级 | 日报创建、签证创建、项目/施工段/工序选择 | 现场人员能按“选择项目 -> 填工程量/签证 -> 上传照片 -> 保存/提交”的自然顺序完成；必填和错误提示清楚 | `node --check`; 小程序流程 smoke |
-| L2-25-08 | design/miniapp | todo | 待办审批体验升级 | 待办列表、审批/驳回交互、意见输入 | 待办按类型和紧急度可扫描；审批、驳回、意见输入、结果反馈清晰；误触风险降低 | `node --check`; 小程序待办 smoke |
-| L2-25-09 | design/miniapp | todo | 工资查看与工资条确认体验升级 | 工资列表、工资详情、明细项、确认/反馈 | 员工能清楚看到月份、应发、扣减、实发、发放状态和异常反馈入口；金额展示稳定易读 | `node --check`; 工资查看 smoke |
-| L2-25-10 | design/miniapp/qa | todo | 建立小程序视觉回归清单 | 新增 `docs/MINIAPP_VISUAL_QA_CHECKLIST.md` | 主要页面、弹窗、空状态、弱网、上传中、提交中均有截图/录屏验收要求 | `git diff --check`; 微信开发者工具 smoke |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-25-01 | miniapp/qa | todo | 建立现场流程可靠性与 smoke 能力 | 登录、绑定、日报、签证、待办、上传、退出、缓存 | 详细 checklist；上传进度/重试；草稿/弱网恢复；提交锁定；基础证据 | 现场数据写入和重复操作；回滚为可靠性辅助层整体 | 关键现场路径可在弱网和重复触发下安全完成或恢复 | `npm --prefix miniapp run check`; 微信开发者工具弱网 smoke |
+| L2-25-02 | miniapp/backend | todo | 建立小程序接口契约回归 | `miniapp/services`、后端 DTO/状态流 | 字段清单；关键状态；后端 contract/HTTP 测试；miniapp 服务 smoke | 移动端公共协议；回滚为契约 fixture/服务接线整体 | 字段或状态变化会被测试或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check` |
+| L2-25-03 | design/miniapp | todo | 统一现场填报视觉与交互路径 | app theme、日报/签证创建、项目/施工段/工序选择 | 视觉 token；选择顺序；必填/错误；照片；保存/提交 | 现场输入易用性；回滚为样式/填报流程整体 | 现场人员可自然完成选择、填写、上传和提交 | `npm --prefix miniapp run check`; 小程序流程 smoke |
+| L2-25-04 | design/miniapp | todo | 完成待办审批与工资查看交互 | 待办、审批/驳回、工资列表/详情/确认/反馈 | 类型/紧急度；意见输入；防误触；金额层级；确认/异常入口 | 审批和工资确认；回滚为两类交互页面整体 | 待办可扫描安全处理，员工可清楚查看/确认工资条 | `npm --prefix miniapp run check`; 待办与工资 smoke |
+| L2-25-05 | design/miniapp/qa | todo | 建立小程序视觉与状态回归基线 | `MINIAPP_VISUAL_QA_CHECKLIST.md`、主要页面/弹窗 | 页面清单；空/弱网/上传中/提交中；真机截图/录屏；证据归档 | QA 证据；回滚为清单/截图资产 | 主要移动页面及状态有可重复视觉验收 | `git diff --check`; 微信开发者工具 smoke |
 
 ### P26：自动化质量门禁
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-26-01 | ci/backend | done | 建立后端测试门禁 | `.github/workflows` 或等价 CI、`server` | PR 自动运行后端测试；失败阻断合入 | CI dry run 或本地等价命令 |
-| L2-26-02 | ci/web | done | 建立 Web 构建与测试门禁 | CI、`web` | PR 自动运行 Web typecheck/test/build；失败阻断合入 | CI dry run 或本地等价命令 |
-| L2-26-03 | ci/miniapp | done | 建立小程序语法与 smoke 门禁 | CI、`miniapp`、smoke 文档 | PR 自动运行小程序 JS 语法检查；人工 smoke checklist 有提交模板 | CI dry run；`node --check` |
-| L2-26-04 | ci/docs | done | 建立文档与 diff 检查门禁 | CI、Markdown、迁移文件 | PR 至少运行 `git diff --check`；可选检查文档链接和 migration 命名 | CI dry run |
-| L2-26-05 | ci/qa | done | 建立回归证据归档规则 | PR 模板、回归记录模板 | 影响工资/项目/权限/迁移的 PR 必须附验证记录或说明不适用 | PR 模板检查 |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-26-01 | ci/backend | done | 建立后端测试门禁 | Gitee Go、`server` | workflow；Java/Docker；Testcontainers；保护说明 | 质量 Gate；回滚为 workflow 文档整体 | PR 可运行后端完整测试 | CI dry run；本地 Maven 等价命令 |
+| L2-26-02 | ci/web | done | 建立 Web 构建与测试门禁 | Gitee Go、`web` | frozen install；typecheck；Vitest；build；保护说明 | 质量 Gate；回滚为 workflow/脚本整体 | PR 可运行 Web typecheck/test/build | CI dry run；本地 pnpm 等价命令 |
+| L2-26-03 | ci/miniapp | done | 建立小程序语法与 smoke 门禁 | Gitee Go、`miniapp`、smoke 模板 | first-party JS；workflow；人工证据模板 | 质量 Gate；回滚为检查/模板整体 | PR 可运行小程序语法检查并提交 smoke 证据 | CI dry run；`npm --prefix miniapp run check` |
+| L2-26-04 | ci/docs | done | 建立文档与 diff 检查门禁 | Gitee Go、Markdown、迁移文件 | whitespace；链接；migration 命名/版本；workflow | 质量 Gate；回滚为检查脚本/workflow整体 | PR 可发现 diff、链接和迁移完整性问题 | CI dry run；`node scripts/ci/check-docs.mjs` |
+| L2-26-05 | ci/qa | done | 建立回归证据归档规则 | PR 模板、回归记录模板、评审规则 | 风险分类；记录模板；豁免；数据脱敏；审核 Gate | 证据治理；回滚为模板/规则整体 | 工资/项目/权限/迁移 PR 必须附证据或可接受豁免 | PR 模板检查 |
 
 ### P27：产品文档、操作手册与最终上线 Gate
 
-| Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
-| --- | --- | --- | --- | --- | --- | --- |
-| L2-27-01 | docs/product | todo | 更新 README 与产品文档口径 | `README.md`、`docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md` | 文档不再停留在 v0.1；准确描述当前正式版功能边界 | `git diff --check` |
-| L2-27-02 | docs/product | todo | 编写角色操作手册 | 新增 `docs/USER_GUIDE_*.md` | 财务、项目经理、老板/管理层、员工/现场人员、管理员均有操作路径 | `git diff --check` |
-| L2-27-03 | docs/qa | todo | 编写缺陷分级与上线阻断规则 | 新增 `docs/LAUNCH_DEFECT_POLICY.md` | P0/P1/P2 缺陷定义、阻断条件、延期批准规则清晰 | `git diff --check` |
-| L2-27-04 | release/qa | todo | 建立 UAT 问题跟踪与签字表 | 新增 `docs/UAT_SIGNOFF.md` | 各角色验收结果、问题、处理状态、签字/确认人可记录 | `git diff --check` |
-| L2-27-05 | release | todo | 正式上线非部署 Gate 审查 | `docs/LAUNCH_READINESS_REVIEW.md` | 本图所有必需 loop 已 done 或明确延期；测试、UAT、权限、迁移、文档证据齐全 | 完整回归命令；人工 gate 审查 |
+| Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L2-27-01 | docs/product | todo | 更新产品定位与正式版文档口径 | README、brief、roadmap | 功能边界；延期项；质量入口；术语一致 | 对外口径；回滚为文档包整体 | 文档准确描述正式版能力和明确不做项 | `git diff --check`; 文档链接检查 |
+| L2-27-02 | docs/product | todo | 编写角色操作手册包 | `USER_GUIDE_*.md` | 财务；项目经理；老板；员工/现场；管理员路径 | 操作可执行性；回滚为手册包整体 | 所有角色都有可完成关键任务的操作路径 | `git diff --check`; 角色 walkthrough |
+| L2-27-03 | docs/qa | todo | 编写缺陷分级与上线阻断规则 | `LAUNCH_DEFECT_POLICY.md` | P0/P1/P2；阻断；延期批准；责任记录 | 发布决策；回滚为策略文档 | 缺陷级别、阻断和批准条件明确 | `git diff --check`; Gate 审查 |
+| L2-27-04 | release/qa | todo | 建立 UAT 跟踪与签字能力 | `UAT_SIGNOFF.md`、问题跟踪约定 | 角色结果；问题；复测；确认/签字；证据链接 | 上线证据；回滚为 UAT 文档整体 | 各角色验收结果和未决问题可追溯 | `git diff --check`; UAT 演练 |
+| L2-27-05 | release | todo | 执行正式上线非部署 Gate 审查 | `LAUNCH_READINESS_REVIEW.md`、全部证据 | loop 状态；测试；UAT；权限；迁移；缺陷/延期批准 | 发布 Gate；回滚为不批准上线，不回滚业务数据 | 必需 loop 完成或正式延期且无 P0/P1 未关闭缺陷 | 完整回归；人工 Gate 审查 |
 
 ## 8. 建议执行顺序
 
@@ -270,7 +276,7 @@
 
 ```bash
 git status --short --branch
-git diff --check
+git diff --check origin/<target-branch>...HEAD
 git diff origin/<target-branch>...HEAD
 ```
 
@@ -296,7 +302,7 @@ git diff origin/<target-branch>...HEAD
 Loop:
 Target branch:
 Loop branch:
-Commit:
+Commit(s):
 Merge commit:
 Verification:
 Diff review:
