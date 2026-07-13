@@ -155,7 +155,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L2-21-01 | qa/backend/web | todo | 建立工资主流程 E2E 回归 | 员工、工资档案、月度工资、审批、发放、工资条 | 员工入职 -> 工资档案 -> 生成工资 -> 提交 -> 审核 -> 发放 -> 工资条确认流程可重复验证 | `mvn test`; `pnpm build`; 记录 smoke 结果 |
+| L2-21-01 | qa/backend/web | done | 建立工资主流程 E2E 回归 | 员工、工资档案、月度工资、审批、发放、工资条 | 员工入职 -> 工资档案 -> 生成工资 -> 提交 -> 审核 -> 发放 -> 工资条确认流程可重复验证 | `mvn test`; `pnpm build`; 记录 smoke 结果 |
 | L2-21-02 | qa/backend/web/miniapp | todo | 建立项目日报到班组结算 E2E 回归 | 项目、合同清单、日报、确认、班组结算、支付 | 项目创建 -> 合同清单 -> 日报 -> 工程量确认 -> 班组结算 -> 支付流程可重复验证 | `mvn test`; `pnpm build`; `node --check miniapp/**/*.js` 或等价检查 |
 | L2-21-03 | qa/backend/web/miniapp | todo | 建立签证变更收入 E2E 回归 | 签证、附件、确认金额、项目看板 | 小程序/管理端提交签证 -> 管理端确认金额 -> 项目看板收入变化可验证 | `mvn test`; `pnpm build` |
 | L2-21-04 | qa/backend/web | todo | 建立薪酬来源进入工资 E2E 回归 | 考勤、扣款、绩效、奖金、工资生成来源 | 考勤扣款、法定扣款、绩效、项目奖金能进入工资明细和来源记录 | `mvn test`; `pnpm build` |
@@ -532,4 +532,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-26-05-regression-evidence is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added a repository-controlled root PULL_REQUEST_TEMPLATE.md, a detailed regression evidence record template, and a reviewer policy that blocks merge when payroll, project, permission, or migration evidence is missing or an exception is not concretely accepted. Completed evidence remains in the PR or approved QA artifact and must use redacted non-production data.
+```
+
+```text
+Loop: L2-21-01
+Target branch: master
+Loop branch: loop/L2-21-01-payroll-e2e
+Commit: 113d616 loop: add payroll lifecycle regression
+Merge commit: 09412db merge: complete L2-21-01 payroll E2E
+Verification: SalaryLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering ADMIN employee/profile/monthly creation and generation, BOSS approval, FINANCE payment, and the bound EMPLOYEE's own history/detail/items/payslip confirmation; full server Maven suite passed with 98 tests; pnpm typecheck, pnpm test (2 tests), and pnpm build passed; npm --prefix miniapp run check passed; node scripts/ci/check-docs.mjs passed for 21 repository-maintained Markdown files and 21 Flyway migrations; git diff --check passed. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
+Diff review: passed; reviewed final name-status, full source/test/runbook content, and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-21-01-payroll-e2e is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added a self-only salary-detail read endpoint without relaxing the manager-only monthly list; the miniapp now uses that endpoint, displays payslip status, confirms through an explicit modal, and disables repeat confirmation while it is pending. The runbook records the automated and Web/miniapp smoke path using non-production evidence.
 ```
