@@ -261,7 +261,7 @@ Gate 不能给出通过结论。
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-27-01 | docs/product/qa | doing | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
+| L2-27-01 | docs/product/qa | done | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
 | L2-27-02 | release/qa | todo | 执行 UAT 签字与正式上线非部署 Gate | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果和未决问题可追溯，必需 Loop 完成或正式延期，且无 P0/P1 未关闭缺陷；L2-25-02 延期人工证据必须通过或获得书面批准 | 完整回归；UAT 演练与签字；小程序真实账号/弱网/录屏复测；人工 Gate 审查 |
 
 ## 8. 建议执行顺序
@@ -772,4 +772,19 @@ Push: master is pushed to origin with the merge and this completion record
 Loop branch cleanup: local loop/L2-25-02-miniapp-field-workspace is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: By explicit user instruction on 2026-07-13, the real small-program sign-in issue and all authenticated field/weak-network visual evidence are deferred to L2-27-02. This is a documented final-Gate blocker, not a passed manual verification or formal launch approval.
+```
+
+```text
+Loop: L2-27-01
+Target branch: master
+Loop branch: loop/L2-27-01-product-docs
+Commit(s): 6d766b4 loop: add formal release documentation
+Merge commit: 186dcfe merge: complete L2-27-01 formal release documentation
+Verification: Post-merge git diff --check and git diff --check origin/master...HEAD passed. node scripts/ci/check-docs.mjs passed for 35 repository-maintained Markdown files and 21 Flyway migrations. All Loop table rows passed the escaped-pipe-aware column-count check. A role walkthrough traced Web menus and route roles to web/src/components/layout/AppLayout.tsx and web/src/lib/access.ts, and traced the miniapp guide paths to the home, report, variation, todo, salary, and profile page actions. No live UAT, real-account miniapp flow, weak-network run, screenshot archive, or recording is claimed by this documentation loop.
+Diff review: passed; reviewed the complete documentation diff, including all local links, scope language, role restrictions, defect levels, and the L2-25-02 deferred-evidence wording
+Remote sync: fetched origin and fast-forward check passed before branch creation and again before the no-ff merge
+Push: master is pushed to origin with this merge and completion record
+Loop branch cleanup: local loop/L2-27-01-product-docs is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: This loop completed the formal documentation and defect-governance package only. L2-27-02 remains responsible for UAT execution, issue tracking, final Gate evidence, and the truthful final approval or non-approval decision. The user-directed deferral of authenticated miniapp/weak-network evidence remains a Gate blocker, not an approved release exception.
 ```
