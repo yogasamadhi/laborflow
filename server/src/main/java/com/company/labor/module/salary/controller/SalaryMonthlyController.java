@@ -143,6 +143,12 @@ public class SalaryMonthlyController {
         return Result.success(PageResult.of(service.details(monthlyId, page, pageSize)));
     }
 
+    @GetMapping("/details/{detailId}")
+    public Result<SalaryMonthlyDetailDO> detail(@PathVariable Long detailId, Authentication authentication) {
+        requireSalaryDetailAccess(detailId, authentication);
+        return Result.success(detailMapper.selectById(detailId));
+    }
+
     @PutMapping("/details/{detailId}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDetailDO> updateDetail(@PathVariable Long detailId, @Valid @RequestBody SalaryWriteDTO.SalaryMonthlyDetailRequest dto) {

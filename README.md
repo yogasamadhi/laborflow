@@ -83,6 +83,8 @@ The documentation, Flyway migration, and whitespace gate is documented in
 The required pull-request regression evidence and review rule for payroll,
 projects, permissions, and migrations is documented in
 [`docs/REGRESSION_EVIDENCE_POLICY.md`](docs/REGRESSION_EVIDENCE_POLICY.md).
+The automated payroll lifecycle regression and accompanying Web smoke record
+are documented in [`docs/PAYROLL_E2E_REGRESSION.md`](docs/PAYROLL_E2E_REGRESSION.md).
 
 
 ## 目录

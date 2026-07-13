@@ -9,6 +9,10 @@
       <text class="muted">发放状态</text>
       <van-tag plain type="{{detail.paymentStatusTagType}}">{{detail.paymentStatusText}}</van-tag>
     </view>
+    <view class="row payslip-status-row">
+      <text class="muted">工资条确认</text>
+      <van-tag plain type="{{detail.payslipStatusTagType}}">{{detail.payslipStatusText}}</van-tag>
+    </view>
     <view class="money-line">
       <text class="muted small">实发金额</text>
       <text class="actual">{{detail.actualAmountText}}</text>
@@ -26,6 +30,9 @@
         <text class="muted small">发放日期</text>
         <text>{{detail.paymentDateText}}</text>
       </view>
+    </view>
+    <view class="payslip-action" wx:if="{{detail.payslipStatus !== 'confirmed'}}">
+      <van-button block type="primary" loading="{{confirming}}" disabled="{{confirming}}" bind:tap="confirmPayslip">确认工资条无误</van-button>
     </view>
   </view>
 
