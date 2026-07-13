@@ -10,9 +10,10 @@ npm --prefix miniapp run check
 ```
 
 The script checks every first-party `.js` file under `miniapp/` with
-`node --check` and skips `node_modules`. It validates JavaScript syntax only;
-WeChat runtime, Vant component rendering, device permissions, uploads, and
-network behavior remain manual smoke responsibilities.
+`node --check`, skips `node_modules`, then runs the mocked identity and
+service-contract regression tests. WeChat runtime, Vant component rendering,
+device permissions, real uploads, and real network behavior remain manual
+smoke responsibilities.
 
 ## Enablement
 
@@ -26,4 +27,5 @@ status is required.
 Every pull request that changes a user-visible miniapp flow must attach a
 completed record based on
 [`docs/MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md).
-The later detailed flow checklist is maintained separately from this CI gate.
+The identity/session flow checklist is maintained in
+[`docs/MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md).

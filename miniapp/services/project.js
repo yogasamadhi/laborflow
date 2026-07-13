@@ -46,7 +46,7 @@ function rejectDailyReport(id, data) {
 }
 
 function attachDailyReportFile(id, fileId) {
-  return request.post("/daily-work-reports/" + id + "/files", { fileId, fileType: "site_photo" });
+  return request.post("/daily-work-reports/" + id + "/files", { fileId, fileType: "photo" });
 }
 
 function dailyReportConfirms(id) {
