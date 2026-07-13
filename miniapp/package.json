@@ -3,6 +3,9 @@
   "version": "3.0.0",
   "private": true,
   "description": "LaborFlow 微信小程序端",
+  "scripts": {
+    "check": "find . -path './node_modules' -prune -o -name '*.js' -exec node --check {} \\;"
+  },
   "dependencies": {
     "@vant/weapp": "^1.11.7"
   }

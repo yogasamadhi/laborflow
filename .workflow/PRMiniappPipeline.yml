@@ -1,0 +1,19 @@
+version: '1.0'
+name: pr-miniapp-syntax
+displayName: PR Miniapp Syntax
+triggers:
+  pr:
+    branches:
+      include:
+        - master
+stages:
+  - stage:
+      name: miniapp-syntax
+      displayName: Miniapp Syntax
+      steps:
+        - step: build@nodejs
+          name: miniapp-check
+          displayName: Miniapp JavaScript Check
+          nodeVersion: 20.18.0
+          commands:
+            - npm --prefix miniapp run check
