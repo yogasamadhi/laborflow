@@ -219,7 +219,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L2-26-01 | ci/backend | todo | 建立后端测试门禁 | `.github/workflows` 或等价 CI、`server` | PR 自动运行后端测试；失败阻断合入 | CI dry run 或本地等价命令 |
+| L2-26-01 | ci/backend | done | 建立后端测试门禁 | `.github/workflows` 或等价 CI、`server` | PR 自动运行后端测试；失败阻断合入 | CI dry run 或本地等价命令 |
 | L2-26-02 | ci/web | todo | 建立 Web 构建与测试门禁 | CI、`web` | PR 自动运行 Web typecheck/test/build；失败阻断合入 | CI dry run 或本地等价命令 |
 | L2-26-03 | ci/miniapp | todo | 建立小程序语法与 smoke 门禁 | CI、`miniapp`、smoke 文档 | PR 自动运行小程序 JS 语法检查；人工 smoke checklist 有提交模板 | CI dry run；`node --check` |
 | L2-26-04 | ci/docs | todo | 建立文档与 diff 检查门禁 | CI、Markdown、迁移文件 | PR 至少运行 `git diff --check`；可选检查文档链接和 migration 命名 | CI dry run |
@@ -457,4 +457,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-23-05-api-contract-snapshots is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: The versioned JSON fixture is the explicit review surface for intentional core response-shape changes; removing or renaming any captured field now fails the integration test until the contract is deliberately updated.
+```
+
+```text
+Loop: L2-26-01
+Target branch: master
+Loop branch: loop/L2-26-01-backend-ci-gate
+Commit: 9cac623 loop: add backend CI quality gate
+Merge commit: 49c4550 merge: complete L2-26-01 backend CI gate
+Verification: Ruby YAML parsing passed for .workflow/PRPipeline.yml; the exact CI-equivalent Maven command `mvn -B -ntp -f server/pom.xml test` passed locally with 97 tests and Testcontainers PostgreSQL 18; git diff --check passed
+Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-26-01-backend-ci-gate is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added the Gitee Go PR workflow and activation/protection instructions. Gitee Go pipeline creation/import, Docker-capable runner selection, first remote run, and required-status branch protection are repository administrator settings and are explicitly documented; they were not claimed as a local remote run.
 ```
