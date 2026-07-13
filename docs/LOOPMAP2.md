@@ -265,7 +265,7 @@ Gate 不能给出通过结论。
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-27-01 | docs/product/qa | done | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
-| L2-27-02 | release/qa | doing | 执行 UAT 签字、证据盘点与正式上线非部署 Gate 决策 | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据或记录其阻断状态；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果、证据缺口和未决问题可追溯，并给出真实 Gate 决策；只有必需 Loop 完成或正式延期、无 P0/P1 未关闭缺陷且 L2-25-02 人工证据通过或获书面批准时才能标记“批准”，否则必须标记“不批准”并写明阻断项、责任与重新审查条件 | 完整回归；UAT 演练与签字或明确阻断记录；小程序真实账号/弱网/录屏复测或正式延期批准；人工 Gate 审查 |
+| L2-27-02 | release/qa | done | 执行 UAT 签字、证据盘点与正式上线非部署 Gate 决策 | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据或记录其阻断状态；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果、证据缺口和未决问题可追溯，并给出真实 Gate 决策；只有必需 Loop 完成或正式延期、无 P0/P1 未关闭缺陷且 L2-25-02 人工证据通过或获书面批准时才能标记“批准”，否则必须标记“不批准”并写明阻断项、责任与重新审查条件 | 完整回归；UAT 演练与签字或明确阻断记录；小程序真实账号/弱网/录屏复测或正式延期批准；人工 Gate 审查 |
 
 ## 8. 建议执行顺序
 
@@ -790,4 +790,19 @@ Push: master is pushed to origin with this merge and completion record
 Loop branch cleanup: local loop/L2-27-01-product-docs is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: This loop completed the formal documentation and defect-governance package only. L2-27-02 remains responsible for UAT execution, issue tracking, final Gate evidence, and the truthful final approval or non-approval decision. The user-directed deferral of authenticated miniapp/weak-network evidence remains a Gate blocker, not an approved release exception.
+```
+
+```text
+Loop: L2-27-02
+Target branch: master
+Loop branch: loop/L2-27-02-release-gate
+Commit(s): dcdad1f loop: record final launch gate decision
+Merge commit: c3cab8d merge: complete L2-27-02 final launch gate
+Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18 and 21 Flyway migrations. pnpm --dir web typecheck passed; pnpm --dir web test passed with 4 files and 8 tests; pnpm --dir web build passed with a 397.03 kB initial index chunk and a 1,036.92 kB SalaryStatisticsPage lazy-chunk warning recorded as OBS-001. npm --prefix miniapp run check passed with first-party syntax checks and 8 Node tests. node scripts/ci/check-docs.mjs passed for 38 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check. git diff --check and git diff --check origin/master...HEAD passed. UAT-01 through UAT-03, five-role signoff, authenticated miniapp/weak-network evidence, and Gitee Go remote workflow/protection evidence were recorded as blocked, not passed.
+Diff review: passed; reviewed the complete Gate-documentation diff and merged diff against origin/master, including all scope links, automated counts, blocked evidence, approval language, issue ownership, and re-review conditions
+Remote sync: fetched origin and fast-forward check passed before branch creation and before the no-ff merge
+Push: master is pushed to origin with this merge and completion record
+Loop branch cleanup: local loop/L2-27-02-release-gate is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: The Gate decision is NOT APPROVED. This loop is done because it executed and documented a truthful Gate decision; it is not a declaration that LaborFlow is ready to deploy or that manual UAT passed. Open blockers are GATE-001 cross-role UAT/signoff, GATE-002 authenticated miniapp/weak-network visual evidence deferred by user instruction without formal scope approval, and GATE-003 remote Gitee Go workflow/required-status evidence. OBS-001 remains a Web performance observation.
 ```
