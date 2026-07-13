@@ -1,5 +1,6 @@
 package com.company.labor.module.file.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.file.domain.entity.FileRecordDO;
@@ -55,13 +56,13 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
 
         FileRecordDO record = new FileRecordDO();
         record.setOriginalName(original);
+        record.setId(IdWorker.getId());
         record.setFileName(fileName);
+        record.setFilePath("/api/files/" + record.getId() + "/download");
         record.setFileSize(file.getSize());
         record.setContentType(file.getContentType());
         record.setCreatedAt(LocalDateTime.now());
         save(record);
-        record.setFilePath("/api/files/" + record.getId() + "/download");
-        updateById(record);
         return record;
     }
 

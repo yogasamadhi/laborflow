@@ -86,7 +86,7 @@ function rejectVariationOrder(id, data) {
 }
 
 function attachVariationFile(id, fileId) {
-  return request.post("/variation-orders/" + id + "/files", { fileId, fileType: "site_photo" });
+  return request.post("/variation-orders/" + id + "/files", { fileId, fileType: "photo" });
 }
 
 function variationConfirms(id) {

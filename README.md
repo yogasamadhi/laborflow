@@ -87,6 +87,9 @@ The automated payroll lifecycle regression and accompanying Web smoke record
 are documented in [`docs/PAYROLL_E2E_REGRESSION.md`](docs/PAYROLL_E2E_REGRESSION.md).
 The project daily-report, team-settlement, payment, and dashboard regression is
 documented in [`docs/PROJECT_SETTLEMENT_E2E_REGRESSION.md`](docs/PROJECT_SETTLEMENT_E2E_REGRESSION.md).
+The variation-order attachment, commercial confirmation, and project-income
+regression is documented in
+[`docs/VARIATION_INCOME_E2E_REGRESSION.md`](docs/VARIATION_INCOME_E2E_REGRESSION.md).
 
 
 ## 目录
