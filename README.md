@@ -80,6 +80,9 @@ The miniapp syntax gate and manual smoke evidence template are documented in
 [`docs/CI_MINIAPP_GATE.md`](docs/CI_MINIAPP_GATE.md).
 The documentation, Flyway migration, and whitespace gate is documented in
 [`docs/CI_DOCS_GATE.md`](docs/CI_DOCS_GATE.md).
+The required pull-request regression evidence and review rule for payroll,
+projects, permissions, and migrations is documented in
+[`docs/REGRESSION_EVIDENCE_POLICY.md`](docs/REGRESSION_EVIDENCE_POLICY.md).
 
 
 ## 目录
