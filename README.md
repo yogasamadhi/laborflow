@@ -43,6 +43,22 @@ pnpm dev
 生产环境不提供可直接登录的默认账号。首次管理员必须通过下方受控的启动期初始化流程
 创建，不应通过自助注册、公开接口或手工修改前端来绕过权限边界。
 
+## 正式版验收资料
+
+当前正式上线范围、明确延期项和非部署 Gate 条件见
+[`docs/LAUNCH_SCOPE.md`](docs/LAUNCH_SCOPE.md)。实际执行进度与完成记录见
+[`docs/LOOPMAP2.md`](docs/LOOPMAP2.md)，它不应被代码存在与自动化通过所替代。
+
+- Web 管理端角色路径见 [`docs/USER_GUIDE_WEB.md`](docs/USER_GUIDE_WEB.md)。
+- 小程序现场端角色路径见 [`docs/USER_GUIDE_MINIAPP.md`](docs/USER_GUIDE_MINIAPP.md)。
+- 缺陷分级、阻断与延期批准要求见
+  [`docs/LAUNCH_DEFECT_POLICY.md`](docs/LAUNCH_DEFECT_POLICY.md)。
+- 业务 UAT 场景与证据要求见 [`docs/UAT_CHECKLIST.md`](docs/UAT_CHECKLIST.md) 和
+  [`docs/REGRESSION_EVIDENCE_POLICY.md`](docs/REGRESSION_EVIDENCE_POLICY.md)。
+
+这些资料只使用测试或脱敏数据；不得在仓库、截图或验收记录中写入密码、token、真实
+个人信息或生产数据。
+
 ## 首次管理员初始化
 
 Flyway 会创建默认角色和一个已停用的历史管理员账号，但不会提供可登录的默认密码。
