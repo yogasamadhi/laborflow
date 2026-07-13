@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Eye, RefreshCw, Save, Settings } from "lucide-react";
+import { CheckCircle, Download, Eye, RefreshCw, Save, Settings } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ActionConfirmationModal } from "../../../components/common/ActionConfirmationModal";
+import { DataErrorState, RouteLoadingState } from "../../../components/common/AccessState";
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
@@ -9,6 +11,7 @@ import { Button } from "../../../components/ui/Button";
 import { downloadFile, getData, PageResult, postData, putData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import type { Employee } from "../../employee/types";
+import { canRunMonthlyAction, getMonthlyActionCopy, monthlyWorkflowStage } from "../salaryWorkflow";
 
 type Monthly = {
   id: string;
@@ -84,6 +87,10 @@ type AuditRecord = {
   createdAt?: string;
 };
 
+type PendingWorkflowAction =
+  | { action: "generate"; remark: string }
+  | { action: "submit" | "approve" | "reject"; remark: string };
+
 const badgeClass: Record<string, string> = {
   draft: "badge-yellow",
   pending_approval: "badge-yellow",
@@ -117,12 +124,14 @@ export function SalaryMonthlyDetailPage() {
   const [viewing, setViewing] = useState<Detail | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pendingWorkflowAction, setPendingWorkflowAction] = useState<PendingWorkflowAction | null>(null);
+  const [confirmationError, setConfirmationError] = useState("");
 
-  const { data: monthly } = useQuery({
+  const monthlyQuery = useQuery({
     queryKey: ["salary-monthly", monthlyId],
     queryFn: () => getData<Monthly>(`/salary/monthly/${monthlyId}`)
   });
-  const { data: detailsData } = useQuery({
+  const detailsQuery = useQuery({
     queryKey: ["salary-details", monthlyId],
     queryFn: () => getData<PageResult<Detail>>(`/salary/monthly/${monthlyId}/details`, { page: 1, pageSize: 500 })
   });
@@ -147,6 +156,8 @@ export function SalaryMonthlyDetailPage() {
     queryFn: () => getData<PageResult<Profile>>("/salary/profiles", { page: 1, pageSize: 500 })
   });
 
+  const monthly = monthlyQuery.data;
+  const detailsData = detailsQuery.data;
   const employees = employeesData?.records ?? [];
   const employeeMap = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const details = detailsData?.records ?? [];
@@ -178,11 +189,15 @@ export function SalaryMonthlyDetailPage() {
   const paidAmount = details.reduce((sum, detail) => sum + (detail.paymentStatus === "paid" ? Number(detail.actualAmount ?? 0) : 0), 0);
   const editable = monthly?.status === "draft";
   const activeProfileCount = (profilesData?.records ?? []).filter((profile) => profile.status === "active").length;
+  const coreError = monthlyQuery.error || detailsQuery.error;
+  const isCorePending = monthlyQuery.isPending || detailsQuery.isPending;
 
   const generate = useMutation({
     mutationFn: () => postData<Monthly>(`/salary/monthly/${monthlyId}/generate`),
     onSuccess: async (result) => {
       setError("");
+      setConfirmationError("");
+      setPendingWorkflowAction(null);
       setSuccess(`重新生成完成：${result.totalEmployeeCount ?? 0} 人，实发合计 ${money(result.totalActualAmount)}。`);
       await queryClient.invalidateQueries({ queryKey: ["salary-details", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly-detail-items", monthlyId] });
@@ -192,13 +207,33 @@ export function SalaryMonthlyDetailPage() {
     },
     onError: (reason) => {
       setSuccess("");
-      setError(reason instanceof Error ? reason.message : "生成失败");
+      setConfirmationError(reason instanceof Error ? reason.message : "生成失败");
+    }
+  });
+  const workflowAction = useMutation({
+    mutationFn: (pending: Exclude<PendingWorkflowAction, { action: "generate" }>) => {
+      const payload = pending.action === "approve" || pending.action === "reject" ? { remark: pending.remark.trim() || undefined } : undefined;
+      return postData<Monthly | null>(`/salary/monthly/${monthlyId}/${pending.action}`, payload);
+    },
+    onSuccess: async (_result, pending) => {
+      setError("");
+      setConfirmationError("");
+      setSuccess(getMonthlyActionCopy(pending.action).success);
+      setPendingWorkflowAction(null);
+      await queryClient.invalidateQueries({ queryKey: ["salary-monthly", monthlyId] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
+      await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
+    },
+    onError: (reason) => {
+      setSuccess("");
+      setConfirmationError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
     }
   });
   const update = useMutation({
     mutationFn: (detail: Detail) => putData<Detail>(`/salary/details/${detail.id}`, detail),
     onSuccess: async () => {
       setError("");
+      setSuccess("工资明细已保存。");
       setEditing(null);
       await queryClient.invalidateQueries({ queryKey: ["salary-details", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-audits", monthlyId] });
@@ -210,6 +245,7 @@ export function SalaryMonthlyDetailPage() {
     mutationFn: (payload: MonthlyRuleForm) => putData<Monthly>(`/salary/monthly/${monthlyId}`, payload),
     onSuccess: async () => {
       setError("");
+      setSuccess("工资生成规则已保存，请重新生成明细后生效。");
       setEditingMonthly(null);
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly", monthlyId] });
       await queryClient.invalidateQueries({ queryKey: ["salary-monthly"] });
@@ -254,6 +290,30 @@ export function SalaryMonthlyDetailPage() {
     });
   }
 
+  function openWorkflowAction(action: PendingWorkflowAction["action"]) {
+    if (!monthly || !canRunMonthlyAction(monthly, action)) return;
+    setConfirmationError("");
+    setPendingWorkflowAction({ action, remark: "" });
+  }
+
+  function closeWorkflowAction() {
+    if (!generate.isPending && !workflowAction.isPending) setPendingWorkflowAction(null);
+  }
+
+  function confirmWorkflowAction() {
+    if (!pendingWorkflowAction) return;
+    const copy = getMonthlyActionCopy(pendingWorkflowAction.action);
+    if (copy.needsRemark && !pendingWorkflowAction.remark.trim()) {
+      setConfirmationError("请填写驳回原因，便于后续复核。");
+      return;
+    }
+    if (pendingWorkflowAction.action === "generate") {
+      generate.mutate();
+      return;
+    }
+    workflowAction.mutate(pendingWorkflowAction);
+  }
+
   function openProof(proofUrl: string) {
     const privatePath = proofUrl.match(/^\/(?:api\/)?files\/\d+\/download$/);
     if (privatePath) {
@@ -264,19 +324,37 @@ export function SalaryMonthlyDetailPage() {
     window.open(proofUrl, "_blank", "noreferrer");
   }
 
+  const workflowCopy = pendingWorkflowAction ? getMonthlyActionCopy(pendingWorkflowAction.action) : null;
+
   return (
     <Page
       title={monthly?.title ?? "工资明细"}
+      description="核对工资构成、审核证据与发放进度后再推进下一状态。"
       actions={
         <div className="table-actions">
           {monthly?.status === "draft" && <Button type="button" variant="secondary" onClick={openMonthlyRules}><Settings size={16} />规则设置</Button>}
-          {monthly?.status === "draft" && <Button type="button" variant="secondary" onClick={() => generate.mutate()} disabled={generate.isPending}><RefreshCw size={16} />{generate.isPending ? "生成中" : "重新生成"}</Button>}
-          {monthly && <Link to={`/salary/monthly/${monthly.id}/payment`}><Button>发放登记</Button></Link>}
+          {monthly && canRunMonthlyAction(monthly, "generate") ? <Button type="button" variant="secondary" onClick={() => openWorkflowAction("generate")} disabled={generate.isPending}><RefreshCw size={16} />重新生成</Button> : null}
+          {monthly && canRunMonthlyAction(monthly, "submit") ? <Button type="button" variant="secondary" onClick={() => openWorkflowAction("submit")} disabled={workflowAction.isPending}><CheckCircle size={16} />提交审核</Button> : null}
+          {monthly && canRunMonthlyAction(monthly, "approve") ? <Button type="button" onClick={() => openWorkflowAction("approve")} disabled={workflowAction.isPending}><CheckCircle size={16} />审核通过</Button> : null}
+          {monthly && canRunMonthlyAction(monthly, "reject") ? <Button type="button" variant="danger" onClick={() => openWorkflowAction("reject")} disabled={workflowAction.isPending}>驳回</Button> : null}
+          {monthly && (monthly.status === "approved" || monthly.status === "paid") ? <Link to={`/salary/monthly/${monthly.id}/payment`}><Button>发放登记</Button></Link> : null}
+          {monthly ? <Link to={`/salary/monthly/${monthly.id}/export`}><Button variant="secondary"><Download size={16} />导出</Button></Link> : null}
         </div>
       }
     >
-      {error && <div className="form-error page-message">{error}</div>}
-      {success && <div className="form-success page-message">{success}</div>}
+      {isCorePending ? <RouteLoadingState /> : null}
+      {coreError ? <DataErrorState message={coreError instanceof Error ? coreError.message : undefined} onRetry={() => { void monthlyQuery.refetch(); void detailsQuery.refetch(); }} /> : null}
+      {!isCorePending && !coreError ? (
+        <>
+      {error && <div className="form-error page-message" role="alert">{error}</div>}
+      {success && <div className="form-success page-message" role="status">{success}</div>}
+      <div className="workflow-progress" aria-label={`工资流程：${statusText(monthly?.status)}`}>
+        {["草稿", "审核", "发放"].map((label, index) => {
+          const stage = monthlyWorkflowStage(monthly?.status);
+          const state = index < stage ? "is-complete" : index === stage ? "is-current" : "";
+          return <span className={state} key={label}>{label}</span>;
+        })}
+      </div>
       <div className="grid grid-3">
         <div className="card"><div className="muted">工资月份</div><h3>{monthly?.salaryMonth ?? "-"}</h3></div>
         <div className="card"><div className="muted">状态</div><h3>{statusText(monthly?.status)}</h3></div>
@@ -341,12 +419,14 @@ export function SalaryMonthlyDetailPage() {
       </div>
 
       <div className="panel table-wrap">
-        {details.length === 0 && (
+        {details.length === 0 ? (
           <div className="empty-state">
             当前工资表还没有工资明细。系统检测到 {activeProfileCount} 个启用工资档案。
             {monthly?.status === "draft" ? " 请点击页面右上角“重新生成”同步工资档案。" : " 当前工资表不是草稿状态，不能重新生成。"}
           </div>
-        )}
+        ) : visibleDetails.length === 0 ? (
+          <div className="empty-state">没有符合当前员工或发放状态筛选条件的工资明细。</div>
+        ) : (
         <table>
           <thead>
             <tr>
@@ -401,6 +481,7 @@ export function SalaryMonthlyDetailPage() {
             })}
           </tbody>
         </table>
+        )}
       </div>
 
       <Modal
@@ -512,6 +593,28 @@ export function SalaryMonthlyDetailPage() {
           </div>
         )}
       </Modal>
+      {pendingWorkflowAction && workflowCopy ? (
+        <ActionConfirmationModal
+          open
+          title={workflowCopy.title}
+          description={workflowCopy.description}
+          confirmLabel={workflowCopy.label}
+          tone={workflowCopy.tone}
+          pending={generate.isPending || workflowAction.isPending}
+          onClose={closeWorkflowAction}
+          onConfirm={confirmWorkflowAction}
+          summary={<><strong>{monthly?.title}</strong><span>{monthly?.salaryMonth} · {statusText(monthly?.status)}</span><span>实发合计：{money(monthly?.totalActualAmount)}</span></>}
+        >
+          {workflowCopy.needsRemark ? (
+            <Field label="驳回原因">
+              <TextArea value={pendingWorkflowAction.remark} onChange={(event) => setPendingWorkflowAction({ ...pendingWorkflowAction, remark: event.target.value })} placeholder="说明需要复核或调整的内容" required />
+            </Field>
+          ) : null}
+          {confirmationError ? <div className="form-error" role="alert">{confirmationError}</div> : null}
+        </ActionConfirmationModal>
+      ) : null}
+        </>
+      ) : null}
     </Page>
   );
 }
