@@ -213,7 +213,7 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-22-01 | backend/web/qa | done | 建立访问控制、敏感数据与无权限体验回归 | 认证、工资、项目、系统、导出 API、AppLayout、axios 和受限路由 | 角色 200/401/403；字段/导出脱敏；菜单与路由直达；401/403/重试反馈；集成与 Web 回归 | 授权、敏感数据和用户可见访问反馈；回滚为访问判定、序列化、导航和错误状态整体 | 各角色授权/越权和脱敏行为可重复验证，无权限入口不展示且直达受限页面不白屏 | `mvn test`; `pnpm typecheck`; `pnpm test`; `pnpm build`; 权限/Web smoke |
-| L2-22-03 | backend/qa | todo | 建立关键审计日志回归 | 工资、项目、绩效、用户、微信绑定 | 关键动作矩阵；自动化断言；日志查询/抽查路径 | 审计可追溯；回滚为新增日志测试/接线整体 | 创建、修改、审批、驳回、发放、导出和绑定/解绑均可查询 | `mvn test`; UAT 日志抽查 |
+| L2-22-03 | backend/qa | done | 建立关键审计日志回归 | 工资、项目、绩效、用户、微信绑定 | 关键动作矩阵；自动化断言；日志查询/抽查路径 | 审计可追溯；回滚为新增日志测试/接线整体 | 创建、修改、审批、驳回、发放、导出和绑定/解绑均可查询 | `mvn test`; UAT 日志抽查 |
 | L2-22-04 | backend/qa | todo | 验证文件访问与附件归属边界 | 上传、工资凭证、日报照片、签证附件、资料归档 | 授权下载；跨业务重用拒绝；私有附件 smoke；回归断言 | 私有文件与业务归属；回滚为文件授权/绑定变更整体 | 未授权无法下载，附件不能跨业务重复滥用 | `mvn test`; 文件 smoke |
 
 ### P23：后端集成测试与数据迁移可信度
@@ -661,4 +661,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-22-01-access-sensitive-e2e is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added real HTTP authorization coverage for anonymous system access, employee own-salary boundaries, export and approval denial, project-membership scope, and user-field non-disclosure. Web now shares route and menu role groups, presents a protected-route denial state, preserves safe same-origin return paths on re-login, and surfaces 403 messages without replacing server-side authorization.
+```
+
+```text
+Loop: L2-22-03
+Target branch: master
+Loop branch: loop/L2-22-03-audit-log-regression
+Commit(s): 5d988f2 loop: add audit log regression
+Merge commit: 61bbbdf merge: complete L2-22-03 audit log regression
+Verification: AuditLogLifecycleIntegrationTest passed against Testcontainers PostgreSQL 18, covering user creation/update; salary monthly creation/update/generation/submission/rejection/resubmission/approval/payment/export; project variation submission/rejection/confirmation; compensation deduction save/update and performance-score confirmation; and administrator WeChat binding/unbinding. The post-merge full server Maven suite passed with 103 tests. node scripts/ci/check-docs.mjs passed for 26 repository-maintained Markdown files and 21 Flyway migrations. The administrator log-query smoke path is documented in AUDIT_LOG_E2E_REGRESSION.md; no manual UAT execution is claimed here.
+Diff review: passed; reviewed the focused functional diff and merged diff against origin/master; git diff --check and git diff --check origin/master...HEAD passed
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-22-03-audit-log-regression is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: The regression queries the administrative log endpoint and asserts module, action, business ID, operator identity, and non-empty log content for the listed business actions. It uses a test-only JDBC fixture to create the pending WeChat binding required by the existing administrator bind/unbind API.
 ```
