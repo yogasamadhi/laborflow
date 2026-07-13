@@ -569,3 +569,18 @@ Loop branch cleanup: local loop/L2-21-02-report-settlement-e2e is deleted after 
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record and separate concurrent-rule-update pushes
 Notes: The project flow is one end-to-end capability block: contract pricing feeds the daily-report output snapshot, confirmed reports feed a one-time team settlement using team price, payment updates the settlement, and the dashboard reflects the resulting quantity and financial totals. Detailed field UX, permission negatives, and miniapp weak-network coverage remain in their dedicated loops.
 ```
+
+```text
+Loop: LOOPMAP2-granularity
+Target branch: master
+Loop branch: loop/loopmap2-granularity
+Commit(s): 6a94ce3 loop: rebalance launch readiness map
+Merge commit: fc7c1ae merge: complete LOOPMAP2 granularity update
+Verification: node scripts/ci/check-docs.mjs passed for 22 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check; git diff --check and git diff --check origin/master...HEAD passed
+Diff review: passed; reviewed the complete staged map diff and final diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/loopmap2-granularity is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added the latest LOOPRULE grain policy, current test/CI baseline, internal checklist and risk/rollback fields to every Loop table, and replaced fragmented P24/P25 todo rows with end-to-end capability blocks. L2-21-05 is now explicitly satisfied by the existing L2-26-05 PR evidence policy/template rather than duplicating a second artifact; existing completed function records were preserved.
+```
