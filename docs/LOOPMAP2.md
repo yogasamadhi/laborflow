@@ -177,7 +177,7 @@
 | L2-21-01 | qa/backend/web | done | 建立工资主流程 E2E 回归 | 员工、工资档案、月度工资、审批、发放、工资条 | HTTP 夹具；角色分工；本人读取/确认；Web/小程序 smoke 手册 | 工资状态与金额；回滚为工资自助接口、确认 UI 和测试整体 | 入职到工资条确认可重复验证 | `mvn test`; `pnpm build`; 回归记录 |
 | L2-21-02 | qa/backend/web/miniapp | done | 建立项目日报到班组结算 E2E 回归 | 项目、合同清单、日报、确认、班组结算、支付 | 计价夹具；日报确认；结算支付；看板金额断言；smoke 手册 | 项目金额和结算状态；回滚为整条结算回归能力 | 项目创建到班组支付可重复验证 | `mvn test`; `pnpm build`; `npm --prefix miniapp run check` |
 | L2-21-03 | qa/backend/web/miniapp | done | 建立签证变更收入 E2E 回归 | 签证、附件、确认金额、项目看板 | 创建/绑定附件；提交；确认金额；看板收入断言；三端 smoke | 收入与附件归属；回滚为签证确认/收入接线整体 | 小程序或管理端提交签证后，确认金额和看板收入可验证 | `mvn test`; `pnpm build`; `npm --prefix miniapp run check` |
-| L2-21-04 | qa/backend/web | todo | 建立薪酬来源进入工资 E2E 回归 | 考勤、法定扣款、绩效、项目奖金、工资来源 | 构造四类来源；生成工资；明细/来源断言；管理端 smoke | 工资金额和来源快照；回滚为薪酬汇总链路整体 | 各来源可进入工资明细并可追溯 | `mvn test`; `pnpm build` |
+| L2-21-04 | qa/backend/web | done | 建立薪酬来源进入工资 E2E 回归 | 考勤、法定扣款、绩效、项目奖金、工资来源 | 构造四类来源；生成工资；明细/来源断言；管理端 smoke | 工资金额和来源快照；回滚为薪酬汇总链路整体 | 各来源可进入工资明细并可追溯 | `mvn test`; `pnpm build` |
 | L2-21-05 | qa/docs | done | 复用统一回归结果证据模板 | `PULL_REQUEST_TEMPLATE.md`、回归证据规则和模板 | 统一 PR 分类；详细记录模板；豁免规则；数据脱敏 | 低风险；由 L2-26-05 已闭环产物整体回滚 | 每次回归可记录环境、步骤、结果和证据，不再重复建设模板 | PR 模板检查；`node scripts/ci/check-docs.mjs` |
 
 ### P22：权限、安全与敏感信息回归
@@ -598,4 +598,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-21-03-variation-income-e2e is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: The miniapp variation attachment adapter now uses the server-supported `photo` type rather than rejected `site_photo`. The E2E flow exposed that file_record.file_path is required at insert time; file IDs and private download paths are now prepared before saving, so file upload works for variation evidence and other file consumers. Detailed field-flow reliability and wider miniapp UX coverage remain in P25.
+```
+
+```text
+Loop: L2-21-04
+Target branch: master
+Loop branch: loop/L2-21-04-salary-sources-e2e
+Commit: ad9fbaf loop: add salary sources regression
+Merge commit: a940b00 merge: complete L2-21-04 salary sources E2E
+Verification: SalarySourcesLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering an active employee/profile, automatic leave-based attendance deduction, active social-security deduction, confirmed performance score, released and confirmed project bonus allocation, variable-source-only salary generation, four salary items, four signed source snapshots with their source IDs, and compensation-dashboard totals. The full server Maven suite passed with 101 tests before and after merge; pnpm typecheck and pnpm test (2 tests) passed before merge; pnpm build passed before and after merge; node scripts/ci/check-docs.mjs passed for 24 repository-maintained Markdown files and 21 Flyway migrations. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
+Diff review: passed; reviewed final name-status, complete regression/runbook content, and accumulated diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-21-04-salary-sources-e2e is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: This regression intentionally disables fixed salary so the expected payable, deduction, and actual amounts are attributable only to attendance, statutory deduction, performance, and project bonus sources. Existing aggregation behavior required no production code change; the new test and Web smoke record make the cross-module contract repeatable. Permission-negative coverage remains in P22.
 ```
