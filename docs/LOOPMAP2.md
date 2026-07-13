@@ -238,7 +238,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-25-01 | miniapp/backend/qa | todo | 建立小程序身份、会话与接口契约可靠性基线 | 登录、微信绑定、token、退出、缓存、`miniapp/services`、后端 DTO/状态流 | 登录/绑定正反向；token 失效；缓存清理；字段/状态清单；contract/HTTP 回归；弱网 smoke | 身份、会话和移动端公共协议；回滚为认证、契约 fixture 和服务接线整体 | 身份流程可安全恢复，字段或状态破坏性变化会被自动化或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录/绑定/弱网 smoke |
+| L2-25-01 | miniapp/backend/qa | done | 建立小程序身份、会话与接口契约可靠性基线 | 登录、微信绑定、token、退出、缓存、`miniapp/services`、后端 DTO/状态流 | 登录/绑定正反向；token 失效；缓存清理；字段/状态清单；contract/HTTP 回归；弱网 smoke | 身份、会话和移动端公共协议；回滚为认证、契约 fixture 和服务接线整体 | 身份流程可安全恢复，字段或状态破坏性变化会被自动化或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录/绑定/弱网 smoke |
 | L2-25-02 | design/miniapp/qa | todo | 完成小程序现场工作台的可靠交互与视觉回归 | app theme、日报、签证、上传/草稿、待办审批、工资条、`MINIAPP_VISUAL_QA_CHECKLIST.md` | 填报选择/校验；上传重试/草稿恢复；提交锁定；待办防误触；工资金额/确认；空/弱网/提交中截图录屏 | 现场写入、审批和工资确认；回滚为现场工作台页面、服务接线和视觉基线整体 | 现场人员可在弱网下完成或恢复填报、审批和工资确认，重复触发不产生重复写入，关键状态可重复视觉验收 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具全流程 smoke；真机或开发者工具截图/录屏 |
 
 ### P26：自动化质量门禁
@@ -736,4 +736,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-24-03-project-workspace is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added contextual confirmation for daily-report submission, project-manager/commercial confirmation and rejection, variation amount confirmation and rejection, and team-settlement confirmation, rejection, and payment. The implementation adds empty-state guidance and leaves project pricing, settlement calculation, permissions, and server state transitions unchanged.
+```
+
+```text
+Loop: L2-25-01
+Target branch: master
+Loop branch: loop/L2-25-01-miniapp-identity-contract
+Commit(s): 0c8d083 loop: harden miniapp identity contracts
+Merge commit: 89b2a84 merge: complete L2-25-01 miniapp identity contracts
+Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18. npm --prefix miniapp run check passed and ran first-party JavaScript syntax checks plus 5 mocked identity/service-contract tests covering complete and malformed cache handling, profile refresh, 401/403 behavior, login payload/header isolation, attachment types, and upload session expiry. node scripts/ci/check-docs.mjs passed for 31 repository-maintained Markdown files and 21 Flyway migrations. git diff --check and git diff --check origin/master...HEAD passed. MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md defines the local/test DevTools binding, expiry, logout, upload, and weak-network smoke path; no live DevTools, test account, binding, upload, or weak-network run is claimed in this loop.
+Diff review: passed; reviewed the complete functional diff before commit and the merged diff against origin/master
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-25-01-miniapp-identity-contract is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: The miniapp now persists only complete login responses, refreshes profile data through the current token only, keeps 403 authorization denials distinct from expired-session 401s, clears cache on expiry/logout, omits stale authentication headers from login and WeChat session exchange, and uses the server-permitted photo attachment type. No backend business API, state machine, salary rule, or project pricing behavior changed.
 ```
