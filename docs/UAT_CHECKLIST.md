@@ -109,3 +109,6 @@
   记录格式，关联本清单的用例编号和证据。
 - 所有 `fail` 和 `blocked` 项必须在 `docs/UAT_SIGNOFF.md`（在 L2-27-02 建立）中有处理
   状态或延期批准，才能进入 G3 审查。
+- 本次 Gate 的实际执行状态、自动化结果、未执行原因和签字状态记录在
+  [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md)；它必须逐项说明 `pass`、`fail` 或 `blocked`，不能把
+  模板、自动化回归或代码评审写成角色 UAT 已通过。

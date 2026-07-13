@@ -55,6 +55,9 @@ pnpm dev
   [`docs/LAUNCH_DEFECT_POLICY.md`](docs/LAUNCH_DEFECT_POLICY.md)。
 - 业务 UAT 场景与证据要求见 [`docs/UAT_CHECKLIST.md`](docs/UAT_CHECKLIST.md) 和
   [`docs/REGRESSION_EVIDENCE_POLICY.md`](docs/REGRESSION_EVIDENCE_POLICY.md)。
+- 当前非部署 Gate 结论和阻断项见
+  [`docs/LAUNCH_READINESS_REVIEW.md`](docs/LAUNCH_READINESS_REVIEW.md) 与
+  [`docs/UAT_SIGNOFF.md`](docs/UAT_SIGNOFF.md)；当前结论为“不批准”，不是上线通过声明。
 
 这些资料只使用测试或脱敏数据；不得在仓库、截图或验收记录中写入密码、token、真实
 个人信息或生产数据。

@@ -132,22 +132,25 @@
 
 当前已观察到的基线：
 
-- 后端非沙箱完整 `mvn test` 已通过 101 tests，包含 Testcontainers PostgreSQL 18、空库
+- 后端非沙箱完整 `mvn test` 最新已通过 104 tests，包含 Testcontainers PostgreSQL 18、空库
   Flyway、历史库升级、API 合约、工资、项目结算、签证收入和薪酬来源生命周期回归。
 - Gitee Go 的后端、Web、小程序和文档 PR workflow 已入库；远端导入、首次运行和分支
   保护仍是仓库管理员设置。
-- Web 已有 `typecheck`、Vitest 和生产构建门禁；构建通过，但主 JS chunk 约 1.60 MB，
-  代码分割是 L2-24-06 的独立性能边界。
-- 小程序已有全量 first-party JavaScript 语法检查和基础 smoke 证据模板；工资条本人读取与
-  确认已纳入工资 E2E 回归。
+- Web 已有 `typecheck`、Vitest 和生产构建门禁；最新构建通过，初始入口约 397 kB，
+  `SalaryStatisticsPage` 的约 1.04 MB 惰性 chunk 警告已列为 Gate 观察项。
+- 小程序已有全量 first-party JavaScript 语法检查、8 项 Node 契约/草稿/上传回归和基础
+  smoke 证据模板；工资条本人读取与确认已纳入工资 E2E 回归。
 - Web 与小程序已有主要业务页面，但视觉层级、表格与表单密度、异常状态、弱网、触控态
   和多视口体验尚未完成正式版验收。
-- 产品文档、角色操作手册、缺陷策略、UAT 签字和最终非部署 Gate 尚未收口。
+- 产品文档、角色操作手册、缺陷策略、UAT 状态和最终非部署 Gate 已成文；当前 Gate 结论
+  为“不批准”，详情见 `UAT_SIGNOFF.md` 与 `LAUNCH_READINESS_REVIEW.md`。
 
 仍不可信或尚未闭环的检查：
 
-- 权限、脱敏、审计日志和文件访问等高风险边界仍缺少完整 E2E 或越权回归。
-- Web 关键页面缺少可重复视觉/交互回归记录和路由级代码分割验证。
+- 五类角色的真实业务 UAT、签字和脱敏证据尚未完成；自动化权限、脱敏、审计和文件访问
+  回归不能替代这些人工验证。
+- Web 关键页面的已登录视觉/交互验收与用户角色证据尚未完整形成；路由级代码分割已完成，
+  但 `SalaryStatisticsPage` 惰性 chunk 仍需按 Gate 台账评估。
 - 小程序真机弱网、上传失败、重复提交、待办审批以及视觉录屏尚未形成可重复验收记录。
 - Gitee Go 的远端实际运行与 required-status 分支保护尚待管理员完成并留存证据。
 
@@ -262,7 +265,7 @@ Gate 不能给出通过结论。
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-27-01 | docs/product/qa | done | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
-| L2-27-02 | release/qa | todo | 执行 UAT 签字与正式上线非部署 Gate | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果和未决问题可追溯，必需 Loop 完成或正式延期，且无 P0/P1 未关闭缺陷；L2-25-02 延期人工证据必须通过或获得书面批准 | 完整回归；UAT 演练与签字；小程序真实账号/弱网/录屏复测；人工 Gate 审查 |
+| L2-27-02 | release/qa | doing | 执行 UAT 签字、证据盘点与正式上线非部署 Gate 决策 | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；补齐 L2-25-02 的真实账号、弱网与录屏证据或记录其阻断状态；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果、证据缺口和未决问题可追溯，并给出真实 Gate 决策；只有必需 Loop 完成或正式延期、无 P0/P1 未关闭缺陷且 L2-25-02 人工证据通过或获书面批准时才能标记“批准”，否则必须标记“不批准”并写明阻断项、责任与重新审查条件 | 完整回归；UAT 演练与签字或明确阻断记录；小程序真实账号/弱网/录屏复测或正式延期批准；人工 Gate 审查 |
 
 ## 8. 建议执行顺序
 
