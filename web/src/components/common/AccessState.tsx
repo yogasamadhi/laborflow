@@ -1,4 +1,4 @@
-import { ArrowLeft, LoaderCircle, MapPinOff, ShieldAlert } from "lucide-react";
+import { ArrowLeft, CircleAlert, LoaderCircle, MapPinOff, RefreshCw, ShieldAlert } from "lucide-react";
 import { Button } from "../ui/Button";
 
 export function AuthLoadingState() {
@@ -8,6 +8,39 @@ export function AuthLoadingState() {
       <h1>正在验证登录状态</h1>
       <p>请稍候，系统正在确认当前账号的访问权限。</p>
     </div>
+  );
+}
+
+export function RouteLoadingState() {
+  return (
+    <section className="route-loading" role="status" aria-live="polite">
+      <div className="route-loading-heading">
+        <span className="skeleton skeleton-title" />
+        <span className="skeleton skeleton-copy" />
+      </div>
+      <div className="route-loading-grid" aria-hidden="true">
+        <span className="skeleton skeleton-card" />
+        <span className="skeleton skeleton-card" />
+        <span className="skeleton skeleton-card" />
+      </div>
+      <span className="sr-only">正在加载页面</span>
+    </section>
+  );
+}
+
+export function DataErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
+  return (
+    <section className="state-card state-card-error" role="alert">
+      <CircleAlert className="access-state-icon" size={24} />
+      <h3>暂时无法加载数据</h3>
+      <p>{message || "请检查网络后重试。"}</p>
+      {onRetry ? (
+        <Button type="button" variant="secondary" onClick={onRetry}>
+          <RefreshCw size={16} />
+          重试
+        </Button>
+      ) : null}
+    </section>
   );
 }
 
