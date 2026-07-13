@@ -74,6 +74,8 @@ JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin
 
 Gitee pull-request gate configuration and its Docker/Testcontainers runner
 requirement are documented in [`docs/CI_BACKEND_GATE.md`](docs/CI_BACKEND_GATE.md).
+The Web typecheck, test, and build gate is documented in
+[`docs/CI_WEB_GATE.md`](docs/CI_WEB_GATE.md).
 
 
 ## 目录

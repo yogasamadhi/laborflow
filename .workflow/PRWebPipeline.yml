@@ -1,0 +1,25 @@
+version: '1.0'
+name: pr-web-quality
+displayName: PR Web Quality
+triggers:
+  pr:
+    branches:
+      include:
+        - master
+stages:
+  - stage:
+      name: web-quality
+      displayName: Web Quality
+      steps:
+        - step: build@nodejs
+          name: pnpm-quality
+          displayName: pnpm Typecheck Test Build
+          nodeVersion: 20.18.0
+          commands:
+            - corepack enable
+            - pnpm --dir web install --frozen-lockfile
+            - pnpm --dir web typecheck
+            - pnpm --dir web test
+            - pnpm --dir web build
+          caches:
+            - ~/.pnpm-store
