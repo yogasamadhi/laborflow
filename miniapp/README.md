@@ -22,3 +22,16 @@
 ## Vant Weapp
 
 页面已接入 Vant Weapp 组件。首次导入微信开发者工具后，请执行“工具 -> 构建 npm”，生成 `miniprogram_npm` 后即可预览。
+
+## CI And Smoke Evidence
+
+Run the JavaScript syntax gate locally with:
+
+```bash
+npm run check
+```
+
+The Gitee PR workflow and activation requirements are documented in
+[`docs/CI_MINIAPP_GATE.md`](../docs/CI_MINIAPP_GATE.md). Record manual
+user-flow verification with
+[`docs/MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](../docs/MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md).
