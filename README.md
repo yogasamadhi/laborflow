@@ -78,6 +78,8 @@ The Web typecheck, test, and build gate is documented in
 [`docs/CI_WEB_GATE.md`](docs/CI_WEB_GATE.md).
 The miniapp syntax gate and manual smoke evidence template are documented in
 [`docs/CI_MINIAPP_GATE.md`](docs/CI_MINIAPP_GATE.md).
+The documentation, Flyway migration, and whitespace gate is documented in
+[`docs/CI_DOCS_GATE.md`](docs/CI_DOCS_GATE.md).
 
 
 ## 目录
