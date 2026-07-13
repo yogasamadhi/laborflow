@@ -175,7 +175,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L2-23-01 | backend | todo | 建立后端集成测试基线 | Testcontainers 或测试数据库 profile、Flyway、认证测试工具 | 集成测试能启动真实数据库或隔离测试库，自动执行迁移 | `mvn test` 或 `mvn verify` |
+| L2-23-01 | backend | done | 建立后端集成测试基线 | Testcontainers 或测试数据库 profile、Flyway、认证测试工具 | 集成测试能启动真实数据库或隔离测试库，自动执行迁移 | `mvn test` 或 `mvn verify` |
 | L2-23-02 | backend/database | todo | 空库 Flyway 迁移验证 | `server/src/main/resources/db/migration`、测试或脚本 | 从空库可完整迁移到最新版本；默认角色、工资项、工序库符合初始化口径 | 迁移测试；`mvn test` |
 | L2-23-03 | backend/database | todo | 旧库升级迁移演练 | 匿名 fixture、迁移脚本、升级文档 | 含历史工资、项目、附件、用户、微信绑定的旧数据可升级且核心数据不丢 | 升级演练记录；迁移测试 |
 | L2-23-04 | backend | todo | API 请求校验与错误响应集成测试 | Controller、DTO、GlobalExceptionHandler | 必填、状态、金额、月份、权限错误均返回统一可读错误 | `mvn test` |
@@ -382,4 +382,19 @@ Push: master is pushed to origin as part of this loop completion
 Loop branch cleanup: local loop/L2-20-04-initialization-checklist is deleted after target push
 Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
 Notes: Added an environment-only, no-active-admin bootstrap with credential validation, password hashing, audit logging, and non-admin elevation protection; documented the complete initialization acceptance path.
+```
+
+```text
+Loop: L2-23-01
+Target branch: master
+Loop branch: loop/L2-23-01-integration-baseline
+Commit: 5186bd8 loop: add postgres integration baseline
+Merge commit: b84f62e merge: complete L2-23-01 integration baseline
+Verification: server mvn test passed (90 tests); Testcontainers started PostgreSQL 18, Flyway applied 21 migrations from an empty database, anonymous system access returned 401, bootstrap ADMIN login and authenticated system user access returned 200; git diff --check passed
+Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
+Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
+Push: master is pushed to origin as part of this loop completion
+Loop branch cleanup: local loop/L2-23-01-integration-baseline is deleted after target push
+Current branch/worktree: master, clean and aligned with origin/master after the completion-record push
+Notes: Added Testcontainers PostgreSQL and JUnit Jupiter dependencies, a real HTTP integration test, and local/CI Docker requirements in README.
 ```
