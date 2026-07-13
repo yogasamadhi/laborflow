@@ -61,6 +61,17 @@ BOOTSTRAP_ADMIN_PASSWORD=<12-64 个字符的管理员密码>
 完整的角色、工资项、工序库、测试账号和微信绑定准备步骤见
 [`docs/INITIALIZATION_CHECKLIST.md`](docs/INITIALIZATION_CHECKLIST.md)。
 
+## 后端集成测试
+
+后端的 `mvn test` 会运行单元测试以及 PostgreSQL 集成测试。集成测试使用 Testcontainers
+启动一次短生命周期的 PostgreSQL 18，自动执行 Flyway，并验证管理员登录和受保护接口；
+运行该命令的本机或 CI runner 需要可访问 Docker。
+
+```bash
+cd server
+JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+```
+
 
 ## 目录
 
