@@ -87,6 +87,10 @@
   安全边界组织。测试、CI 接线、smoke 手册和证据模板仅在自身构成独立 Gate 时单列。
 - 高风险 loop 在表格中标明风险/回滚边界；完成记录必须说明实际运行的验证和最终 diff。
 
+本次按最新版规则改造时，所有已标记为 `done` 的 Loop 行和既有完成记录保持原样；
+只调整尚未闭环的计划边界、依赖、范围和验证方式。已经开始实现但尚未形成完成记录的
+能力，也不得借地图改造扩大原定目标。
+
 本地图中的所有计划 loop 默认只能是 `todo`。只有满足 `docs/LOOPRULE.md` 第 7 节完成定义，
 并在本文完成记录区追加记录后，才能标记为 `done`。
 
@@ -99,12 +103,36 @@
 | partial | 已做一部分，但未满足验收、验证、提交、推送或分支清理要求 |
 | done | 已实现、验证、审查、提交、合并回目标分支、推送远端，并清理 loop 分支；如需保留 loop 分支，已记录原因、位置和清理责任 |
 
+### 3.2 待执行 Loop 元数据
+
+下表只补充尚未闭环 Loop 的推荐字段，不改变第 7 节已完成条目。开始每个 Loop 前，
+执行者必须再次核对依赖，并把“不在范围”写入本轮目标说明；依赖未满足时不得创建
+实现分支。`P0/P1/P2` 只表达执行优先级，不替代真实状态。
+
+| Loop | 优先级 | 依赖 | 不在范围 |
+| --- | --- | --- | --- |
+| `L2-22-01` | P0 | L2-20-02、L2-23-01、L2-23-04、L2-23-05 | 审计日志、附件归属和业务页面整体重做 |
+| `L2-22-03` | P0 | L2-22-01 | 日志平台部署、长期归档和监控告警 |
+| `L2-22-04` | P0 | L2-21-03、L2-22-01 | 对象存储开通、CDN 和生产存储迁移 |
+| `L2-24-01` | P0 | L2-22-01 | 工资/项目业务规则、小程序主题和部署层性能配置 |
+| `L2-24-02` | P1 | L2-24-01 | 工资计算规则、审批权限和导出协议变更 |
+| `L2-24-03` | P1 | L2-24-01 | 项目计价规则、结算状态机和权限变更 |
+| `L2-25-01` | P0 | L2-20-02、L2-22-01、L2-23-05 | 新增业务 API、破坏性协议升级和业务页面视觉重做 |
+| `L2-25-02` | P1 | L2-21-01、L2-21-02、L2-21-03、L2-25-01 | 后端业务状态机和工资计算规则变更 |
+| `L2-27-01` | P1 | P22、P24、P25 必需项闭环 | 部署运维文档、具体缺陷修复和未批准的功能承诺 |
+| `L2-27-02` | P0 | P22-P26 必需项、L2-27-01 | 部署执行；Gate 不通过时不得以文档形式宣告上线 |
+
+粒度复核后，以下从未执行的计划项不再保留独立分支生命周期：`L2-22-02` 并入
+`L2-22-01`；`L2-24-04` 至 `L2-24-07` 并入 `L2-24-01` 至 `L2-24-03`；
+`L2-25-03` 至 `L2-25-05` 并入 `L2-25-02`；`L2-27-03` 并入 `L2-27-01`，
+`L2-27-04/L2-27-05` 并入 `L2-27-02`。测试、视觉证据和文档跟随对应能力一起收口。
+
 ## 4. 当前基线
 
 当前已观察到的基线：
 
-- 后端非沙箱完整 `mvn test` 已通过 99 tests，包含 Testcontainers PostgreSQL 18、空库
-  Flyway、历史库升级、API 合约、工资生命周期和项目结算生命周期回归。
+- 后端非沙箱完整 `mvn test` 已通过 101 tests，包含 Testcontainers PostgreSQL 18、空库
+  Flyway、历史库升级、API 合约、工资、项目结算、签证收入和薪酬来源生命周期回归。
 - Gitee Go 的后端、Web、小程序和文档 PR workflow 已入库；远端导入、首次运行和分支
   保护仍是仓库管理员设置。
 - Web 已有 `typecheck`、Vitest 和生产构建门禁；构建通过，但主 JS chunk 约 1.60 MB，
@@ -117,7 +145,7 @@
 
 仍不可信或尚未闭环的检查：
 
-- 签证收入、薪酬来源、权限/脱敏/文件访问等高风险业务边界仍缺少完整 E2E 或越权回归。
+- 权限、脱敏、审计日志和文件访问等高风险边界仍缺少完整 E2E 或越权回归。
 - Web 关键页面缺少可重复视觉/交互回归记录和路由级代码分割验证。
 - 小程序真机弱网、上传失败、重复提交、待办审批以及视觉录屏尚未形成可重复验收记录。
 - Gitee Go 的远端实际运行与 required-status 分支保护尚待管理员完成并留存证据。
@@ -184,8 +212,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-22-01 | backend/web/qa | todo | 建立访问控制与敏感数据回归 | 认证、工资、项目、系统、导出 API 与页面 | 角色正向/越权；字段/导出脱敏；完整权限查看；集成夹具 | 授权和敏感数据；回滚为访问判定/序列化/页面展示整体 | 各角色的 200/401/403 和脱敏/完整查看行为可重复验证 | `mvn test`; `pnpm build`; 权限 smoke |
-| L2-22-02 | web/qa | todo | 完成 Web 无权限导航与失败体验 | AppLayout、axios、受限路由和关键页 | 菜单过滤；路由直达；403/401 提示；加载结束和重试 | 用户可见访问反馈；回滚为导航/错误状态组件整体 | 无权限入口不展示，直达受限路由或接口不白屏且可理解 | `pnpm typecheck`; `pnpm test`; `pnpm build`; Web smoke |
+| L2-22-01 | backend/web/qa | todo | 建立访问控制、敏感数据与无权限体验回归 | 认证、工资、项目、系统、导出 API、AppLayout、axios 和受限路由 | 角色 200/401/403；字段/导出脱敏；菜单与路由直达；401/403/重试反馈；集成与 Web 回归 | 授权、敏感数据和用户可见访问反馈；回滚为访问判定、序列化、导航和错误状态整体 | 各角色授权/越权和脱敏行为可重复验证，无权限入口不展示且直达受限页面不白屏 | `mvn test`; `pnpm typecheck`; `pnpm test`; `pnpm build`; 权限/Web smoke |
 | L2-22-03 | backend/qa | todo | 建立关键审计日志回归 | 工资、项目、绩效、用户、微信绑定 | 关键动作矩阵；自动化断言；日志查询/抽查路径 | 审计可追溯；回滚为新增日志测试/接线整体 | 创建、修改、审批、驳回、发放、导出和绑定/解绑均可查询 | `mvn test`; UAT 日志抽查 |
 | L2-22-04 | backend/qa | todo | 验证文件访问与附件归属边界 | 上传、工资凭证、日报照片、签证附件、资料归档 | 授权下载；跨业务重用拒绝；私有附件 smoke；回归断言 | 私有文件与业务归属；回滚为文件授权/绑定变更整体 | 未授权无法下载，附件不能跨业务重复滥用 | `mvn test`; 文件 smoke |
 
@@ -203,23 +230,16 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-24-01 | web/qa | todo | 建立 Web 质量、登录导航与访问状态基线 | 登录、AppLayout、axios、通用状态组件 | 复用 P26 脚本；登录成功/失败/token 失效；菜单；loading/empty/403/error；smoke | 登录和访问反馈；回滚为通用状态/导航接线整体 | 关键入口不白屏，访问失败有一致可操作反馈 | `pnpm typecheck`; `pnpm test`; `pnpm build`; Web smoke |
-| L2-24-02 | web | todo | 完成工资工作台关键操作体验 | 月度工资、明细、发放、导出、异常 | 生成/重算；提交/审核；批量发放；导出；确认/结果/失败反馈 | 工资状态和金额操作；回滚为工资工作台整体 | 关键工资动作均有确认、结果和失败提示 | `pnpm build`; 工资 smoke |
-| L2-24-03 | web | todo | 完成项目工作台与大列表操作体验 | 日报、确认、签证、结算、看板及项目列表 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈 | 项目状态和大列表交互；回滚为项目工作台整体 | 项目核心表格可扫描并可安全完成关键操作 | `pnpm build`; 项目 smoke |
-| L2-24-04 | design/web | todo | 建立 Web 设计系统与信息层级 | `styles.css`、布局、Field、Modal、表格和表单 | token；顶栏/侧栏/标题；操作/筛选区；表格列宽；表单分组 | 跨页视觉基础；回滚为 token/通用组件整体 | 页面层级、表单和表格形成一致可扫描规范 | `pnpm build`; 桌面截图；表单 smoke |
-| L2-24-05 | design/web | todo | 完成响应式交互与业务状态体验 | 按钮、Modal、上传/导出、空/异常状态、窄屏布局 | hover/focus/disabled/loading；成功/失败文案；弹窗滚动；1366/1440/窄屏 | 用户可见交互；回滚为通用交互/响应式样式整体 | 操作反馈完整，多视口文字和控件不重叠/溢出 | `pnpm build`; 交互 smoke；多视口截图 |
-| L2-24-06 | web | todo | 路由级懒加载与代码分割 | router、页面 import、Vite 配置 | 路由边界；动态 import；chunk 对比；首屏 smoke | 生产加载性能；回滚为路由加载策略整体 | 主 chunk 明显下降，关键路由按需加载且首屏无回归 | `pnpm build`; chunk 对比；Web smoke |
-| L2-24-07 | design/web/qa | todo | 建立 Web 视觉回归基线 | `WEB_VISUAL_QA_CHECKLIST.md`、可选 Playwright | 页面清单；正常/空/错误；桌面/窄屏截图；证据归档 | QA 证据；回滚为清单/截图资产 | 关键页面后续可按同一截图基线验收 | `git diff --check`; 截图 smoke |
+| L2-24-01 | design/web/qa | todo | 建立 Web 正式版公共体验、视觉与性能基线 | 登录、AppLayout、通用状态、styles/components、响应式、router、`WEB_VISUAL_QA_CHECKLIST.md` | 登录/token 状态；设计 token 与组件层级；loading/empty/error；多视口交互；路由懒加载/chunk；截图基线 | Web 共享基础和加载策略；回滚为壳层、通用组件、样式、路由加载和视觉基线整体 | 登录与访问反馈一致，页面层级可扫描，多视口不溢出，主 chunk 明显下降且关键页面有截图基线 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; chunk 对比；1366/1440/窄屏 smoke/截图 |
+| L2-24-02 | web/qa | todo | 完成工资工作台关键操作与视觉体验 | 月度工资、明细、发放、导出、异常及对应视觉状态 | 生成/重算；提交/审核；批量发放；导出；确认/结果/失败；正常/空/异常截图 | 工资状态和金额操作；回滚为工资工作台及对应视觉基线整体 | 关键工资动作均有确认、结果和失败提示，金额与状态清晰可扫描且可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 工资 smoke/截图 |
+| L2-24-03 | web/qa | todo | 完成项目工作台、大列表与视觉体验 | 日报、确认、签证、结算、看板、项目列表及对应视觉状态 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈；大表格响应式；正常/空/异常截图 | 项目状态和大列表交互；回滚为项目工作台及对应视觉基线整体 | 项目核心表格可扫描，关键操作可安全完成，多视口和异常状态可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 项目 smoke/截图 |
 
 ### P25：小程序现场端正式版体验
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-25-01 | miniapp/qa | todo | 建立现场流程可靠性与 smoke 能力 | 登录、绑定、日报、签证、待办、上传、退出、缓存 | 详细 checklist；上传进度/重试；草稿/弱网恢复；提交锁定；基础证据 | 现场数据写入和重复操作；回滚为可靠性辅助层整体 | 关键现场路径可在弱网和重复触发下安全完成或恢复 | `npm --prefix miniapp run check`; 微信开发者工具弱网 smoke |
-| L2-25-02 | miniapp/backend | todo | 建立小程序接口契约回归 | `miniapp/services`、后端 DTO/状态流 | 字段清单；关键状态；后端 contract/HTTP 测试；miniapp 服务 smoke | 移动端公共协议；回滚为契约 fixture/服务接线整体 | 字段或状态变化会被测试或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check` |
-| L2-25-03 | design/miniapp | todo | 统一现场填报视觉与交互路径 | app theme、日报/签证创建、项目/施工段/工序选择 | 视觉 token；选择顺序；必填/错误；照片；保存/提交 | 现场输入易用性；回滚为样式/填报流程整体 | 现场人员可自然完成选择、填写、上传和提交 | `npm --prefix miniapp run check`; 小程序流程 smoke |
-| L2-25-04 | design/miniapp | todo | 完成待办审批与工资查看交互 | 待办、审批/驳回、工资列表/详情/确认/反馈 | 类型/紧急度；意见输入；防误触；金额层级；确认/异常入口 | 审批和工资确认；回滚为两类交互页面整体 | 待办可扫描安全处理，员工可清楚查看/确认工资条 | `npm --prefix miniapp run check`; 待办与工资 smoke |
-| L2-25-05 | design/miniapp/qa | todo | 建立小程序视觉与状态回归基线 | `MINIAPP_VISUAL_QA_CHECKLIST.md`、主要页面/弹窗 | 页面清单；空/弱网/上传中/提交中；真机截图/录屏；证据归档 | QA 证据；回滚为清单/截图资产 | 主要移动页面及状态有可重复视觉验收 | `git diff --check`; 微信开发者工具 smoke |
+| L2-25-01 | miniapp/backend/qa | todo | 建立小程序身份、会话与接口契约可靠性基线 | 登录、微信绑定、token、退出、缓存、`miniapp/services`、后端 DTO/状态流 | 登录/绑定正反向；token 失效；缓存清理；字段/状态清单；contract/HTTP 回归；弱网 smoke | 身份、会话和移动端公共协议；回滚为认证、契约 fixture 和服务接线整体 | 身份流程可安全恢复，字段或状态破坏性变化会被自动化或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录/绑定/弱网 smoke |
+| L2-25-02 | design/miniapp/qa | todo | 完成小程序现场工作台的可靠交互与视觉回归 | app theme、日报、签证、上传/草稿、待办审批、工资条、`MINIAPP_VISUAL_QA_CHECKLIST.md` | 填报选择/校验；上传重试/草稿恢复；提交锁定；待办防误触；工资金额/确认；空/弱网/提交中截图录屏 | 现场写入、审批和工资确认；回滚为现场工作台页面、服务接线和视觉基线整体 | 现场人员可在弱网下完成或恢复填报、审批和工资确认，重复触发不产生重复写入，关键状态可重复视觉验收 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具全流程 smoke；真机或开发者工具截图/录屏 |
 
 ### P26：自动化质量门禁
 
@@ -235,25 +255,23 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-27-01 | docs/product | todo | 更新产品定位与正式版文档口径 | README、brief、roadmap | 功能边界；延期项；质量入口；术语一致 | 对外口径；回滚为文档包整体 | 文档准确描述正式版能力和明确不做项 | `git diff --check`; 文档链接检查 |
-| L2-27-02 | docs/product | todo | 编写角色操作手册包 | `USER_GUIDE_*.md` | 财务；项目经理；老板；员工/现场；管理员路径 | 操作可执行性；回滚为手册包整体 | 所有角色都有可完成关键任务的操作路径 | `git diff --check`; 角色 walkthrough |
-| L2-27-03 | docs/qa | todo | 编写缺陷分级与上线阻断规则 | `LAUNCH_DEFECT_POLICY.md` | P0/P1/P2；阻断；延期批准；责任记录 | 发布决策；回滚为策略文档 | 缺陷级别、阻断和批准条件明确 | `git diff --check`; Gate 审查 |
-| L2-27-04 | release/qa | todo | 建立 UAT 跟踪与签字能力 | `UAT_SIGNOFF.md`、问题跟踪约定 | 角色结果；问题；复测；确认/签字；证据链接 | 上线证据；回滚为 UAT 文档整体 | 各角色验收结果和未决问题可追溯 | `git diff --check`; UAT 演练 |
-| L2-27-05 | release | todo | 执行正式上线非部署 Gate 审查 | `LAUNCH_READINESS_REVIEW.md`、全部证据 | loop 状态；测试；UAT；权限；迁移；缺陷/延期批准 | 发布 Gate；回滚为不批准上线，不回滚业务数据 | 必需 loop 完成或正式延期且无 P0/P1 未关闭缺陷 | 完整回归；人工 Gate 审查 |
+| L2-27-01 | docs/product/qa | todo | 完成正式版产品文档、角色手册与缺陷治理包 | README、brief、roadmap、`USER_GUIDE_*.md`、`LAUNCH_DEFECT_POLICY.md` | 功能/延期口径；质量入口；五类角色路径；P0/P1/P2；阻断/延期批准；术语和链接 | 对外口径与发布治理；回滚为文档治理包整体 | 正式版边界准确，所有角色有可执行路径，缺陷分级、阻断和批准条件明确 | `git diff --check`; `node scripts/ci/check-docs.mjs`; 角色 walkthrough；Gate 审查 |
+| L2-27-02 | release/qa | todo | 执行 UAT 签字与正式上线非部署 Gate | `UAT_SIGNOFF.md`、问题跟踪、`LAUNCH_READINESS_REVIEW.md`、全部证据 | 角色结果；问题/复测；签字；Loop/测试/权限/迁移证据；缺陷/延期批准；最终决策 | 发布 Gate；不通过时不批准上线，不回滚已验收业务数据 | 各角色结果和未决问题可追溯，必需 Loop 完成或正式延期，且无 P0/P1 未关闭缺陷 | 完整回归；UAT 演练与签字；人工 Gate 审查 |
 
 ## 8. 建议执行顺序
 
-1. 先做 P20：冻结范围、角色矩阵和验收清单，避免后续 loop 目标漂移。
-2. 再做 P23 与 P26：把集成测试、迁移验证和 CI 门禁立起来，让后续变更可回归。
-3. 接着做 P21 与 P22：跑通核心业务和权限安全的端到端回归。
-4. 然后做 P24 与 P25：补 Web 和小程序正式版体验、界面美化、交互升级。
-5. 最后做 P27：文档、UAT、缺陷策略和最终 gate 收口。
+1. 已完成的 P20、P21、P23、P26 保持冻结，不因后续地图改造重写其范围或完成记录。
+2. 先顺序闭环 P22：`L2-22-01` → `L2-22-03` → `L2-22-04`。
+3. Web 按公共基础到业务能力推进：`L2-24-01` → `L2-24-02` → `L2-24-03`。
+4. 小程序按身份与协议基础到现场工作台推进：`L2-25-01` → `L2-25-02`。
+5. 最后顺序闭环 P27：`L2-27-01` 文档治理包 → `L2-27-02` UAT 与非部署 Gate。
 
 依赖与阻塞条件：
 
 - P21/P22 的业务和权限回归，应在 P20 的上线范围与角色矩阵明确后执行。
 - P23 的迁移和集成测试基线，应优先于大量业务改动完成，否则回归可信度不足。
-- P24/P25 的体验升级应引用 P20/P21 的关键流程和 P24/P25 的视觉 QA 清单。
+- P24/P25 的体验升级应引用 P20/P21 的关键流程；视觉 QA 清单和证据作为对应能力
+  Loop 的内部 checklist 同步收口，不再后置为独立文档 Loop。
 - P27 的最终 gate 必须等待 P20-P26 中必需 loop 全部 `done` 或有明确延期批准。
 
 ## 9. 每类 Loop 的最小验证建议
@@ -261,12 +279,12 @@
 | 变更类型 | 最小验证 |
 | --- | --- |
 | 文档-only | `git diff --check`；人工检查路径、命令、角色名称是否真实存在；审查 `git diff` |
-| 后端 Java 代码 | `JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test` |
-| 后端集成测试/迁移 | `mvn test` 或 `mvn verify`，并记录测试数据库或 Testcontainers 方式 |
-| Web 代码 | `pnpm typecheck`、`pnpm test`、`pnpm build`，按项目实际脚本调整 |
-| Web 性能 | `pnpm build`，记录主 chunk 和 gzip 体积变化 |
-| Web 视觉/交互 | `pnpm build`，关键页面桌面/窄屏截图，记录 hover/focus/loading/error 状态 |
-| 小程序 JS | `find miniapp -name '*.js' -exec node --check {} \;` 或等价检查 |
+| 后端 Java 代码 | `JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -B -ntp -f server/pom.xml test` |
+| 后端集成测试/迁移 | 同上，并记录 Testcontainers PostgreSQL、迁移起点和最终版本 |
+| Web 代码 | `pnpm --dir web typecheck`、`pnpm --dir web test`、`pnpm --dir web build` |
+| Web 性能 | `pnpm --dir web build`，记录主 chunk 和 gzip 体积变化 |
+| Web 视觉/交互 | `pnpm --dir web build`，关键页面桌面/窄屏截图，记录 hover/focus/loading/error 状态 |
+| 小程序 JS | `npm --prefix miniapp run check` |
 | 小程序体验 | 微信开发者工具 smoke，记录机型、网络、账号、步骤和截图 |
 | 小程序视觉/交互 | 真机或开发者工具截图/录屏，覆盖触控态、上传中、提交中、弱网、空状态 |
 | 权限/安全 | 至少验证匿名 401、越权 403、授权 200、敏感字段脱敏 |
@@ -319,7 +337,7 @@ Notes:
 Loop: L2-20-03
 Target branch: main
 Loop branch: loop/L2-20-03-uat-checklist
-Commit: <commit-sha>
+Commit(s): <commit-sha>
 Merge commit: <merge-sha>
 Verification: git diff --check; reviewed docs/UAT_CHECKLIST.md manually
 Diff review: passed; reviewed final diff against origin/main
