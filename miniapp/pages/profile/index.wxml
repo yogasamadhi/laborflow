@@ -24,7 +24,7 @@
   </view>
 
   <view class="profile-actions">
-    <van-button block plain type="primary" icon="replay" bind:tap="refreshMe">刷新资料</van-button>
-    <van-button block type="danger" icon="close" bind:tap="logout">退出登录</van-button>
+    <van-button block plain type="primary" icon="replay" loading="{{refreshing}}" disabled="{{refreshing || loggingOut}}" bind:tap="refreshMe">刷新资料</van-button>
+    <van-button block type="danger" icon="close" loading="{{loggingOut}}" disabled="{{refreshing || loggingOut}}" bind:tap="logout">退出登录</van-button>
   </view>
 </view>

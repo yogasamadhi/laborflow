@@ -31,6 +31,11 @@ Run the JavaScript syntax gate locally with:
 npm run check
 ```
 
+`npm run check` also runs the mocked authentication and service-contract
+regression tests. The identity/session contract and the required DevTools
+smoke steps are in
+[`docs/MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](../docs/MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md).
+
 The Gitee PR workflow and activation requirements are documented in
 [`docs/CI_MINIAPP_GATE.md`](../docs/CI_MINIAPP_GATE.md). Record manual
 user-flow verification with

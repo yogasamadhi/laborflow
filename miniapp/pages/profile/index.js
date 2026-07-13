@@ -10,7 +10,9 @@ Page({
     userIdText: "-",
     employeeIdText: "未绑定",
     employeeBound: false,
-    rolesText: "-"
+    rolesText: "-",
+    refreshing: false,
+    loggingOut: false
   },
 
   onShow() {
@@ -24,20 +26,32 @@ Page({
   },
 
   async refreshMe() {
+    if (this.data.refreshing) return;
+    this.setData({ refreshing: true });
     try {
       const data = await authService.me();
-      const user = auth.setLogin(Object.assign({}, data, { token: auth.getToken() }));
+      const user = auth.refreshUser(data);
       getApp().globalData.user = user;
       this.setProfile(user);
     } catch (error) {
       wx.showToast({ title: error.message, icon: "none" });
+    } finally {
+      this.setData({ refreshing: false });
     }
   },
 
-  logout() {
-    auth.clearLogin();
-    getApp().globalData.user = null;
-    wx.reLaunch({ url: "/pages/login/index" });
+  async logout() {
+    if (this.data.loggingOut) return;
+    this.setData({ loggingOut: true });
+    try {
+      await authService.logout();
+    } catch (error) {
+      wx.showToast({ title: "已清理本地登录信息", icon: "none" });
+    } finally {
+      auth.clearLogin();
+      getApp().globalData.user = null;
+      wx.reLaunch({ url: "/pages/login/index" });
+    }
   },
 
   setProfile(user) {

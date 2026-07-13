@@ -5,7 +5,6 @@ Page({
   data: {
     username: "",
     password: "",
-    wxCode: "",
     wechatOpenid: "",
     wechatBound: false,
     nickname: "",
@@ -27,13 +26,14 @@ Page({
             reject(error);
             return;
           }
-          this.setData({ wxCode: res.code });
           try {
             const session = await authService.wechatSession(res.code);
             this.setData({
               wechatOpenid: session.openid || "",
               wechatBound: !!session.bound,
-              authButtonText: session.bound ? "微信已绑定" : this.data.authButtonText
+              authButtonText: session.bound
+                ? "微信已绑定"
+                : (this.data.nickname ? "已授权：" + this.data.nickname : "微信授权")
             });
             resolve(session);
           } catch (error) {
@@ -84,7 +84,6 @@ Page({
       const data = await authService.login({
         username,
         password,
-        wechatCode: this.data.wxCode,
         wechatOpenid: this.data.wechatOpenid,
         wechatNickname: this.data.nickname
       });
