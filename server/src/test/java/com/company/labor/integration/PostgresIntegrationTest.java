@@ -96,6 +96,42 @@ class PostgresIntegrationTest {
         assertThat(usersBody.path("code").asInt()).isZero();
     }
 
+    @Test
+    void seedsExpectedRolesSalaryItemsAndWorkProcessesOnAnEmptyDatabase() {
+        String latestVersion = jdbcTemplate.queryForObject("""
+                SELECT version
+                FROM flyway_schema_history
+                WHERE success = true
+                ORDER BY installed_rank DESC
+                LIMIT 1
+                """, String.class);
+        var roleCodes = jdbcTemplate.queryForList("""
+                SELECT code
+                FROM sys_role
+                WHERE deleted = 0 AND status = 'active'
+                ORDER BY code
+                """, String.class);
+        var salaryItems = jdbcTemplate.queryForList("""
+                SELECT name
+                FROM salary_item
+                WHERE deleted = 0 AND status = 'active'
+                ORDER BY sort_order
+                """, String.class);
+        var workProcesses = jdbcTemplate.queryForList("""
+                SELECT name
+                FROM work_process
+                WHERE deleted = 0 AND status = 'active'
+                ORDER BY sort_order
+                """, String.class);
+
+        assertThat(latestVersion).isEqualTo("21");
+        assertThat(roleCodes).containsExactly("ADMIN", "BOSS", "EMPLOYEE", "FINANCE", "MANAGER");
+        assertThat(salaryItems).contains(
+                "基本工资", "岗位工资", "绩效工资", "社保扣款", "绩效奖金", "项目奖金", "考勤扣款", "公积金扣款", "个税扣款");
+        assertThat(workProcesses).hasSize(17).contains(
+                "测量放线", "沟槽开挖", "防水施工", "防火封堵", "清理验收");
+    }
+
     private HttpResponse<String> send(HttpRequest request) throws Exception {
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
