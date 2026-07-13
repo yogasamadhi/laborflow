@@ -90,6 +90,9 @@ documented in [`docs/PROJECT_SETTLEMENT_E2E_REGRESSION.md`](docs/PROJECT_SETTLEM
 The variation-order attachment, commercial confirmation, and project-income
 regression is documented in
 [`docs/VARIATION_INCOME_E2E_REGRESSION.md`](docs/VARIATION_INCOME_E2E_REGRESSION.md).
+The attendance, statutory-deduction, performance, and project-bonus payroll
+source regression is documented in
+[`docs/SALARY_SOURCES_E2E_REGRESSION.md`](docs/SALARY_SOURCES_E2E_REGRESSION.md).
 
 
 ## 目录
