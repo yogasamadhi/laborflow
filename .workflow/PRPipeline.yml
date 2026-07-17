@@ -18,5 +18,6 @@ stages:
           mavenVersion: 3.6.3
           commands:
             - mvn -B -ntp -f server/pom.xml test
+            - mvn -B -ntp -f server/pom.xml jacoco:report
           caches:
             - ~/.m2

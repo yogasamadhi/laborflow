@@ -4,10 +4,16 @@
   "private": true,
   "description": "LaborFlow 微信小程序端",
   "scripts": {
-    "check": "find . -path './node_modules' -prune -o -name '*.js' -exec node --check {} \\; && npm run test",
+    "check": "find . -path './node_modules' -prune -o -name '*.js' -exec node --check {} \\; && eslint . --max-warnings 0 && npm run test",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@vant/weapp": "^1.11.7"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.9.5"
   }
 }

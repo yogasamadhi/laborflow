@@ -35,12 +35,43 @@ for (const fileName of readdirSync(migrationDirectory).filter((name) => name.end
   migrationVersions.add(match[1]);
 }
 
+// Ensure .env.example documents every environment variable the server reads.
+// Catches the recurring drift where application.yml references ${NEW_VAR} but
+// the example template is not updated, leaving operators unaware of the
+// required setting.
+const applicationYaml = resolve(repositoryRoot, "server/src/main/resources/application.yml");
+const envExample = resolve(repositoryRoot, ".env.example");
+if (existsSync(applicationYaml) && existsSync(envExample)) {
+  const referencedVars = new Set(
+    Array.from(
+      readFileSync(applicationYaml, "utf8").matchAll(/\$\{([A-Z][A-Z0-9_]+)/g),
+      (match) => match[1]
+    )
+  );
+  const documented = new Set(
+    Array.from(
+      readFileSync(envExample, "utf8").matchAll(/^([A-Z][A-Z0-9_]+)=/gm),
+      (match) => match[1]
+    )
+  );
+  for (const variable of referencedVars) {
+    if (!documented.has(variable)) {
+      errors.push(
+        `application.yml references \${${variable}} but .env.example does not document it. ` +
+          `Add '${variable}=' to .env.example.`
+      );
+    }
+  }
+}
+
 if (errors.length > 0) {
   console.error(errors.join("\n"));
   process.exit(1);
 }
 
-console.log(`Docs and migrations check passed (${markdownFiles.length} Markdown files, ${migrationVersions.size} migrations).`);
+console.log(
+  `Docs and migrations check passed (${markdownFiles.length} Markdown files, ${migrationVersions.size} migrations, .env.example synced).`
+);
 
 function walk(directory) {
   return readdirSync(directory).flatMap((entry) => {

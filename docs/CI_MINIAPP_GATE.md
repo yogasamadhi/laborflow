@@ -10,8 +10,12 @@ npm --prefix miniapp run check
 ```
 
 The script checks every first-party `.js` file under `miniapp/` with
-`node --check`, skips `node_modules`, then runs the mocked identity and
-service-contract regression tests. WeChat runtime, Vant component rendering,
+`node --check`, then runs ESLint (`miniapp/.eslintrc.cjs`, `--max-warnings 0`)
+covering real-bug rules (`no-undef`, `no-debugger`, unused vars) while
+declaring the WeChat runtime globals (`wx`, `Page`, `App`, …), then runs the
+mocked identity and service-contract regression tests. Local formatting is
+owned by Prettier (`miniapp/.prettierrc`, `npm --prefix miniapp run format`)
+and is not enforced in CI yet. WeChat runtime, Vant component rendering,
 device permissions, real uploads, and real network behavior remain manual
 smoke responsibilities.
 
