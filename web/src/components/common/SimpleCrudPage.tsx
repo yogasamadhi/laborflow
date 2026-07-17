@@ -78,7 +78,7 @@ export function SimpleCrudPage({ title, resource, readonly = false }: SimpleCrud
                 {!readonly && (
                   <td>
                     <Button variant="secondary" onClick={() => { setEditing(row); setName(row.name ?? ""); }}>编辑</Button>{" "}
-                    <Button variant="danger" onClick={() => deleteData(`/${resource}/${row.id}`).then(() => queryClient.invalidateQueries({ queryKey: [resource] }))}>停用</Button>
+                    <Button variant="danger" onClick={() => deleteData(`/${resource}/${row.id}`).then(() => queryClient.invalidateQueries({ queryKey: [resource] })).catch(() => { /* surfaced via global request-error toast */ })}>停用</Button>
                   </td>
                 )}
               </tr>
