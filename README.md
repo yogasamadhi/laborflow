@@ -8,6 +8,42 @@
 - Miniapp：微信原生小程序、Vant Weapp 依赖预置
 - Server：Spring Boot 4、Java 21、MyBatis Plus、Spring Security、JWT、Flyway、PostgreSQL 18、OpenAPI
 
+## 前置依赖
+
+| 工具 | 版本要求 | 说明 |
+|---|---|---|
+| JDK | 21 | 后端编译与运行；通过 `JAVA_HOME` 或 PATH 提供 |
+| Maven | 3.6.3+ | 后端构建；通过 `MAVEN_BIN` 或 PATH 提供 |
+| Node.js | 20.18+ | Web 与小程序 CI；小程序本地仅需 Node 做语法/测试 |
+| pnpm | 11.2+（Web `packageManager` 锁定） | Web 依赖管理，`corepack enable` 即可 |
+| Docker | 任意现代版本 | 本地 PostgreSQL（`deploy/docker-laborflow`）；后端集成测试用 Testcontainers |
+| 微信开发者工具 | 稳定版 | 仅小程序本地开发/真机调试需要 |
+
+版本以各 CI 门文档（`docs/CI_*_GATE.md`）为准。
+
+## 架构
+
+```mermaid
+flowchart LR
+  subgraph Clients
+    WEB[Web 管理端\nReact + Vite]
+    MA[微信小程序\n现场端]
+  end
+  subgraph Server
+    API[Spring Boot 4 API\nJWT + 角色权限]
+    DB[(PostgreSQL 18\nFlyway 迁移)]
+    FS[本地/对象存储\n文件附件]
+  end
+  WEB -- HTTPS /api --> API
+  MA -- HTTPS /api --> API
+  API --> DB
+  API --> FS
+```
+
+- 三端共享同一套 Spring Boot API 与 JWT；角色决定可见范围。
+- Web 与小程序都是 API 的纯客户端，无独立后端。
+- 数据库结构由 Flyway 管理（`server/src/main/resources/db/migration`），新表/新列时间列一律 `TIMESTAMP WITH TIME ZONE`（见 [`docs/TIMEZONE_POLICY.md`](docs/TIMEZONE_POLICY.md)）。
+
 ## 本地启动
 
 ```bash
@@ -124,7 +160,12 @@ documented in [`docs/FILE_ACCESS_E2E_REGRESSION.md`](docs/FILE_ACCESS_E2E_REGRES
 ## 目录
 
 ```text
-web/     React 管理后台
-server/  Spring Boot API 服务
-miniapp/ 微信小程序端
+web/      React 管理后台
+server/   Spring Boot API 服务
+miniapp/  微信小程序端
+deploy/   docker-compose（本地 PostgreSQL）
+scripts/  CI 与构建辅助脚本
+docs/     产品、工程、CI、回归、验收文档（索引见 docs/INDEX.md）
 ```
+
+完整的文档分类与导航见 [`docs/INDEX.md`](docs/INDEX.md)。

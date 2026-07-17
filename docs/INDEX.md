@@ -1,0 +1,72 @@
+# 文档索引
+
+`docs/` 目录的导航索引。文档按用途分组；追踪类文档（LOOPMAP/ROADMAP 等）
+单独成区，便于与产品/工程文档区分。
+
+> 语言约定：面向产品与发布的文档（本索引、README、UAT、launch gate、
+> 用户指南）使用中文；E2E 回归规格是技术契约文档，保持英文。
+
+## 入门与架构
+
+- [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) — 项目背景、模块划分、业务范围
+- [`ROLE_PERMISSION_MATRIX.md`](ROLE_PERMISSION_MATRIX.md) — 角色与权限矩阵
+- [`TIMEZONE_POLICY.md`](TIMEZONE_POLICY.md) — 时区处理策略（Jackson/JVM 时区固定）
+- [`TECH_DEBT_GOD_CLASS.md`](TECH_DEBT_GOD_CLASS.md) — ProjectManagementServiceImpl 拆分方案（技术债）
+
+## 初始化与部署
+
+- [`INITIALIZATION_CHECKLIST.md`](INITIALIZATION_CHECKLIST.md) — 首次管理员、角色、工资项、工序库初始化
+- [`FLYWAY_UPGRADE_GUIDE.md`](FLYWAY_UPGRADE_GUIDE.md) — Flyway 历史升级指南
+- [`MINIAPP_RELEASE_CHECKLIST.md`](MINIAPP_RELEASE_CHECKLIST.md) — 小程序提交审核前检查清单
+
+## 用户指南
+
+- [`USER_GUIDE_WEB.md`](USER_GUIDE_WEB.md) — Web 管理端角色路径
+- [`USER_GUIDE_MINIAPP.md`](USER_GUIDE_MINIAPP.md) — 小程序现场端角色路径
+
+## 发布验收（Launch Gate）
+
+- [`LAUNCH_SCOPE.md`](LAUNCH_SCOPE.md) — 上线范围与延期项
+- [`LAUNCH_READINESS_REVIEW.md`](LAUNCH_READINESS_REVIEW.md) — Gate 结论与阻断项
+- [`LAUNCH_DEFECT_POLICY.md`](LAUNCH_DEFECT_POLICY.md) — 缺陷分级、阻断与延期批准
+- [`LAUNCH_ISSUES.md`](LAUNCH_ISSUES.md) — 已知问题登记
+- [`UAT_CHECKLIST.md`](UAT_CHECKLIST.md) — 业务 UAT 场景
+- [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md) — UAT 签署结论
+
+## CI 与质量门
+
+- [`CI_BACKEND_GATE.md`](CI_BACKEND_GATE.md) — 后端测试 + JaCoCo 报告门
+- [`CI_WEB_GATE.md`](CI_WEB_GATE.md) — Web lint/typecheck/test/build 门
+- [`CI_MINIAPP_GATE.md`](CI_MINIAPP_GATE.md) — 小程序 syntax + lint 门
+- [`CI_DOCS_GATE.md`](CI_DOCS_GATE.md) — 文档链接 + 迁移命名 + .env 同步门
+- [`REGRESSION_EVIDENCE_POLICY.md`](REGRESSION_EVIDENCE_POLICY.md) — PR 回归证据与评审规则
+- [`REGRESSION_EVIDENCE_RECORD_TEMPLATE.md`](REGRESSION_EVIDENCE_RECORD_TEMPLATE.md) — 证据记录模板
+
+## E2E 回归规格（英文，技术契约）
+
+- [`PAYROLL_E2E_REGRESSION.md`](PAYROLL_E2E_REGRESSION.md) — 工资发放生命周期
+- [`PROJECT_SETTLEMENT_E2E_REGRESSION.md`](PROJECT_SETTLEMENT_E2E_REGRESSION.md) — 日报/结算/付款/看板
+- [`VARIATION_INCOME_E2E_REGRESSION.md`](VARIATION_INCOME_E2E_REGRESSION.md) — 签证附件/确认/项目收入
+- [`SALARY_SOURCES_E2E_REGRESSION.md`](SALARY_SOURCES_E2E_REGRESSION.md) — 考勤/扣款/绩效/项目奖金来源
+- [`ACCESS_CONTROL_E2E_REGRESSION.md`](ACCESS_CONTROL_E2E_REGRESSION.md) — 权限/工资范围/项目范围边界
+- [`AUDIT_LOG_E2E_REGRESSION.md`](AUDIT_LOG_E2E_REGRESSION.md) — 跨模块操作日志
+- [`FILE_ACCESS_E2E_REGRESSION.md`](FILE_ACCESS_E2E_REGRESSION.md) — 私有文件下载/附件边界
+
+## QA 视觉与冒烟清单
+
+- [`WEB_VISUAL_QA_CHECKLIST.md`](WEB_VISUAL_QA_CHECKLIST.md) — Web 视觉 QA
+- [`MINIAPP_VISUAL_QA_CHECKLIST.md`](MINIAPP_VISUAL_QA_CHECKLIST.md) — 小程序视觉 QA
+- [`MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md) — 小程序身份/会话契约
+- [`MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md) — 小程序冒烟证据模板
+- [`PROJECT_WORKSPACE_QA_CHECKLIST.md`](PROJECT_WORKSPACE_QA_CHECKLIST.md) — 项目工作台 QA
+- [`PAYROLL_WORKSPACE_QA_CHECKLIST.md`](PAYROLL_WORKSPACE_QA_CHECKLIST.md) — 工资工作台 QA
+
+## 工作流追踪（LOOPMAP 体系，非产品文档）
+
+> 这些文件是开发进度追踪记录，体量大且持续更新，与产品/工程文档分开。
+> 不需要逐字阅读；按需查阅当前 loop 状态即可。
+
+- [`LOOPRULE.md`](LOOPRULE.md) — LOOPMAP 工作流方法论
+- [`LOOPMAP.md`](LOOPMAP.md) — 早期 loop 执行记录
+- [`LOOPMAP2.md`](LOOPMAP2.md) — 当前 loop 执行记录（L2 系列）
+- [`ROADMAP.md`](ROADMAP.md) — 路线图
