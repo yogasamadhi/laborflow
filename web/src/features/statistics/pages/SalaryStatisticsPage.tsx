@@ -1,9 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import { Page } from "../../../components/common/Page";
 import { getData } from "../../../lib/axios";
 import { money } from "../../../lib/utils";
+
+// Register only the pieces this page actually uses, instead of pulling in the
+// full echarts bundle (~1MB). Keeps the route chunk well under 200KB.
+echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 type Overview = { payableAmount: number; deductionAmount: number; actualAmount: number; paidAmount: number; unpaidAmount: number; paidCount: number; unpaidCount: number };
 type Trend = { salaryMonth: string; actualAmount: number };
