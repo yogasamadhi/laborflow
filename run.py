@@ -29,6 +29,7 @@ WEB_DIR = ROOT / "web"
 SERVER_DIR = ROOT / "server"
 ENV_FILE = ROOT / ".env"
 ENV_EXAMPLE = ROOT / ".env.example"
+COMPOSE_DIR = ROOT / "deploy" / "docker-laborflow"
 
 DEFAULT_JAVA_HOME = Path("/Users/h/code/env/jdk-21/Contents/Home")
 DEFAULT_MAVEN = Path("/Users/h/code/env/maven-3.9/bin/mvn")
@@ -381,13 +382,17 @@ def wait_for_port(service: str, host: str, port: int, timeout_seconds: int = 60)
 def ensure_docker(env: dict[str, str]) -> None:
     if not command_exists("docker"):
         fail("docker is required unless --no-docker is used")
-    run_checked(["docker", "compose", "up", "-d"], ROOT, env)
+    if not (COMPOSE_DIR / "docker-compose.yml").exists():
+        fail(f"docker-compose.yml not found in {COMPOSE_DIR}")
+    run_checked(["docker", "compose", "up", "-d"], COMPOSE_DIR, env)
 
 
 def stop_docker(env: dict[str, str]) -> None:
     if not command_exists("docker"):
         fail("docker command not found")
-    run_checked(["docker", "compose", "down"], ROOT, env)
+    if not (COMPOSE_DIR / "docker-compose.yml").exists():
+        fail(f"docker-compose.yml not found in {COMPOSE_DIR}")
+    run_checked(["docker", "compose", "down"], COMPOSE_DIR, env)
 
 
 def find_java_home(env: dict[str, str]) -> Path:
