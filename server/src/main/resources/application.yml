@@ -8,6 +8,12 @@ logging:
 spring:
   application:
     name: laborflow
+  jackson:
+    # Pin JSON date serialization to a single timezone regardless of the JVM
+    # default. Existing DB columns are TIMESTAMP WITHOUT TIME ZONE, so a fixed
+    # serialization TZ keeps API output stable across servers. See
+    # docs/TIMEZONE_POLICY.md.
+    time-zone: ${LABORFLOW_TIMEZONE:Asia/Shanghai}
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5434/laborflow}
     username: ${POSTGRES_USER:laborflow}
@@ -23,7 +29,6 @@ spring:
       max-request-size: 20MB
 
 mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
   global-config:

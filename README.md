@@ -4,9 +4,9 @@
 
 ## 技术栈
 
-- Web：React 19、React Router、TypeScript、Vite、Tailwind CSS 风格组件、TanStack Query、TanStack Table、React Hook Form、Zod、ECharts、Axios、dayjs、lucide-react
+- Web：React 19、React Router、TypeScript、Vite、TanStack Query、ECharts、Axios、lucide-react
 - Miniapp：微信原生小程序、Vant Weapp 依赖预置
-- Server：Spring Boot 3、Java 21、MyBatis Plus、Spring Security、JWT、Flyway、PostgreSQL 18、OpenAPI/Knife4j
+- Server：Spring Boot 4、Java 21、MyBatis Plus、Spring Security、JWT、Flyway、PostgreSQL 18、OpenAPI
 
 ## 本地启动
 
@@ -19,11 +19,11 @@ PostgreSQL 默认映射到宿主机 `5434` 端口，后端默认连接 `jdbc:pos
 
 默认服务端口：前端 `5175`，后端 `8089`。
 
-后端需要 Java 21 和 Maven：
+后端需要 Java 21 和 Maven（通过 `JAVA_HOME` 或 PATH 提供）：
 
 ```bash
 cd server
-JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn spring-boot:run
+mvn spring-boot:run
 ```
 
 前端：
@@ -88,7 +88,7 @@ BOOTSTRAP_ADMIN_PASSWORD=<12-64 个字符的管理员密码>
 
 ```bash
 cd server
-JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+mvn test
 ```
 
 Gitee pull-request gate configuration and its Docker/Testcontainers runner

@@ -1,3 +1,7 @@
+# Production profile. Activate with --spring.profiles.active=prod
+# (the Java code in SecurityExposurePolicy / ProductionConfigurationValidator
+# still accepts "production" as an alias for the isProduction() check, but the
+# YAML config itself is keyed to the "prod" profile name — use "prod".)
 springdoc:
   api-docs:
     enabled: ${OPENAPI_ENABLED:false}

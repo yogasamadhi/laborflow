@@ -32,9 +32,6 @@ ENV_FILE = ROOT / ".env"
 ENV_EXAMPLE = ROOT / ".env.example"
 COMPOSE_DIR = ROOT / "deploy" / "docker-laborflow"
 
-DEFAULT_JAVA_HOME = Path("/Users/h/code/env/jdk-21/Contents/Home")
-DEFAULT_MAVEN = Path("/Users/h/code/env/maven-3.9/bin/mvn")
-
 processes: list[subprocess.Popen[str]] = []
 managed_ports: set[int] = set()
 stopping = False
@@ -433,28 +430,27 @@ def stop_docker(env: dict[str, str]) -> None:
 
 
 def find_java_home(env: dict[str, str]) -> Path:
+    # Priority: $JAVA_HOME -> `java` on PATH. No machine-specific fallback —
+    # the launcher must be portable across developer machines and CI runners.
     configured = env.get("JAVA_HOME")
     if configured and (Path(configured) / "bin" / "java").exists():
         return Path(configured)
-    if DEFAULT_JAVA_HOME.exists():
-        return DEFAULT_JAVA_HOME
     java = shutil.which("java")
     if java:
         return Path(java).resolve().parents[1]
-    fail("Java 21 not found. Set JAVA_HOME or install JDK 21.")
+    fail("Java not found. Set JAVA_HOME or install JDK 21 on PATH.")
     raise AssertionError("unreachable")
 
 
 def find_maven(env: dict[str, str]) -> str:
+    # Priority: $MAVEN_BIN -> `mvn` on PATH.
     configured = env.get("MAVEN_BIN")
     if configured and Path(configured).exists():
         return configured
-    if DEFAULT_MAVEN.exists():
-        return str(DEFAULT_MAVEN)
     mvn = shutil.which("mvn")
     if mvn:
         return mvn
-    fail("Maven not found. Set MAVEN_BIN or install Maven.")
+    fail("Maven not found. Set MAVEN_BIN or install Maven on PATH.")
     raise AssertionError("unreachable")
 
 
@@ -470,6 +466,10 @@ def start_server(env: dict[str, str]) -> subprocess.Popen[str]:
     server_env = env.copy()
     server_env["JAVA_HOME"] = str(java_home)
     server_env["PATH"] = f"{java_home / 'bin'}{os.pathsep}{server_env.get('PATH', '')}"
+    # Pin the JVM default timezone so LocalDateTime-based audit fields and
+    # business date math are deterministic regardless of the host locale.
+    # Mirrors spring.jackson.time-zone in application.yml. See docs/TIMEZONE_POLICY.md.
+    server_env.setdefault("TZ", "Asia/Shanghai")
     return popen_stream(
         "server",
         [maven, "spring-boot:run"],
