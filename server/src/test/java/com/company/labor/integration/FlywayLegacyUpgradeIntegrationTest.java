@@ -46,7 +46,7 @@ class FlywayLegacyUpgradeIntegrationTest {
                 WHERE success = true
                 ORDER BY installed_rank DESC
                 LIMIT 1
-                """)).isEqualTo("21");
+                """)).isEqualTo("22");
         assertThat(count("SELECT COUNT(*) FROM sys_user WHERE id = " + USER_ID + " AND username = 'legacy_upgrade_user'"))
                 .isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM employee WHERE id = " + EMPLOYEE_ID + " AND name = '历史迁移员工'"))

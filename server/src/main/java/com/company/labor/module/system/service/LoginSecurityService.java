@@ -7,12 +7,14 @@ import com.company.labor.security.LoginUser;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Service
 public class LoginSecurityService {
     static final int MAX_FAILED_ATTEMPTS = 5;
@@ -69,6 +71,7 @@ public class LoginSecurityService {
                 .set(COL_UPDATED_AT, now);
         if (lockedUntil != null) {
             update.set(COL_LOCKED_UNTIL, lockedUntil);
+            log.warn("account locked after {} failed attempts: username='{}' lockedUntil={}", failedCount, username, lockedUntil);
         }
         userService.update(update);
         return lockedUntil != null;

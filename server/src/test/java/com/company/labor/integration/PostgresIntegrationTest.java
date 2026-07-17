@@ -124,7 +124,7 @@ class PostgresIntegrationTest {
                 ORDER BY sort_order
                 """, String.class);
 
-        assertThat(latestVersion).isEqualTo("21");
+        assertThat(latestVersion).isEqualTo("22");
         assertThat(roleCodes).containsExactly("ADMIN", "BOSS", "EMPLOYEE", "FINANCE", "MANAGER");
         assertThat(salaryItems).contains(
                 "基本工资", "岗位工资", "绩效工资", "社保扣款", "绩效奖金", "项目奖金", "考勤扣款", "公积金扣款", "个税扣款");

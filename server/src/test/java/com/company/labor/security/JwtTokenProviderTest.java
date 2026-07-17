@@ -1,6 +1,7 @@
 package com.company.labor.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -38,6 +39,32 @@ class JwtTokenProviderTest {
         JwtAuthenticationException ex = assertThrows(JwtAuthenticationException.class, () -> provider.parseUserId("bad-token"));
 
         assertEquals("登录凭证无效，请重新登录", ex.getMessage());
+    }
+
+    @Test
+    void constructorRejectsBlankSecret() {
+        assertThrows(IllegalStateException.class, () -> new JwtTokenProvider("", 30));
+    }
+
+    @Test
+    void constructorRejectsShortSecretInsteadOfPadding() {
+        // A 10-byte secret must be rejected outright — it must NOT be padded to 32
+        // bytes with zeros (the old behaviour silently weakened short secrets).
+        assertThrows(IllegalStateException.class, () -> new JwtTokenProvider("short12345", 30));
+    }
+
+    @Test
+    void tokenCarriesUniqueJti() {
+        JwtTokenProvider provider = new JwtTokenProvider(SECRET, 30);
+        JwtTokenProvider.JwtToken a = provider.createLoginToken(loginUser("active"));
+        JwtTokenProvider.JwtToken b = provider.createLoginToken(loginUser("active"));
+
+        assertNotNull(a.jti());
+        assertNotEquals(a.jti(), b.jti());
+
+        JwtTokenProvider.ParsedToken parsed = provider.parse(a.value());
+        assertEquals(a.jti(), parsed.jti());
+        assertEquals("100", parsed.subject());
     }
 
     private LoginUser loginUser(String status) {

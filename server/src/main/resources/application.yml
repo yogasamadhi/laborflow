@@ -1,13 +1,19 @@
 server:
   port: ${SERVER_PORT:8089}
 
+logging:
+  level:
+    com.company.labor: ${LABORFLOW_LOG_LEVEL:INFO}
+
 spring:
   application:
     name: laborflow
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5434/laborflow}
     username: ${POSTGRES_USER:laborflow}
-    password: ${POSTGRES_PASSWORD:laborflow123}
+    # No default password — run.py generates a random dev password in .env on
+    # first start, and production must supply POSTGRES_PASSWORD explicitly.
+    password: ${POSTGRES_PASSWORD:}
   flyway:
     enabled: true
     locations: classpath:db/migration

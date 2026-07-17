@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight, LogOut, Menu, PanelLeftClose, X } from "luci
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { canAccessRoles, canAccessRoute, roleGroups } from "../../lib/access";
-import { getData, REQUEST_ERROR_EVENT } from "../../lib/axios";
+import { getData, postData, REQUEST_ERROR_EVENT } from "../../lib/axios";
 import { clearToken, getLoginUser, getToken, LoginUser, setLoginUser } from "../../lib/auth";
 import type { RequestErrorDetail } from "../../lib/axios";
 import { AccessDeniedState, AuthLoadingState } from "../common/AccessState";
@@ -164,7 +164,14 @@ export function AppLayout() {
     setIsNavigationOpen(false);
   }, [location.pathname]);
 
-  function logout() {
+  async function logout() {
+    // Best-effort server-side revocation. Don't block on it — even if the
+    // network or token is already invalid, the client must still sign out.
+    try {
+      await postData("/auth/logout");
+    } catch {
+      // intentionally ignored
+    }
     clearToken();
     setUser(null);
     navigate("/login?reason=signed-out", { replace: true });

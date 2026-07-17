@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRecordDO> implements FileRecordService {
@@ -97,15 +99,18 @@ public class FileRecordServiceImpl extends ServiceImpl<FileRecordMapper, FileRec
             throw new BusinessException("文件名不能为空");
         }
         if (original.contains("/") || original.contains("\\") || original.contains("..") || containsControlChar(original)) {
+            log.warn("upload rejected: invalid filename");
             throw new BusinessException("文件名不合法");
         }
         String extension = extension(original);
         if (!ALLOWED_CONTENT_TYPES.containsKey(extension)) {
+            log.warn("upload rejected: unsupported extension '{}'", extension);
             throw new BusinessException("文件类型不支持");
         }
         String contentType = file.getContentType();
         if (!StringUtils.hasText(contentType)
                 || !ALLOWED_CONTENT_TYPES.get(extension).contains(contentType.toLowerCase(Locale.ROOT))) {
+            log.warn("upload rejected: mime mismatch ext='{}' contentType='{}'", extension, contentType);
             throw new BusinessException("文件 MIME 类型不匹配");
         }
         return original;

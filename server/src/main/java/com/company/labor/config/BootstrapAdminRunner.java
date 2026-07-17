@@ -10,6 +10,7 @@ import com.company.labor.module.system.mapper.SysUserRoleMapper;
 import com.company.labor.module.system.service.OperationLogService;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class BootstrapAdminRunner implements ApplicationRunner {
@@ -50,6 +52,7 @@ public class BootstrapAdminRunner implements ApplicationRunner {
         }
 
         String username = properties.getUsername().trim();
+        log.info("bootstrapping first administrator: username='{}'", username);
         validateCredentials(username, properties.getPassword());
         SysRoleDO adminRole = requireAdminRole();
         SysUserDO user = userMapper.selectOne(new QueryWrapper<SysUserDO>().eq("username", username));
