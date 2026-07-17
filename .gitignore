@@ -57,6 +57,8 @@ replay_pid*
 miniapp/project.private.config.json
 miniapp/miniprogram_npm/
 miniapp/*.wxapkg
+# Machine/release-specific miniapp env override (see config/env.local.example.js)
+miniapp/config/env.local.js
 
 # Runtime data
 uploads/
