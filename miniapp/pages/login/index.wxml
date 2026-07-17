@@ -8,10 +8,10 @@
   <view class="card">
     <van-field value="{{username}}" data-key="username" bind:change="onInput" label="账号" placeholder="请输入账号" left-icon="manager-o" clearable />
     <van-field value="{{password}}" data-key="password" bind:change="onInput" label="密码" type="password" placeholder="请输入密码" left-icon="lock" clearable />
+    <!-- 微信昵称（可选）：用于账号绑定展示。使用 type="nickname" 组件，
+         替代已废弃的 wx.getUserProfile（真机上后者只会返回"微信用户"）。 -->
+    <van-field value="{{nickname}}" data-key="nickname" bind:change="onInput" label="昵称" type="nickname" placeholder="选填，用于绑定展示" left-icon="contact" clearable />
     <view class="login-actions">
-      <van-button block plain type="primary" icon="wechat" bind:tap="chooseProfile">
-        {{authButtonText}}
-      </van-button>
       <van-button block type="primary" loading="{{loading}}" icon="passed" bind:tap="submit">登录并绑定账号</van-button>
     </view>
   </view>

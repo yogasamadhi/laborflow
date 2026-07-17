@@ -9,7 +9,6 @@ Page({
     wechatOpenid: "",
     wechatBound: false,
     nickname: "",
-    authButtonText: "微信授权",
     loading: false
   },
 
@@ -32,10 +31,7 @@ Page({
               const session = await authService.wechatSession(res.code);
               this.setData({
                 wechatOpenid: session.openid || "",
-                wechatBound: !!session.bound,
-                authButtonText: session.bound
-                  ? "微信已绑定"
-                  : (this.data.nickname ? "已授权：" + this.data.nickname : "微信授权")
+                wechatBound: !!session.bound
               });
               resolve(session);
             } catch (error) {
@@ -60,17 +56,6 @@ Page({
     const key = event.currentTarget.dataset.key;
     const value = event.detail && event.detail.value !== undefined ? event.detail.value : event.detail;
     this.setData({ [key]: value });
-  },
-
-  chooseProfile() {
-    wx.getUserProfile({
-      desc: "用于绑定劳动工资平台账号",
-      success: (res) => {
-        const nickname = res.userInfo.nickName || "";
-        this.setData({ nickname, authButtonText: nickname ? "已授权：" + nickname : "微信授权" });
-        this.refreshWechatSession(true).catch((err) => logger.warn("login.session-after-auth", err));
-      }
-    });
   },
 
   async submit() {
