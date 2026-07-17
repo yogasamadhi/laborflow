@@ -1,5 +1,6 @@
 const authService = require("../../services/auth");
 const auth = require("../../utils/auth");
+const logger = require("../../utils/logger");
 
 Page({
   data: {
@@ -13,7 +14,7 @@ Page({
   },
 
   onLoad() {
-    this.refreshWechatSession(false).catch(() => {});
+    this.refreshWechatSession(false).catch((err) => logger.warn("login.session", err));
   },
 
   refreshWechatSession(showError) {
@@ -67,7 +68,7 @@ Page({
       success: (res) => {
         const nickname = res.userInfo.nickName || "";
         this.setData({ nickname, authButtonText: nickname ? "已授权：" + nickname : "微信授权" });
-        this.refreshWechatSession(true).catch(() => {});
+        this.refreshWechatSession(true).catch((err) => logger.warn("login.session-after-auth", err));
       }
     });
   },

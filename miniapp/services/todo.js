@@ -2,17 +2,22 @@ const salary = require("./salary");
 const project = require("./project");
 const auth = require("../utils/auth");
 const format = require("../utils/format");
+const logger = require("../utils/logger");
 
 async function list() {
   const canReviewSalary = auth.hasAnyRole(["ADMIN", "BOSS"]);
   const canReviewProject = auth.hasAnyRole(["ADMIN", "BOSS", "MANAGER"]);
   const canReviewSettlement = auth.hasAnyRole(["ADMIN", "BOSS", "MANAGER", "FINANCE"]);
+  const fallback = (scope) => (err) => {
+    logger.warn("todo." + scope, err);
+    return { records: [] };
+  };
   const [monthlies, submittedReports, pmReports, variations, settlements] = await Promise.all([
-    canReviewSalary ? salary.monthlyList({ status: "pending_approval" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
-    canReviewProject ? project.dailyReports({ status: "submitted" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
-    canReviewProject ? project.dailyReports({ status: "pm_confirmed" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
-    canReviewProject ? project.variationOrders({ status: "submitted" }).catch(() => ({ records: [] })) : Promise.resolve({ records: [] }),
-    canReviewSettlement ? project.settlements().catch(() => ({ records: [] })) : Promise.resolve({ records: [] })
+    canReviewSalary ? salary.monthlyList({ status: "pending_approval" }).catch(fallback("salary")) : Promise.resolve({ records: [] }),
+    canReviewProject ? project.dailyReports({ status: "submitted" }).catch(fallback("report-submitted")) : Promise.resolve({ records: [] }),
+    canReviewProject ? project.dailyReports({ status: "pm_confirmed" }).catch(fallback("report-pm")) : Promise.resolve({ records: [] }),
+    canReviewProject ? project.variationOrders({ status: "submitted" }).catch(fallback("variation")) : Promise.resolve({ records: [] }),
+    canReviewSettlement ? project.settlements().catch(fallback("settlement")) : Promise.resolve({ records: [] })
   ]);
 
   const rows = [];

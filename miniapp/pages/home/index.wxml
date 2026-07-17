@@ -8,6 +8,16 @@
     </view>
   </view>
 
+  <view class="card error-banner" wx:if="{{loadError}}">
+    <view class="row">
+      <view class="error-banner-body">
+        <text class="error-banner-title">数据加载失败</text>
+        <text class="muted small">{{loadError}}</text>
+      </view>
+      <van-button size="small" type="primary" bind:click="retry">重试</van-button>
+    </view>
+  </view>
+
   <view class="card field-card">
     <view class="row">
       <view>

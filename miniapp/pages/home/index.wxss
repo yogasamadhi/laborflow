@@ -81,3 +81,23 @@
   justify-content: space-between;
   gap: 20rpx;
 }
+
+.error-banner {
+  background: #fef0f0;
+  border: 1rpx solid #fbc4c4;
+}
+
+.error-banner .row {
+  align-items: center;
+}
+
+.error-banner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.error-banner-title {
+  font-weight: 700;
+  color: #c45656;
+}

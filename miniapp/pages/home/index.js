@@ -3,6 +3,7 @@ const project = require("../../services/project");
 const todo = require("../../services/todo");
 const auth = require("../../utils/auth");
 const format = require("../../utils/format");
+const logger = require("../../utils/logger");
 
 Page({
   data: {
@@ -25,7 +26,8 @@ Page({
     todoCount: 0,
     draftCount: 0,
     rejectedCount: 0,
-    variationCount: 0
+    variationCount: 0,
+    loadError: ""
   },
 
   onShow() {
@@ -50,15 +52,24 @@ Page({
   },
 
   async load() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: "" });
+    // Track per-source failures so a total outage shows a banner instead of a
+    // silently blank page. Each source still degrades to an empty/default value
+    // so one failure does not break the whole screen.
+    const failures = [];
+    const orLog = (scope, fallback) => (err) => {
+      failures.push(scope);
+      logger.warn("home." + scope, err);
+      return fallback;
+    };
     try {
       const today = format.today();
       const [history, projects, todos, reports, variations] = await Promise.all([
-        salary.myHistory().catch(() => null),
-        project.projects({ status: "in_progress" }).catch(() => ({ records: [] })),
-        todo.list().catch(() => []),
-        project.myDailyReports({ pageSize: 50 }).catch(() => ({ records: [] })),
-        project.myVariationOrders({ pageSize: 50 }).catch(() => ({ records: [] }))
+        salary.myHistory().catch(orLog("salary", null)),
+        project.projects({ status: "in_progress" }).catch(orLog("projects", { records: [] })),
+        todo.list().catch(orLog("todos", [])),
+        project.myDailyReports({ pageSize: 50 }).catch(orLog("reports", { records: [] })),
+        project.myVariationOrders({ pageSize: 50 }).catch(orLog("variations", { records: [] }))
       ]);
       const reportRows = format.pageRecords(reports);
       const todayReport = reportRows.find((item) => item.workDate === today) || null;
@@ -80,6 +91,13 @@ Page({
         rejectedCount: reportRows.filter((item) => item.status === "rejected").length + variationRows.filter((item) => item.status === "rejected").length,
         variationCount: variationRows.length
       });
+      // If every source failed, surface a banner; a partial outage still shows
+      // whatever data we have plus a less alarming toast.
+      if (failures.length === 5) {
+        this.setData({ loadError: "数据加载失败，请检查网络后下拉刷新重试。" });
+      } else if (failures.length > 0) {
+        wx.showToast({ title: "部分数据加载失败", icon: "none" });
+      }
     } finally {
       this.setData({ loading: false });
     }
@@ -87,6 +105,10 @@ Page({
 
   goSalary() {
     wx.switchTab({ url: "/pages/salary/index" });
+  },
+
+  retry() {
+    this.load();
   },
 
   goReportCreate() {
