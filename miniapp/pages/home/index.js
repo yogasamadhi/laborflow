@@ -7,7 +7,6 @@ const format = require("../../utils/format");
 Page({
   data: {
     user: null,
-    salary: null,
     projects: [],
     todos: [],
     loading: false,
@@ -65,7 +64,6 @@ Page({
       const todayReport = reportRows.find((item) => item.workDate === today) || null;
       const variationRows = format.pageRecords(variations);
       this.setData({
-        salary: history,
         totalActualText: history ? history.totalActualAmount : "0.00",
         projects: format.pageRecords(projects).slice(0, 3).map((item) => Object.assign({}, item, {
           projectManagerText: item.projectManager || "未设置负责人"

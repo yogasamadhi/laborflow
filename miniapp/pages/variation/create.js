@@ -38,7 +38,7 @@ Page({
     form: EMPTY_FORM,
     lookupLoading: false,
     uploading: false,
-    uploadText: "可拍摄或从相册选择，最多 6 张",
+    uploadText: "可拍摄或从相册选择，最多 " + format.MAX_PHOTO_COUNT + " 张",
     saving: false,
     submitting: false,
     draftRestored: false,
@@ -49,7 +49,10 @@ Page({
 
   onLoad(query) {
     const editId = query && query.editId ? query.editId : "";
+    // Read the edit payload passed from the list page, then clear it so stale
+    // data does not linger if the user navigates away and back later.
     const editRecord = editId ? wx.getStorageSync("laborflow_edit_variation") : null;
+    if (editId && editRecord) wx.removeStorageSync("laborflow_edit_variation");
     const user = auth.getUser();
     if (!user || !user.userId) {
       wx.reLaunch({ url: "/pages/login/index" });
@@ -164,9 +167,9 @@ Page({
 
   async uploadPhotos() {
     if (this.isBusy()) return;
-    const remaining = 6 - this.data.uploadedFiles.length;
+    const remaining = format.MAX_PHOTO_COUNT - this.data.uploadedFiles.length;
     if (remaining <= 0) {
-      wx.showToast({ title: "最多可添加 6 张现场照片", icon: "none" });
+      wx.showToast({ title: "最多可添加 " + format.MAX_PHOTO_COUNT + " 张现场照片", icon: "none" });
       return;
     }
     this.setData({ uploading: true, uploadText: "正在选择现场照片..." });

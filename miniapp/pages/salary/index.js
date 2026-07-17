@@ -50,8 +50,8 @@ Page({
         paymentDateText: item.paymentDate || "未发放",
         statusText: format.status(item.paymentStatus),
         statusTagType: item.paymentStatus === "paid" ? "primary" : "warning",
-        payslipStatusText: payslipStatusText(item.payslipStatus),
-        payslipStatusTagType: item.payslipStatus === "confirmed" ? "primary" : "warning"
+        payslipStatusText: format.payslipStatusText(item.payslipStatus),
+        payslipStatusTagType: format.payslipStatusTagType(item.payslipStatus)
       }));
       this.setData({ history, records });
       this.setData({
@@ -75,9 +75,3 @@ Page({
     });
   }
 });
-
-function payslipStatusText(status) {
-  if (status === "confirmed") return "工资条已确认";
-  if (status === "exception") return "工资条有异常";
-  return "待确认工资条";
-}

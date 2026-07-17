@@ -1,5 +1,6 @@
 const env = require("../config/env");
 const auth = require("../utils/auth");
+const format = require("../utils/format");
 const request = require("../utils/request");
 
 function upload(path, options) {
@@ -51,8 +52,8 @@ function chooseAndUpload(options) {
   const settings = options || {};
   const requestedCount = Number(settings.maxCount);
   const maxCount = Number.isFinite(requestedCount) && requestedCount > 0
-    ? Math.min(6, Math.max(1, Math.floor(requestedCount)))
-    : 6;
+    ? Math.min(format.MAX_PHOTO_COUNT, Math.max(1, Math.floor(requestedCount)))
+    : format.MAX_PHOTO_COUNT;
   return new Promise((resolve, reject) => {
     wx.chooseMedia({
       count: maxCount,

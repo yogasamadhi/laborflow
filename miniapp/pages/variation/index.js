@@ -23,7 +23,7 @@ Page({
       const data = await project.myVariationOrders();
       const rows = format.pageRecords(data).map((item) => Object.assign({}, item, {
         statusText: format.status(item.status),
-        statusTagType: item.status === "rejected" ? "danger" : item.status === "draft" ? "warning" : "primary",
+        statusTagType: format.statusTagType(item.status),
         canEdit: item.status === "draft" || item.status === "rejected",
         actionText: item.status === "rejected" ? "修改再提交" : "继续编辑",
         amountText: format.money(item.estimatedAmount),

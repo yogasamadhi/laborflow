@@ -45,8 +45,8 @@ Page({
           paymentDateText: detail.paymentDate || "-",
           paymentStatusText: format.status(detail.paymentStatus),
           paymentStatusTagType: detail.paymentStatus === "paid" ? "primary" : "warning",
-          payslipStatusText: payslipStatusText(detail.payslipStatus),
-          payslipStatusTagType: detail.payslipStatus === "confirmed" ? "primary" : "warning"
+          payslipStatusText: format.payslipStatusText(detail.payslipStatus),
+          payslipStatusTagType: format.payslipStatusTagType(detail.payslipStatus)
         }) : null;
       this.setData({
         detail: mappedDetail,
@@ -92,9 +92,3 @@ Page({
     });
   }
 });
-
-function payslipStatusText(status) {
-  if (status === "confirmed") return "已确认";
-  if (status === "exception") return "有异常";
-  return "待确认";
-}

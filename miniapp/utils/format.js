@@ -40,10 +40,34 @@ function statusTagType(value) {
   return "primary";
 }
 
+// Maximum number of photos a field form (report/variation) accepts.
+// Used by both create pages and the file service; keep it in one place so a
+// change does not require hunting three call sites.
+const MAX_PHOTO_COUNT = 6;
+
+// Payslip confirmation state shared by the salary list and detail pages.
+// Previously each page declared its own copy — and the copies disagreed:
+// the list page said "工资条已确认" while the detail page said "已确认" for
+// the same status. This is the single source of truth now.
+function payslipStatusText(status) {
+  if (status === "confirmed") return "已确认";
+  if (status === "exception") return "有异常";
+  return "待确认";
+}
+
+function payslipStatusTagType(status) {
+  if (status === "confirmed") return "success";
+  if (status === "exception") return "danger";
+  return "warning";
+}
+
 module.exports = {
   money,
   status,
   today,
   pageRecords,
-  statusTagType
+  statusTagType,
+  payslipStatusText,
+  payslipStatusTagType,
+  MAX_PHOTO_COUNT
 };
