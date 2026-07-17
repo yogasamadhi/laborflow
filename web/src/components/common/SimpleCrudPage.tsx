@@ -16,7 +16,9 @@ type Row = {
   createdAt?: string;
 };
 
-export function SimpleCrudPage({ title, resource, readonly = false }: { title: string; resource: string; readonly?: boolean }) {
+export type SimpleCrudPageProps = { title: string; resource: string; readonly?: boolean };
+
+export function SimpleCrudPage({ title, resource, readonly = false }: SimpleCrudPageProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Row | null>(null);
   const [name, setName] = useState("");
