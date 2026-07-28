@@ -41,7 +41,7 @@ Page({
       isManager: auth.isManager(),
       displayName: user.nickname || user.username || "",
       roleText: this.roleText(user.roles || []),
-      bindText: user.employeeId ? "已绑定员工 #" + user.employeeId : "未绑定员工",
+      bindText: user.employeeId ? "已绑定员工" : "未绑定员工",
       bindTagType: user.employeeId ? "primary" : "warning"
     });
     this.load();
@@ -65,12 +65,15 @@ Page({
     try {
       const today = format.today();
       const [history, projects, todos, reports, variations] = await Promise.all([
-        salary.myHistory().catch(orLog("salary", null)),
+        this.data.user && this.data.user.employeeId
+          ? salary.myHistory().catch(orLog("salary", null))
+          : Promise.resolve(null),
         project.projects({ status: "in_progress" }).catch(orLog("projects", { records: [] })),
-        todo.list().catch(orLog("todos", [])),
-        project.myDailyReports({ pageSize: 50 }).catch(orLog("reports", { records: [] })),
-        project.myVariationOrders({ pageSize: 50 }).catch(orLog("variations", { records: [] }))
+        this.data.isManager ? todo.list().catch(orLog("todos", { records: [], total: 0 })) : Promise.resolve({ records: [], total: 0 }),
+        project.myDailyReports({ pageSize: 20 }).catch(orLog("reports", { records: [] })),
+        project.myVariationOrders({ pageSize: 20 }).catch(orLog("variations", { records: [] }))
       ]);
+      const todoRows = format.pageRecords(todos);
       const reportRows = format.pageRecords(reports);
       const todayReport = reportRows.find((item) => item.workDate === today) || null;
       const variationRows = format.pageRecords(variations);
@@ -85,8 +88,8 @@ Page({
         todayReportText: todayReport ? format.status(todayReport.status) : "今日未填报",
         todayReportBadgeText: todayReport ? "已记录" : "待填报",
         todayReportTagType: todayReport ? format.statusTagType(todayReport.status) : "warning",
-        todos: todos.slice(0, 4),
-        todoCount: todos.length,
+        todos: todoRows.slice(0, 4),
+        todoCount: Number(todos.total || todoRows.length),
         draftCount: reportRows.filter((item) => item.status === "draft").length,
         rejectedCount: reportRows.filter((item) => item.status === "rejected").length + variationRows.filter((item) => item.status === "rejected").length,
         variationCount: variationRows.length
@@ -125,6 +128,10 @@ Page({
 
   goTodo() {
     wx.switchTab({ url: "/pages/todo/index" });
+  },
+
+  goSite() {
+    wx.switchTab({ url: "/pages/site/index" });
   },
 
   money(value) {

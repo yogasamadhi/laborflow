@@ -8,7 +8,11 @@ import com.company.labor.module.compensation.domain.entity.PerformanceScoreDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocationDO;
 import com.company.labor.module.compensation.domain.entity.ProjectBonusPoolDO;
 import com.company.labor.module.compensation.domain.entity.SalaryDeductionRecordDO;
+import com.company.labor.module.compensation.domain.dto.CompensationWriteDTO;
 import com.company.labor.module.compensation.domain.vo.CompensationDashboardVO;
+import com.company.labor.module.compensation.domain.vo.PerformancePlanDetailVO;
+import com.company.labor.module.compensation.domain.vo.PerformanceScoreDetailVO;
+import java.util.List;
 
 public interface CompensationService {
     Page<AttendanceRecordDO> attendanceRecords(long page, long pageSize, Long employeeId, String month);
@@ -25,12 +29,17 @@ public interface CompensationService {
     PerformanceIndicatorDO updateIndicator(Long id, PerformanceIndicatorDO indicator);
 
     Page<PerformancePlanDO> plans(long page, long pageSize, String month, Long projectId);
-    PerformancePlanDO savePlan(PerformancePlanDO plan);
-    PerformancePlanDO updatePlan(Long id, PerformancePlanDO plan);
+    PerformancePlanDetailVO savePlan(PerformancePlanDO plan, List<Long> indicatorIds);
+    PerformancePlanDetailVO updatePlan(Long id, PerformancePlanDO plan, List<Long> indicatorIds);
+    PerformancePlanDetailVO planDetail(Long id);
+    void activatePlan(Long id);
+    void closePlan(Long id);
 
     Page<PerformanceScoreDO> scores(long page, long pageSize, String month, Long employeeId, Long projectId);
-    PerformanceScoreDO saveScore(PerformanceScoreDO score);
-    PerformanceScoreDO updateScore(Long id, PerformanceScoreDO score);
+    List<PerformanceScoreDetailVO> generateScores(Long planId, List<Long> employeeIds);
+    PerformanceScoreDetailVO scoreDetail(Long id);
+    PerformanceScoreDetailVO updateScore(Long id, CompensationWriteDTO.PerformanceScoreUpdateRequest dto);
+    PerformanceScoreDetailVO refreshScore(Long id);
     void confirmScore(Long id);
 
     Page<ProjectBonusPoolDO> bonusPools(long page, long pageSize, Long projectId, String status);

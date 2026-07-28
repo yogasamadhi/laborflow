@@ -7,10 +7,15 @@ import com.company.labor.common.softdelete.SoftDeleteGuard;
 import com.company.labor.common.softdelete.SoftDeleteGuard.Reference;
 import com.company.labor.common.statemachine.BusinessStateMachine;
 import com.company.labor.common.statemachine.BusinessStateMachine.Flow;
+import com.company.labor.module.file.domain.entity.FileRecordDO;
+import com.company.labor.module.file.domain.vo.FileMetadataVO;
+import com.company.labor.module.file.mapper.FileRecordMapper;
 import com.company.labor.module.file.service.FileBindingGuard;
+import com.company.labor.module.project.domain.dto.DailyReportPricingPreviewDTO;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
+import com.company.labor.module.project.domain.dto.VariationConfirmDTO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportDO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportFileDO;
 import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
@@ -32,9 +37,14 @@ import com.company.labor.module.project.domain.entity.VariationOrderDO;
 import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
+import com.company.labor.module.project.domain.vo.BusinessFileVO;
+import com.company.labor.module.project.domain.vo.DailyReportPricingVO;
+import com.company.labor.module.project.domain.vo.DailyWorkReportDetailVO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
 import com.company.labor.module.project.domain.vo.ProjectFinanceBreakdownVO;
 import com.company.labor.module.project.domain.vo.ProjectRiskVO;
+import com.company.labor.module.project.domain.vo.TeamSettlementDetailVO;
+import com.company.labor.module.project.domain.vo.VariationOrderDetailVO;
 import com.company.labor.module.project.mapper.DailyWorkReportFileMapper;
 import com.company.labor.module.project.mapper.DailyWorkReportMapper;
 import com.company.labor.module.project.mapper.MachineryEquipmentMapper;
@@ -70,13 +80,11 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
-@RequiredArgsConstructor
 public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final ProjectMapper projectMapper;
     private final ProjectSectionMapper sectionMapper;
@@ -103,6 +111,101 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private final AuditUserProvider auditUserProvider;
     private final SoftDeleteGuard softDeleteGuard;
     private final FileBindingGuard fileBindingGuard;
+    private final FileRecordMapper fileRecordMapper;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ProjectManagementServiceImpl(
+            ProjectMapper projectMapper,
+            ProjectSectionMapper sectionMapper,
+            WorkProcessMapper workProcessMapper,
+            TeamMapper teamMapper,
+            TeamUnitPriceMapper teamUnitPriceMapper,
+            ProjectProcessPriceMapper projectProcessPriceMapper,
+            ProjectContractItemMapper contractItemMapper,
+            DailyWorkReportMapper dailyWorkReportMapper,
+            DailyWorkReportFileMapper dailyWorkReportFileMapper,
+            WorkQuantityConfirmMapper workQuantityConfirmMapper,
+            TeamSettlementMapper teamSettlementMapper,
+            TeamSettlementDetailMapper teamSettlementDetailMapper,
+            VariationOrderMapper variationOrderMapper,
+            VariationOrderConfirmMapper variationOrderConfirmMapper,
+            VariationOrderFileMapper variationOrderFileMapper,
+            ProjectCostRecordMapper costRecordMapper,
+            ProjectPaymentRecordMapper paymentRecordMapper,
+            MachineryEquipmentMapper machineryEquipmentMapper,
+            MachineryWorkRecordMapper machineryWorkRecordMapper,
+            MaterialRecordMapper materialRecordMapper,
+            ProjectDocumentArchiveMapper documentArchiveMapper,
+            OperationLogService operationLogService,
+            AuditUserProvider auditUserProvider,
+            SoftDeleteGuard softDeleteGuard,
+            FileBindingGuard fileBindingGuard,
+            FileRecordMapper fileRecordMapper) {
+        this.projectMapper = projectMapper;
+        this.sectionMapper = sectionMapper;
+        this.workProcessMapper = workProcessMapper;
+        this.teamMapper = teamMapper;
+        this.teamUnitPriceMapper = teamUnitPriceMapper;
+        this.projectProcessPriceMapper = projectProcessPriceMapper;
+        this.contractItemMapper = contractItemMapper;
+        this.dailyWorkReportMapper = dailyWorkReportMapper;
+        this.dailyWorkReportFileMapper = dailyWorkReportFileMapper;
+        this.workQuantityConfirmMapper = workQuantityConfirmMapper;
+        this.teamSettlementMapper = teamSettlementMapper;
+        this.teamSettlementDetailMapper = teamSettlementDetailMapper;
+        this.variationOrderMapper = variationOrderMapper;
+        this.variationOrderConfirmMapper = variationOrderConfirmMapper;
+        this.variationOrderFileMapper = variationOrderFileMapper;
+        this.costRecordMapper = costRecordMapper;
+        this.paymentRecordMapper = paymentRecordMapper;
+        this.machineryEquipmentMapper = machineryEquipmentMapper;
+        this.machineryWorkRecordMapper = machineryWorkRecordMapper;
+        this.materialRecordMapper = materialRecordMapper;
+        this.documentArchiveMapper = documentArchiveMapper;
+        this.operationLogService = operationLogService;
+        this.auditUserProvider = auditUserProvider;
+        this.softDeleteGuard = softDeleteGuard;
+        this.fileBindingGuard = fileBindingGuard;
+        this.fileRecordMapper = fileRecordMapper;
+    }
+
+    /**
+     * Kept for focused unit tests that do not exercise file metadata rendering.
+     * Spring uses the generated full constructor.
+     */
+    public ProjectManagementServiceImpl(
+            ProjectMapper projectMapper,
+            ProjectSectionMapper sectionMapper,
+            WorkProcessMapper workProcessMapper,
+            TeamMapper teamMapper,
+            TeamUnitPriceMapper teamUnitPriceMapper,
+            ProjectProcessPriceMapper projectProcessPriceMapper,
+            ProjectContractItemMapper contractItemMapper,
+            DailyWorkReportMapper dailyWorkReportMapper,
+            DailyWorkReportFileMapper dailyWorkReportFileMapper,
+            WorkQuantityConfirmMapper workQuantityConfirmMapper,
+            TeamSettlementMapper teamSettlementMapper,
+            TeamSettlementDetailMapper teamSettlementDetailMapper,
+            VariationOrderMapper variationOrderMapper,
+            VariationOrderConfirmMapper variationOrderConfirmMapper,
+            VariationOrderFileMapper variationOrderFileMapper,
+            ProjectCostRecordMapper costRecordMapper,
+            ProjectPaymentRecordMapper paymentRecordMapper,
+            MachineryEquipmentMapper machineryEquipmentMapper,
+            MachineryWorkRecordMapper machineryWorkRecordMapper,
+            MaterialRecordMapper materialRecordMapper,
+            ProjectDocumentArchiveMapper documentArchiveMapper,
+            OperationLogService operationLogService,
+            AuditUserProvider auditUserProvider,
+            SoftDeleteGuard softDeleteGuard,
+            FileBindingGuard fileBindingGuard) {
+        this(projectMapper, sectionMapper, workProcessMapper, teamMapper, teamUnitPriceMapper,
+                projectProcessPriceMapper, contractItemMapper, dailyWorkReportMapper, dailyWorkReportFileMapper,
+                workQuantityConfirmMapper, teamSettlementMapper, teamSettlementDetailMapper, variationOrderMapper,
+                variationOrderConfirmMapper, variationOrderFileMapper, costRecordMapper, paymentRecordMapper,
+                machineryEquipmentMapper, machineryWorkRecordMapper, materialRecordMapper, documentArchiveMapper,
+                operationLogService, auditUserProvider, softDeleteGuard, fileBindingGuard, null);
+    }
 
     @Override
     public Page<ProjectDO> projects(long page, long pageSize, String keyword, String status, Set<Long> scopedProjectIds) {
@@ -477,6 +580,34 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    public DailyWorkReportDetailVO dailyReportDetail(Long id) {
+        DailyWorkReportDO report = requireDailyReport(id);
+        DailyWorkReportDetailVO detail = new DailyWorkReportDetailVO();
+        detail.setReport(report);
+        detail.setProjectName(requireProject(report.getProjectId()).getName());
+        detail.setSectionName(requireSection(report.getProjectSectionId()).getName());
+        detail.setWorkProcessName(requireWorkProcess(report.getWorkProcessId()).getName());
+        detail.setTeamName(report.getTeamId() == null ? null : requireTeam(report.getTeamId()).getName());
+        detail.setConfirms(dailyReportConfirms(id));
+        detail.setFiles(dailyReportFileVOs(id));
+        return detail;
+    }
+
+    @Override
+    public DailyReportPricingVO previewDailyReportPricing(DailyReportPricingPreviewDTO dto) {
+        DailyWorkReportDO report = new DailyWorkReportDO();
+        report.setWorkDate(dto.getWorkDate());
+        report.setProjectId(dto.getProjectId());
+        report.setProjectSectionId(dto.getProjectSectionId());
+        report.setContractItemId(dto.getContractItemId());
+        report.setWorkProcessId(dto.getWorkProcessId());
+        report.setCompletedQuantity(dto.getCompletedQuantity());
+        report.setUnit(dto.getUnit());
+        validateDailyReport(report);
+        return resolveDailyReportPricing(report);
+    }
+
+    @Override
     public DailyWorkReportDO saveDailyReport(DailyWorkReportDO report) {
         validateDailyReport(report);
         report.setCompletedQuantity(nvl(report.getCompletedQuantity()));
@@ -509,6 +640,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         DailyWorkReportDO report = requireDailyReport(id);
         String statusBefore = report.getStatus();
         BusinessStateMachine.requireTransition(Flow.DAILY_WORK_REPORT, statusBefore, "submitted");
+        applyDailyReportPricing(report);
+        if (!"priced".equals(report.getPricingStatus())) {
+            throw new BusinessException(report.getPricingBasis());
+        }
         report.setStatus("submitted");
         report.setRejectedReason(null);
         dailyWorkReportMapper.updateById(report);
@@ -557,6 +692,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public void attachDailyReportFile(Long id, FileAttachDTO dto) {
         DailyWorkReportDO report = requireDailyReport(id);
+        requireEvidenceEditable(report.getStatus(), "日报");
         if (dto == null || dto.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(dto.getFileId(), report.getProjectId());
         fileBindingGuard.requireFileNotBoundToOtherBusiness(dto.getFileId(), FileBindingGuard.DAILY_WORK_REPORT);
@@ -572,6 +708,18 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
+    public void removeDailyReportFile(Long id, Long fileId) {
+        DailyWorkReportDO report = requireDailyReport(id);
+        requireEvidenceEditable(report.getStatus(), "日报");
+        int removed = dailyWorkReportFileMapper.delete(new LambdaQueryWrapper<DailyWorkReportFileDO>()
+                .eq(DailyWorkReportFileDO::getDailyWorkReportId, id)
+                .eq(DailyWorkReportFileDO::getFileId, fileId));
+        if (removed == 0) throw new BusinessException("日报附件不存在");
+        operationLogService.record("project", id, "remove_daily_report_file", "移除工程量日报附件：" + fileId);
+    }
+
+    @Override
     public List<WorkQuantityConfirmDO> dailyReportConfirms(Long id) {
         requireDailyReport(id);
         return workQuantityConfirmMapper.selectList(new LambdaQueryWrapper<WorkQuantityConfirmDO>()
@@ -581,8 +729,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
-    public List<DailyWorkReportFileDO> dailyReportFiles(Long id) {
+    public List<BusinessFileVO> dailyReportFiles(Long id) {
         requireDailyReport(id);
+        return dailyReportFileBindings(id).stream().map(binding -> businessFile(
+                binding.getId(), binding.getFileId(), binding.getFileType(), binding.getCreatedAt())).toList();
+    }
+
+    private List<DailyWorkReportFileDO> dailyReportFileBindings(Long id) {
         return dailyWorkReportFileMapper.selectList(new LambdaQueryWrapper<DailyWorkReportFileDO>()
                 .eq(DailyWorkReportFileDO::getDailyWorkReportId, id)
                 .orderByDesc(DailyWorkReportFileDO::getCreatedAt)
@@ -606,6 +759,17 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 .eq(StringUtils.hasText(settlementMonth), TeamSettlementDO::getSettlementMonth, settlementMonth)
                 .orderByDesc(TeamSettlementDO::getSettlementMonth)
                 .orderByDesc(TeamSettlementDO::getCreatedAt));
+    }
+
+    @Override
+    public TeamSettlementDetailVO teamSettlementDetail(Long id) {
+        TeamSettlementDO settlement = requireTeamSettlement(id);
+        List<TeamSettlementDetailDO> details = teamSettlementDetailMapper.selectList(
+                new LambdaQueryWrapper<TeamSettlementDetailDO>()
+                        .eq(TeamSettlementDetailDO::getTeamSettlementId, id)
+                        .orderByAsc(TeamSettlementDetailDO::getWorkDate)
+                        .orderByAsc(TeamSettlementDetailDO::getId));
+        return new TeamSettlementDetailVO(settlement, details);
     }
 
     @Override
@@ -743,6 +907,18 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    public VariationOrderDetailVO variationOrderDetail(Long id) {
+        VariationOrderDO order = requireVariationOrder(id);
+        VariationOrderDetailVO detail = new VariationOrderDetailVO();
+        detail.setOrder(order);
+        detail.setProjectName(requireProject(order.getProjectId()).getName());
+        detail.setSectionName(order.getProjectSectionId() == null ? null : requireSection(order.getProjectSectionId()).getName());
+        detail.setConfirms(variationOrderConfirms(id));
+        detail.setFiles(variationOrderFileVOs(id));
+        return detail;
+    }
+
+    @Override
     public VariationOrderDO saveVariationOrder(VariationOrderDO order) {
         normalizeVariationOrder(order);
         order.setConfirmedAmount(BigDecimal.ZERO);
@@ -779,19 +955,32 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
-    public void confirmVariationOrder(Long id, ProjectActionDTO dto) {
+    public void confirmVariationOrder(Long id, VariationConfirmDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
         String statusBefore = order.getStatus();
         BusinessStateMachine.requireTransition(Flow.VARIATION_ORDER, statusBefore, "confirmed");
         order.setStatus("confirmed");
-        order.setConfirmedAmount(dto != null && dto.getConfirmedAmount() != null ? dto.getConfirmedAmount() : nvl(order.getEstimatedAmount()));
+        order.setConfirmedAmount(dto.getConfirmedAmount());
         order.setConfirmedAt(LocalDateTime.now());
-        fillVariationOrderConfirmer(order, dto);
-        order.setConfirmRemark(dto == null ? null : dto.getRemark());
+        ProjectActionDTO action = variationAction(dto);
+        fillVariationOrderConfirmer(order, action);
+        order.setConfirmRemark(dto.getRemark());
         order.setRejectedReason(null);
         variationOrderMapper.updateById(order);
-        variationConfirmLog(id, "commercial", "confirmed", statusBefore, order.getStatus(), dto);
+        variationConfirmLog(id, "commercial", "confirmed", statusBefore, order.getStatus(), action);
         operationLogService.record("project", id, "confirm_variation_order", "确认签证变更");
+    }
+
+    public void confirmVariationOrder(Long id, ProjectActionDTO dto) {
+        if (dto == null || dto.getConfirmedAmount() == null) {
+            throw new BusinessException("签证确认金额必填");
+        }
+        VariationConfirmDTO request = new VariationConfirmDTO();
+        request.setConfirmedAmount(dto.getConfirmedAmount());
+        request.setRemark(dto.getRemark());
+        request.setOperatorId(dto.getOperatorId());
+        request.setOperatorName(dto.getOperatorName());
+        confirmVariationOrder(id, request);
     }
 
     @Override
@@ -810,6 +999,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public void attachVariationOrderFile(Long id, FileAttachDTO dto) {
         VariationOrderDO order = requireVariationOrder(id);
+        requireEvidenceEditable(order.getStatus(), "签证");
         if (dto == null || dto.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(dto.getFileId(), order.getProjectId());
         fileBindingGuard.requireFileNotBoundToOtherBusiness(dto.getFileId(), FileBindingGuard.VARIATION_ORDER);
@@ -825,6 +1015,18 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
+    @Transactional
+    public void removeVariationOrderFile(Long id, Long fileId) {
+        VariationOrderDO order = requireVariationOrder(id);
+        requireEvidenceEditable(order.getStatus(), "签证");
+        int removed = variationOrderFileMapper.delete(new LambdaQueryWrapper<VariationOrderFileDO>()
+                .eq(VariationOrderFileDO::getVariationOrderId, id)
+                .eq(VariationOrderFileDO::getFileId, fileId));
+        if (removed == 0) throw new BusinessException("签证附件不存在");
+        operationLogService.record("project", id, "remove_variation_order_file", "移除签证附件：" + fileId);
+    }
+
+    @Override
     public List<VariationOrderConfirmDO> variationOrderConfirms(Long id) {
         requireVariationOrder(id);
         return variationOrderConfirmMapper.selectList(new LambdaQueryWrapper<VariationOrderConfirmDO>()
@@ -834,8 +1036,13 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     @Override
-    public List<VariationOrderFileDO> variationOrderFiles(Long id) {
+    public List<BusinessFileVO> variationOrderFiles(Long id) {
         requireVariationOrder(id);
+        return variationOrderFileBindings(id).stream().map(binding -> businessFile(
+                binding.getId(), binding.getFileId(), binding.getFileType(), binding.getCreatedAt())).toList();
+    }
+
+    private List<VariationOrderFileDO> variationOrderFileBindings(Long id) {
         return variationOrderFileMapper.selectList(new LambdaQueryWrapper<VariationOrderFileDO>()
                 .eq(VariationOrderFileDO::getVariationOrderId, id)
                 .orderByDesc(VariationOrderFileDO::getCreatedAt)
@@ -1306,45 +1513,67 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     }
 
     private void applyDailyReportPricing(DailyWorkReportDO report) {
-        DailyReportPricing pricing = resolveDailyReportPricing(report);
-        BigDecimal outputValue = nvl(report.getCompletedQuantity()).multiply(pricing.unitPrice()).setScale(2, RoundingMode.HALF_UP);
-        report.setContractItemId(pricing.contractItemId());
-        report.setOutputValue(outputValue);
-        report.setPricingBasis(pricing.basis());
+        DailyReportPricingVO pricing = resolveDailyReportPricing(report);
+        report.setContractItemId(pricing.getSelectedContractItemId());
+        report.setOutputValue(pricing.getOutputValue());
+        report.setPricingBasis(pricing.getBasis());
+        report.setPricingStatus(pricing.isPriced() ? "priced" : "unpriced");
+        report.setPricingSourceType(pricing.getSourceType());
+        report.setPricingSourceId(pricing.getSourceId());
+        report.setUnitPriceSnapshot(pricing.getUnitPrice());
     }
 
-    private DailyReportPricing resolveDailyReportPricing(DailyWorkReportDO report) {
+    private DailyReportPricingVO resolveDailyReportPricing(DailyWorkReportDO report) {
+        List<ProjectContractItemDO> candidates = matchingContractItems(report);
+        List<DailyReportPricingVO.ContractItemCandidateVO> candidateVOs = candidates.stream()
+                .map(item -> new DailyReportPricingVO.ContractItemCandidateVO(
+                        item.getId(), item.getItemCode(), item.getItemName(), item.getUnit(),
+                        nvl(item.getUnitPrice()), item.getProjectSectionId()))
+                .toList();
         if (report.getContractItemId() != null) {
             ProjectContractItemDO item = requireContractItem(report.getContractItemId());
             if (!"active".equals(item.getStatus())) {
                 throw new BusinessException("合同清单已停用");
             }
             requireContractItemMatchesReport(report, item);
-            return contractItemPricing(item);
+            return contractItemPricing(report, item, candidateVOs);
         }
-        ProjectContractItemDO item = latestContractItem(report.getProjectId(), report.getProjectSectionId(), report.getWorkProcessId());
-        if (item == null) {
-            item = latestContractItem(report.getProjectId(), null, report.getWorkProcessId());
+        if (candidates.size() == 1) {
+            return contractItemPricing(report, candidates.get(0), candidateVOs);
         }
-        if (item != null) {
-            requireContractItemMatchesReport(report, item);
-            return contractItemPricing(item);
+        if (candidates.size() > 1) {
+            return new DailyReportPricingVO(
+                    false, true, candidateVOs, null, null, null,
+                    BigDecimal.ZERO, BigDecimal.ZERO, "存在多个匹配合同清单，请明确选择后再提交");
         }
         ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId(), report.getWorkDate());
-        if (price != null) {
-            return new DailyReportPricing(null, nvl(price.getUnitPrice()), "项目工序产值单价ID:" + price.getId()
+        if (price != null && report.getUnit().equals(price.getUnit())) {
+            BigDecimal unitPrice = nvl(price.getUnitPrice());
+            BigDecimal output = nvl(report.getCompletedQuantity()).multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+            return new DailyReportPricingVO(true, false, candidateVOs, null,
+                    "project_process_price", price.getId(), unitPrice, output,
+                    "项目工序产值单价ID:" + price.getId()
                     + ";单位:" + price.getUnit()
-                    + ";单价:" + nvl(price.getUnitPrice()));
+                    + ";单价:" + unitPrice);
         }
-        return new DailyReportPricing(null, BigDecimal.ZERO, "未配置合同清单或项目工序产值单价，产值按0计算");
+        return new DailyReportPricingVO(
+                false, false, candidateVOs, null, null, null,
+                BigDecimal.ZERO, BigDecimal.ZERO, "日报未定价：未配置匹配合同清单或工作日期时点有效的项目工序单价");
     }
 
-    private DailyReportPricing contractItemPricing(ProjectContractItemDO item) {
+    private DailyReportPricingVO contractItemPricing(
+            DailyWorkReportDO report,
+            ProjectContractItemDO item,
+            List<DailyReportPricingVO.ContractItemCandidateVO> candidates) {
         String code = StringUtils.hasText(item.getItemCode()) ? item.getItemCode() + "/" : "";
-        return new DailyReportPricing(item.getId(), nvl(item.getUnitPrice()), "合同清单ID:" + item.getId()
+        BigDecimal unitPrice = nvl(item.getUnitPrice());
+        BigDecimal output = nvl(report.getCompletedQuantity()).multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+        return new DailyReportPricingVO(true, false, candidates, item.getId(),
+                "contract_item", item.getId(), unitPrice, output,
+                "合同清单ID:" + item.getId()
                 + ";清单:" + code + item.getItemName()
                 + ";单位:" + item.getUnit()
-                + ";单价:" + nvl(item.getUnitPrice()));
+                + ";单价:" + unitPrice);
     }
 
     private void requireContractItemMatchesReport(DailyWorkReportDO report, ProjectContractItemDO item) {
@@ -1371,21 +1600,18 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
-    private ProjectContractItemDO latestContractItem(Long projectId, Long sectionId, Long processId) {
-        LambdaQueryWrapper<ProjectContractItemDO> wrapper = new LambdaQueryWrapper<ProjectContractItemDO>()
+    private List<ProjectContractItemDO> matchingContractItems(DailyWorkReportDO report) {
+        return contractItemMapper.selectList(new LambdaQueryWrapper<ProjectContractItemDO>()
                 .eq(ProjectContractItemDO::getDeleted, 0)
                 .eq(ProjectContractItemDO::getStatus, "active")
-                .eq(ProjectContractItemDO::getProjectId, projectId)
-                .eq(ProjectContractItemDO::getWorkProcessId, processId)
-                .orderByDesc(ProjectContractItemDO::getCreatedAt)
-                .orderByDesc(ProjectContractItemDO::getId)
-                .last("LIMIT 1");
-        if (sectionId == null) {
-            wrapper.isNull(ProjectContractItemDO::getProjectSectionId);
-        } else {
-            wrapper.eq(ProjectContractItemDO::getProjectSectionId, sectionId);
-        }
-        return contractItemMapper.selectOne(wrapper);
+                .eq(ProjectContractItemDO::getProjectId, report.getProjectId())
+                .eq(ProjectContractItemDO::getWorkProcessId, report.getWorkProcessId())
+                .eq(ProjectContractItemDO::getUnit, report.getUnit())
+                .and(wrapper -> wrapper.isNull(ProjectContractItemDO::getProjectSectionId)
+                        .or().eq(ProjectContractItemDO::getProjectSectionId, report.getProjectSectionId()))
+                .orderByAsc(ProjectContractItemDO::getProjectSectionId)
+                .orderByAsc(ProjectContractItemDO::getItemCode)
+                .orderByAsc(ProjectContractItemDO::getId));
     }
 
     private TeamUnitPriceDO latestTeamUnitPrice(Long projectId, Long teamId, Long processId, LocalDate effectiveOn) {
@@ -1524,6 +1750,38 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     private String reportStatus(Long id) {
         return requireDailyReport(id).getStatus();
+    }
+
+    private List<BusinessFileVO> dailyReportFileVOs(Long id) {
+        return dailyReportFiles(id);
+    }
+
+    private List<BusinessFileVO> variationOrderFileVOs(Long id) {
+        return variationOrderFiles(id);
+    }
+
+    private BusinessFileVO businessFile(Long bindingId, Long fileId, String fileType, LocalDateTime attachedAt) {
+        FileRecordDO file = fileRecordMapper.selectById(fileId);
+        return new BusinessFileVO(
+                bindingId,
+                fileType,
+                attachedAt,
+                file == null ? null : FileMetadataVO.from(file));
+    }
+
+    private void requireEvidenceEditable(String status, String businessName) {
+        if (!"draft".equals(status) && !"rejected".equals(status)) {
+            throw new BusinessException("只有草稿或已驳回" + businessName + "可以修改附件");
+        }
+    }
+
+    private ProjectActionDTO variationAction(VariationConfirmDTO dto) {
+        ProjectActionDTO action = new ProjectActionDTO();
+        action.setConfirmedAmount(dto.getConfirmedAmount());
+        action.setRemark(dto.getRemark());
+        action.setOperatorId(dto.getOperatorId());
+        action.setOperatorName(dto.getOperatorName());
+        return action;
     }
 
     private String variationStatus(Long id) {
@@ -1751,6 +2009,4 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         return value == null ? BigDecimal.ZERO : value;
     }
 
-    private record DailyReportPricing(Long contractItemId, BigDecimal unitPrice, String basis) {
-    }
 }

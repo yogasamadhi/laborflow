@@ -16,8 +16,8 @@ public class SalaryItemDO extends BaseDO {
     private String name;
     private String type;
     private Integer isFixed;
+    private String calculationRole;
     private Integer sortOrder;
     private String status;
     private String remark;
 }
-

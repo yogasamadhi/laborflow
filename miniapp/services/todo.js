@@ -1,77 +1,41 @@
-const salary = require("./salary");
+const request = require("../utils/request");
 const project = require("./project");
-const auth = require("../utils/auth");
-const format = require("../utils/format");
-const logger = require("../utils/logger");
+const salary = require("./salary");
 
-async function list() {
-  const canReviewSalary = auth.hasAnyRole(["ADMIN", "BOSS"]);
-  const canReviewProject = auth.hasAnyRole(["ADMIN", "BOSS", "MANAGER"]);
-  const canReviewSettlement = auth.hasAnyRole(["ADMIN", "BOSS", "MANAGER", "FINANCE"]);
-  const fallback = (scope) => (err) => {
-    logger.warn("todo." + scope, err);
-    return { records: [] };
-  };
-  const [monthlies, submittedReports, pmReports, variations, settlements] = await Promise.all([
-    canReviewSalary ? salary.monthlyList({ status: "pending_approval" }).catch(fallback("salary")) : Promise.resolve({ records: [] }),
-    canReviewProject ? project.dailyReports({ status: "submitted" }).catch(fallback("report-submitted")) : Promise.resolve({ records: [] }),
-    canReviewProject ? project.dailyReports({ status: "pm_confirmed" }).catch(fallback("report-pm")) : Promise.resolve({ records: [] }),
-    canReviewProject ? project.variationOrders({ status: "submitted" }).catch(fallback("variation")) : Promise.resolve({ records: [] }),
-    canReviewSettlement ? project.settlements().catch(fallback("settlement")) : Promise.resolve({ records: [] })
-  ]);
-
-  const rows = [];
-  format.pageRecords(monthlies).forEach((item) => rows.push({
-    id: "salary-" + item.id,
-    type: "salary",
-    businessId: item.id,
-    title: item.title || item.salaryMonth + " 工资表",
-    desc: "待审核工资表",
-    status: item.status
-  }));
-  format.pageRecords(submittedReports).forEach((item) => rows.push({
-    id: "report-pm-" + item.id,
-    type: "report_pm",
-    businessId: item.id,
-    title: "工程量日报 #" + item.id,
-    desc: "待项目经理确认",
-    status: item.status
-  }));
-  format.pageRecords(pmReports).forEach((item) => rows.push({
-    id: "report-final-" + item.id,
-    type: "report_final",
-    businessId: item.id,
-    title: "工程量日报 #" + item.id,
-    desc: "待终审确认",
-    status: item.status
-  }));
-  format.pageRecords(variations).forEach((item) => rows.push({
-    id: "variation-" + item.id,
-    type: "variation",
-    businessId: item.id,
-    title: "签证上报 #" + item.id,
-    desc: item.variationType || "待确认签证",
-    status: item.status
-  }));
-  format.pageRecords(settlements)
-    .filter((item) => item.settlementStatus === "draft")
-    .forEach((item) => rows.push({
-      id: "settlement-" + item.id,
-      type: "settlement",
-      businessId: item.id,
-      title: "班组结算 #" + item.id,
-      desc: item.settlementMonth || "待审核结算",
-      status: item.settlementStatus
-    }));
-  return rows;
+function list(params) {
+  return request.get("/todos", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
 
-async function approve(item, remark) {
-  if (item.type === "salary") return salary.approveMonthly(item.businessId, remark);
-  if (item.type === "report_pm") return project.confirmDailyReport(item.businessId, "pm", { remark });
-  if (item.type === "report_final") return project.confirmDailyReport(item.businessId, "final", { remark });
-  if (item.type === "variation") return project.confirmVariationOrder(item.businessId, { remark });
-  if (item.type === "settlement") return project.confirmSettlement(item.businessId, { remark });
+async function detail(item) {
+  if (item.type === "salary") {
+    const header = await request.get("/salary/monthly/" + item.businessId);
+    const details = await salary.monthlyDetails(item.businessId, { page: 1, pageSize: 20 });
+    const audits = await salary.monthlyAudits(item.businessId);
+    return { header, details, audits };
+  }
+  if (item.type === "report_pm" || item.type === "report_final") return project.dailyReportDetail(item.businessId);
+  if (item.type === "variation") return project.variationOrderDetail(item.businessId);
+  if (item.type === "settlement") return request.get("/team-settlements/" + item.businessId);
+  throw new Error("当前待办暂无可用详情");
+}
+
+async function approve(item, data) {
+  const payload = data || {};
+  if (item.type === "salary") return salary.approveMonthly(item.businessId, payload.remark);
+  if (item.type === "report_pm" || item.type === "report_final") {
+    const stage = item.type === "report_final" ? "final" : "pm";
+    return project.confirmDailyReport(item.businessId, stage, payload);
+  }
+  if (item.type === "variation") {
+    if (payload.confirmedAmount === "" || payload.confirmedAmount === undefined || Number(payload.confirmedAmount) < 0) {
+      throw new Error("请输入非负确认金额");
+    }
+    return project.confirmVariationOrder(item.businessId, {
+      confirmedAmount: Number(payload.confirmedAmount),
+      remark: payload.remark
+    });
+  }
+  if (item.type === "settlement") return project.confirmSettlement(item.businessId, payload);
   throw new Error("不支持的待办类型");
 }
 
@@ -85,6 +49,7 @@ async function reject(item, remark) {
 
 module.exports = {
   list,
+  detail,
   approve,
   reject
 };

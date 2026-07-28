@@ -2,11 +2,10 @@
   "pages": [
     "pages/login/index",
     "pages/home/index",
+    "pages/site/index",
     "pages/salary/index",
     "pages/salary/detail",
-    "pages/report/index",
     "pages/report/create",
-    "pages/variation/index",
     "pages/variation/create",
     "pages/todo/index",
     "pages/profile/index"
@@ -44,6 +43,10 @@
       {
         "pagePath": "pages/salary/index",
         "text": "工资"
+      },
+      {
+        "pagePath": "pages/site/index",
+        "text": "现场"
       },
       {
         "pagePath": "pages/todo/index",

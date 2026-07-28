@@ -3,12 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
 import { getData } from "../../../lib/axios";
+import { getLoginUser } from "../../../lib/auth";
 import { employeeStatusText } from "../../../lib/utils";
 import type { Employee } from "../types";
 
 export function EmployeeDetailPage() {
   const { id } = useParams();
   const { data } = useQuery({ queryKey: ["employee", id], queryFn: () => getData<Employee>(`/employees/${id}`) });
+  const canViewSalary = (getLoginUser()?.roles ?? []).some(role => ["ADMIN", "BOSS", "FINANCE"].includes(role));
   const rows = [
     ["姓名", data?.name],
     ["手机号", data?.phone],
@@ -25,7 +27,7 @@ export function EmployeeDetailPage() {
   ];
 
   return (
-    <Page title="员工详情" actions={<><Link to={`/employees/${id}/salary-history`}><Button>历史工资</Button></Link>{" "}<Link to={`/employees/${id}/edit`}><Button variant="secondary">编辑</Button></Link></>}>
+    <Page title="员工详情" actions={<>{canViewSalary ? <><Link to={`/employees/${id}/salary-history`}><Button>历史工资</Button></Link>{" "}</> : null}<Link to={`/employees/${id}/edit`}><Button variant="secondary">编辑</Button></Link></>}>
       <div className="panel">
         <table>
           <tbody>

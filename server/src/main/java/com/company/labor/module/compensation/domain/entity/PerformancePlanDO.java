@@ -1,6 +1,7 @@
 package com.company.labor.module.compensation.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.company.labor.module.common.domain.entity.BaseDO;
@@ -19,4 +20,6 @@ public class PerformancePlanDO extends BaseDO {
     private Long positionId;
     private String status;
     private String remark;
+    @TableField(exist = false)
+    private String projectName;
 }

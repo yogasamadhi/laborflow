@@ -3,8 +3,9 @@ import { Edit, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, postData, putData } from "../../../lib/axios";
+import { getAllPages, getData, postData, putData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import type { Employee } from "../../employee/types";
 
@@ -86,22 +87,20 @@ export function SalaryProfilePage() {
   const [employeeFilter, setEmployeeFilter] = useState("");
   const [error, setError] = useState("");
 
-  const { data: profilesData } = useQuery({
-    queryKey: ["salary-profiles"],
-    queryFn: () => getData<PageResult<Profile>>("/salary/profiles", { page: 1, pageSize: 200 })
-  });
+  const profileListing = usePagedQuery<Profile>(["salary-profiles"], "/salary/profiles");
+  const profilesData = profileListing.data;
   const { data: employeesData } = useQuery({
     queryKey: ["employees", "salary-profile-options"],
-    queryFn: () => getData<PageResult<Employee>>("/employees", { page: 1, pageSize: 500, status: "active" })
+    queryFn: () => getAllPages<Employee>("/reference/employees", { status: "active" })
   });
   const { data: salaryItemsData } = useQuery({
     queryKey: ["salary-items", "salary-profile-options"],
-    queryFn: () => getData<PageResult<SalaryItem>>("/salary/items", { page: 1, pageSize: 500 })
+    queryFn: () => getAllPages<SalaryItem>("/salary/items")
   });
 
   const profiles = profilesData?.records ?? [];
-  const employees = employeesData?.records ?? [];
-  const salaryItems = (salaryItemsData?.records ?? []).filter((item) => item.status !== "inactive");
+  const employees = employeesData ?? [];
+  const salaryItems = (salaryItemsData ?? []).filter((item) => item.status !== "inactive");
   const employeeMap = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const profileDetailQueries = useQueries({
     queries: profiles.map((profile) => ({
@@ -123,7 +122,7 @@ export function SalaryProfilePage() {
     if (!keyword) return profiles;
     return profiles.filter((profile) => {
       const employee = employeeMap.get(profile.employeeId);
-      return String(profile.employeeId).includes(keyword) || employee?.name?.includes(keyword);
+      return employee?.name?.includes(keyword);
     });
   }, [employeeFilter, employeeMap, profiles]);
   const selectedEmployeeIds = new Set(profiles.filter((profile) => profile.status === "active").map((profile) => profile.employeeId));
@@ -252,7 +251,7 @@ export function SalaryProfilePage() {
                   const hasActiveProfile = selectedEmployeeIds.has(employee.id) && employee.id !== form.employeeId;
                   return (
                     <option key={employee.id} value={employee.id}>
-                      {employee.name} / ID {employee.id}{hasActiveProfile ? " / 已有启用档案" : ""}
+                      {employee.name}{hasActiveProfile ? " / 已有启用档案" : ""}
                     </option>
                   );
                 })}
@@ -356,10 +355,10 @@ export function SalaryProfilePage() {
           <div className="section-heading">
             <div>
               <h3>档案列表</h3>
-              <div className="muted">可按员工姓名或 ID 过滤，点击编辑会载入完整明细。</div>
+              <div className="muted">可按员工姓名过滤，点击编辑会载入完整明细。</div>
             </div>
             <Field label="员工筛选">
-              <TextInput value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} placeholder="姓名或 ID" />
+              <TextInput value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} placeholder="员工姓名" />
             </Field>
           </div>
           <div className="table-wrap">
@@ -383,7 +382,7 @@ export function SalaryProfilePage() {
                   const employee = employeeMap.get(profile.employeeId);
                   return (
                     <tr key={profile.id}>
-                      <td>{employee ? `${employee.name} / ${employee.id}` : profile.employeeId}</td>
+                      <td>{employee?.name ?? "已删除员工"}</td>
                       <td>{profile.effectiveDate ?? "-"}</td>
                       <td><span className={profile.status === "active" ? "badge badge-green" : "badge badge-yellow"}>{profile.status === "active" ? "启用" : statusText(profile.status)}</span></td>
                       <td>{money(rowTotals.earning)}</td>
@@ -410,6 +409,7 @@ export function SalaryProfilePage() {
               </tbody>
             </table>
           </div>
+          {profileListing.pagination}
         </div>
       </div>
     </Page>

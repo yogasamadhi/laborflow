@@ -98,6 +98,7 @@ class SalaryGenerationRulesTest {
         SalaryMonthlyDetailDO detail = new SalaryMonthlyDetailDO();
         detail.setId(2L);
         detail.setSalaryMonthlyId(1L);
+        detail.setPayslipStatus("unconfirmed");
         detail.setDeleted(0);
         when(detailMapper.selectById(2L)).thenReturn(detail);
 

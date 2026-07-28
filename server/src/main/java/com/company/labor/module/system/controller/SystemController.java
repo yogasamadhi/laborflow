@@ -9,15 +9,17 @@ import com.company.labor.module.system.domain.dto.SysUserSaveDTO;
 import com.company.labor.module.system.domain.dto.WechatBindingUpdateDTO;
 import com.company.labor.module.system.domain.entity.OperationLogDO;
 import com.company.labor.module.system.domain.entity.SysRoleDO;
-import com.company.labor.module.system.domain.entity.WechatUserBindingDO;
 import com.company.labor.module.system.domain.vo.SysUserVO;
-import com.company.labor.module.system.mapper.OperationLogMapper;
+import com.company.labor.module.system.domain.vo.OperationLogVO;
+import com.company.labor.module.system.domain.vo.WechatBindingVO;
 import com.company.labor.module.system.mapper.SysRoleMapper;
+import com.company.labor.module.system.service.OperationLogService;
 import com.company.labor.module.system.service.SystemUserAdminService;
 import com.company.labor.module.system.service.WechatBindingService;
 import com.company.labor.security.LoginUser;
 import com.company.labor.security.RoleExpressions;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/system")
@@ -37,7 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SystemController {
     private final SystemUserAdminService userAdminService;
     private final SysRoleMapper roleMapper;
-    private final OperationLogMapper operationLogMapper;
+    private final OperationLogService operationLogService;
     private final WechatBindingService wechatBindingService;
 
     @GetMapping("/users")
@@ -82,16 +85,29 @@ public class SystemController {
     }
 
     @GetMapping("/logs")
-    public Result<PageResult<OperationLogDO>> logs(@RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "20") long pageSize) {
-        return Result.success(PageResult.of(operationLogMapper.selectPage(new Page<>(page, pageSize), null)));
+    public Result<PageResult<OperationLogVO>> logs(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String module,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) Long businessId,
+            @RequestParam(required = false) Long operatorId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo) {
+        Page<OperationLogDO> rows = operationLogService.page(
+                page, pageSize, keyword, module, action, businessId, operatorId, createdFrom, createdTo);
+        return Result.success(new PageResult<>(
+                rows.getRecords().stream().map(OperationLogVO::from).toList(),
+                rows.getTotal(), rows.getCurrent(), rows.getSize()));
     }
 
     @GetMapping("/wechat-bindings")
-    public Result<PageResult<WechatUserBindingDO>> wechatBindings(@RequestParam(defaultValue = "1") long page,
-                                                                  @RequestParam(defaultValue = "20") long pageSize,
-                                                                  @RequestParam(required = false) String status,
-                                                                  @RequestParam(required = false) String keyword) {
-        return Result.success(PageResult.of(wechatBindingService.page(page, pageSize, status, keyword)));
+    public Result<PageResult<WechatBindingVO>> wechatBindings(@RequestParam(defaultValue = "1") long page,
+                                                              @RequestParam(defaultValue = "20") long pageSize,
+                                                              @RequestParam(required = false) String status,
+                                                              @RequestParam(required = false) String keyword) {
+        return Result.success(PageResult.of(wechatBindingService.pageView(page, pageSize, status, keyword)));
     }
 
     @PostMapping("/wechat-bindings/{id}/bind")

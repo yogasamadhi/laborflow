@@ -27,27 +27,14 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
         if (hasProjectWideAccess(authentication)) {
             return Set.of();
         }
-        Long userId = AccessControlSupport.currentUserId(authentication);
         Long employeeId = AccessControlSupport.currentEmployeeId(authentication);
-        if (userId == null && employeeId == null) {
+        if (employeeId == null) {
             return Set.of();
         }
         LambdaQueryWrapper<ProjectMemberDO> wrapper = new LambdaQueryWrapper<ProjectMemberDO>()
                 .eq(ProjectMemberDO::getDeleted, 0)
                 .eq(ProjectMemberDO::getStatus, "active")
-                .and(query -> {
-                    boolean hasUserId = userId != null;
-                    boolean hasEmployeeId = employeeId != null;
-                    if (hasUserId) {
-                        query.eq(ProjectMemberDO::getUserId, userId);
-                    }
-                    if (hasUserId && hasEmployeeId) {
-                        query.or();
-                    }
-                    if (hasEmployeeId) {
-                        query.eq(ProjectMemberDO::getEmployeeId, employeeId);
-                    }
-                });
+                .eq(ProjectMemberDO::getEmployeeId, employeeId);
         Set<Long> projectIds = new LinkedHashSet<>();
         for (ProjectMemberDO member : projectMemberMapper.selectList(wrapper)) {
             if (member.getProjectId() != null) {

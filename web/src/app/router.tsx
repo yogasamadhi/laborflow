@@ -28,7 +28,8 @@ const BonusPoolPage = lazy(() => import("../features/compensation/pages/Compensa
 const CompensationDashboardPage = lazy(() => import("../features/compensation/pages/CompensationPages").then(({ CompensationDashboardPage: page }) => ({ default: page })));
 const CompensationSalaryPage = lazy(() => import("../features/compensation/pages/CompensationPages").then(({ CompensationSalaryPage: page }) => ({ default: page })));
 const PerformanceIndicatorPage = lazy(() => import("../features/compensation/pages/CompensationPages").then(({ PerformanceIndicatorPage: page }) => ({ default: page })));
-const PerformanceScorePage = lazy(() => import("../features/compensation/pages/CompensationPages").then(({ PerformanceScorePage: page }) => ({ default: page })));
+const PerformancePlanPage = lazy(() => import("../features/compensation/pages/PerformanceWorkflowPages").then(({ PerformancePlanPage: page }) => ({ default: page })));
+const PerformanceScorePage = lazy(() => import("../features/compensation/pages/PerformanceWorkflowPages").then(({ PerformanceScoreWorkflowPage: page }) => ({ default: page })));
 const SalaryDeductionPage = lazy(() => import("../features/compensation/pages/CompensationPages").then(({ SalaryDeductionPage: page }) => ({ default: page })));
 const DailyWorkReportPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ DailyWorkReportPage: page }) => ({ default: page })));
 const DocumentArchivePage = lazy(() => import("../features/project/pages/ProjectPages").then(({ DocumentArchivePage: page }) => ({ default: page })));
@@ -38,6 +39,7 @@ const ProjectCostPage = lazy(() => import("../features/project/pages/ProjectPage
 const ProjectContractItemPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectContractItemPage: page }) => ({ default: page })));
 const ProjectDashboardPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectDashboardPage: page }) => ({ default: page })));
 const ProjectLedgerPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectLedgerPage: page }) => ({ default: page })));
+const ProjectMemberPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectMemberPage: page }) => ({ default: page })));
 const ProjectPaymentPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectPaymentPage: page }) => ({ default: page })));
 const ProjectRiskPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectRiskPage: page }) => ({ default: page })));
 const ProjectSectionPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ ProjectSectionPage: page }) => ({ default: page })));
@@ -49,6 +51,7 @@ const WorkConfirmationPage = lazy(() => import("../features/project/pages/Projec
 const WorkProcessPage = lazy(() => import("../features/project/pages/ProjectPages").then(({ WorkProcessPage: page }) => ({ default: page })));
 const WechatBindingPage = lazy(() => import("../features/system/pages/WechatBindingPage").then(({ WechatBindingPage: page }) => ({ default: page })));
 const SystemUserPage = lazy(() => import("../features/system/pages/SystemUserPage").then(({ SystemUserPage: page }) => ({ default: page })));
+const OperationLogPage = lazy(() => import("../features/system/pages/OperationLogPage").then(({ OperationLogPage: page }) => ({ default: page })));
 
 function lazyElement(element: ReactNode) {
   return <Suspense fallback={<RouteLoadingState />}>{element}</Suspense>;
@@ -67,6 +70,7 @@ export const router = createBrowserRouter([
       { path: "employees/:id", element: lazyElement(<EmployeeDetailPage />) },
       { path: "employees/:id/edit", element: lazyElement(<EmployeeFormPage />) },
       { path: "employees/:id/salary-history", element: lazyElement(<EmployeeSalaryHistoryPage />) },
+      { path: "salary/employees/:id/history", element: lazyElement(<EmployeeSalaryHistoryPage />) },
       { path: "departments", element: lazyElement(<DepartmentPage />) },
       { path: "positions", element: lazyElement(<PositionPage />) },
       { path: "salary/items", element: lazyElement(<SalaryItemPage />) },
@@ -81,6 +85,7 @@ export const router = createBrowserRouter([
       { path: "statistics/salary", element: lazyElement(<SalaryStatisticsPage />) },
       { path: "statistics/salary/anomalies", element: lazyElement(<SalaryAnomaliesPage />) },
       { path: "projects", element: lazyElement(<ProjectLedgerPage />) },
+      { path: "projects/members", element: lazyElement(<ProjectMemberPage />) },
       { path: "projects/sections", element: lazyElement(<ProjectSectionPage />) },
       { path: "projects/processes", element: lazyElement(<WorkProcessPage />) },
       { path: "projects/contract-items", element: lazyElement(<ProjectContractItemPage />) },
@@ -100,6 +105,7 @@ export const router = createBrowserRouter([
       { path: "compensation/attendance", element: lazyElement(<AttendancePage />) },
       { path: "compensation/deductions", element: lazyElement(<SalaryDeductionPage />) },
       { path: "compensation/indicators", element: lazyElement(<PerformanceIndicatorPage />) },
+      { path: "compensation/plans", element: lazyElement(<PerformancePlanPage />) },
       { path: "compensation/scores", element: lazyElement(<PerformanceScorePage />) },
       { path: "compensation/bonus-pools", element: lazyElement(<BonusPoolPage />) },
       { path: "compensation/bonus-allocations", element: lazyElement(<BonusAllocationPage />) },
@@ -108,7 +114,7 @@ export const router = createBrowserRouter([
       { path: "system/users", element: lazyElement(<SystemUserPage />) },
       { path: "system/wechat-bindings", element: lazyElement(<WechatBindingPage />) },
       { path: "system/roles", element: lazyElement(<SimpleCrudPage title="角色管理" resource="system/roles" readonly />) },
-      { path: "system/logs", element: lazyElement(<SimpleCrudPage title="操作日志" resource="system/logs" readonly />) },
+      { path: "system/logs", element: lazyElement(<OperationLogPage />) },
       { path: "*", element: <NotFoundPage /> }
     ]
   }

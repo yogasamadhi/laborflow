@@ -1,18 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ban, Link2, RefreshCw, Unlink } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { getData, PageResult, postData } from "../../../lib/axios";
+import { postData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
 import { Button } from "../../../components/ui/Button";
 import { Field, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
+import { AsyncLookupSelect } from "../../../components/common/AsyncLookupSelect";
 
 type WechatBinding = {
   id: string;
   openid: string;
   unionid?: string | null;
   userId?: string | null;
+  userName?: string | null;
   employeeId?: string | null;
+  employeeName?: string | null;
   nickname?: string | null;
   status: string;
   lastSessionAt?: string | null;
@@ -25,17 +29,15 @@ export function WechatBindingPage() {
   const [userId, setUserId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [nickname, setNickname] = useState("");
-  const { data, isFetching, refetch } = useQuery({
-    queryKey: ["system/wechat-bindings"],
-    queryFn: () => getData<PageResult<WechatBinding>>("/system/wechat-bindings", { page: 1, pageSize: 100 })
-  });
+  const listing = usePagedQuery<WechatBinding>(["system/wechat-bindings"], "/system/wechat-bindings");
+  const { data, isFetching, refetch } = listing;
   const rows = data?.records ?? [];
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["system/wechat-bindings"] });
 
   const bindMutation = useMutation({
     mutationFn: () => postData(`/system/wechat-bindings/${selected?.id}/bind`, {
-      userId: Number(userId),
-      employeeId: employeeId ? Number(employeeId) : undefined,
+      userId,
+      employeeId: employeeId || undefined,
       nickname: nickname || undefined
     }),
     onSuccess: () => {
@@ -74,11 +76,11 @@ export function WechatBindingPage() {
         <Field label="绑定记录">
           <TextInput value={selected ? selected.openid : ""} readOnly placeholder="从列表选择 openid" />
         </Field>
-        <Field label="用户 ID">
-          <TextInput value={userId} onChange={(event) => setUserId(event.target.value)} required disabled={!selected} />
+        <Field label="绑定用户">
+          <AsyncLookupSelect endpoint="/system/users" value={userId} onChange={setUserId} labelKeys={["nickname", "username"]} allowEmpty={false} placeholder="按账号或昵称搜索" disabled={!selected} />
         </Field>
-        <Field label="员工 ID">
-          <TextInput value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} disabled={!selected} />
+        <Field label="绑定员工">
+          <AsyncLookupSelect endpoint="/reference/employees" value={employeeId} onChange={setEmployeeId} params={{ status: "active" }} placeholder="按员工姓名搜索" disabled={!selected} />
         </Field>
         <Field label="微信昵称">
           <TextInput value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={!selected} />
@@ -112,8 +114,8 @@ export function WechatBindingPage() {
               <tr key={row.id}>
                 <td>{row.openid}</td>
                 <td>{row.unionid ?? "-"}</td>
-                <td>{row.userId ?? "-"}</td>
-                <td>{row.employeeId ?? "-"}</td>
+                <td>{row.userName ?? "未绑定"}</td>
+                <td>{row.employeeName ?? "未绑定"}</td>
                 <td>{row.nickname ?? "-"}</td>
                 <td>
                   <span className={`badge ${row.status === "active" ? "badge-green" : row.status === "inactive" ? "badge-red" : "badge-yellow"}`}>
@@ -143,6 +145,7 @@ export function WechatBindingPage() {
           </tbody>
         </table>
       </div>
+      {listing.pagination}
     </Page>
   );
 }

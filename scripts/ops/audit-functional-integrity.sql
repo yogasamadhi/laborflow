@@ -244,3 +244,113 @@ JOIN team_unit_price price
   ON detail.source_snapshot LIKE '%班组单价ID:' || price.id
 WHERE price.effective_date > detail.work_date
 ORDER BY detail.work_date, detail.id;
+
+-- 10. Activated/closed performance plans whose immutable indicator snapshots
+-- do not add up to exactly 100.
+SELECT plan.id AS performance_plan_id,
+       plan.performance_month,
+       plan.status,
+       COUNT(indicator.id) AS indicator_count,
+       COALESCE(SUM(indicator.score_weight), 0) AS total_weight
+FROM performance_plan plan
+LEFT JOIN performance_plan_indicator indicator
+  ON indicator.performance_plan_id = plan.id
+WHERE plan.deleted = 0
+  AND plan.status IN ('active', 'closed')
+GROUP BY plan.id, plan.performance_month, plan.status
+HAVING COUNT(indicator.id) = 0
+    OR COALESCE(SUM(indicator.score_weight), 0) <> 100
+ORDER BY plan.performance_month, plan.id;
+
+-- 11. Confirmed performance scores whose weighted score or amount no longer
+-- agrees with the stored plan-indicator and salary-base snapshots.
+WITH calculated_score AS (
+  SELECT score.id,
+         COALESCE(SUM(item.final_score * indicator.score_weight / 100), 0) AS weighted_score
+  FROM performance_score score
+  LEFT JOIN performance_score_item item
+    ON item.performance_score_id = score.id
+  LEFT JOIN performance_plan_indicator indicator
+    ON indicator.id = item.plan_indicator_id
+  WHERE score.deleted = 0
+  GROUP BY score.id
+)
+SELECT score.id AS performance_score_id,
+       score.performance_plan_id,
+       score.employee_id,
+       score.performance_month,
+       score.status,
+       score.performance_base_snapshot,
+       score.score AS stored_score,
+       ROUND(calculated.weighted_score, 2) AS calculated_score,
+       score.performance_amount AS stored_amount,
+       ROUND(score.performance_base_snapshot * calculated.weighted_score / 100, 2) AS calculated_amount
+FROM performance_score score
+JOIN calculated_score calculated ON calculated.id = score.id
+WHERE score.deleted = 0
+  AND (
+    score.score <> ROUND(calculated.weighted_score, 2)
+    OR score.performance_amount
+       <> ROUND(score.performance_base_snapshot * calculated.weighted_score / 100, 2)
+    OR score.status = 'confirmed' AND score.confirmed_at IS NULL
+  )
+ORDER BY score.performance_month, score.id;
+
+-- 12. Salary profiles that contain more than one performance base.
+SELECT profile.id AS salary_profile_id,
+       profile.employee_id,
+       profile.effective_date,
+       COUNT(*) AS performance_base_count
+FROM salary_profile profile
+JOIN salary_profile_item profile_item
+  ON profile_item.salary_profile_id = profile.id
+JOIN salary_item item
+  ON item.id = profile_item.salary_item_id
+WHERE profile.deleted = 0
+  AND profile.status = 'active'
+  AND item.deleted = 0
+  AND item.calculation_role = 'performance_base'
+GROUP BY profile.id, profile.employee_id, profile.effective_date
+HAVING COUNT(*) > 1
+ORDER BY profile.employee_id, profile.effective_date, profile.id;
+
+-- 13. Submitted/confirmed reports without a usable immutable pricing snapshot.
+SELECT report.id AS daily_report_id,
+       report.project_id,
+       report.work_date,
+       report.status,
+       report.pricing_status,
+       report.pricing_source_type,
+       report.pricing_source_id,
+       report.unit_price_snapshot,
+       report.completed_quantity,
+       report.output_value
+FROM daily_work_report report
+WHERE report.deleted = 0
+  AND report.status IN ('submitted', 'pm_confirmed', 'confirmed')
+  AND (
+    report.pricing_status <> 'priced'
+    OR report.pricing_source_type IS NULL
+    OR report.pricing_source_id IS NULL
+    OR report.unit_price_snapshot < 0
+    OR report.output_value <> ROUND(report.completed_quantity * report.unit_price_snapshot, 2)
+  )
+ORDER BY report.work_date, report.id;
+
+-- 14. Project memberships that cannot grant access under the employee-only
+-- identity model. The query intentionally returns IDs and statuses only.
+SELECT member.id AS project_member_id,
+       member.project_id,
+       member.employee_id,
+       member.status AS member_status,
+       employee.status AS employee_status,
+       employee.deleted AS employee_deleted
+FROM project_member member
+LEFT JOIN employee ON employee.id = member.employee_id
+WHERE member.deleted = 0
+  AND (
+    employee.id IS NULL
+    OR employee.deleted <> 0
+    OR employee.status <> 'active'
+  )
+ORDER BY member.project_id, member.id;

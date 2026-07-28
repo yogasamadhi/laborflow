@@ -31,6 +31,7 @@ function today() {
 }
 
 function pageRecords(pageResult) {
+  if (Array.isArray(pageResult)) return pageResult;
   return pageResult && pageResult.records ? pageResult.records : [];
 }
 

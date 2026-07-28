@@ -9,10 +9,16 @@ import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.system.domain.dto.WechatBindingUpdateDTO;
 import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.domain.entity.WechatUserBindingDO;
+import com.company.labor.module.system.domain.vo.WechatBindingVO;
 import com.company.labor.module.system.mapper.SysUserMapper;
 import com.company.labor.module.system.mapper.WechatUserBindingMapper;
 import com.company.labor.security.LoginUser;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -43,6 +49,27 @@ public class WechatBindingService {
                 .like(StringUtils.hasText(keyword), COL_OPENID, keyword)
                 .orderByDesc("updated_at");
         return bindingMapper.selectPage(new Page<>(page, pageSize), query);
+    }
+
+    public Page<WechatBindingVO> pageView(long page, long pageSize, String status, String keyword) {
+        Page<WechatUserBindingDO> rows = page(page, pageSize, status, keyword);
+        List<Long> userIds = rows.getRecords().stream().map(WechatUserBindingDO::getUserId)
+                .filter(Objects::nonNull).distinct().toList();
+        Map<Long, SysUserDO> users = userIds.isEmpty() ? Map.of() : userMapper.selectBatchIds(userIds)
+                .stream().collect(Collectors.toMap(SysUserDO::getId, Function.identity()));
+        List<Long> employeeIds = rows.getRecords().stream().map(WechatUserBindingDO::getEmployeeId)
+                .filter(Objects::nonNull).distinct().toList();
+        Map<Long, EmployeeDO> employees = employeeIds.isEmpty() ? Map.of() : employeeMapper.selectBatchIds(employeeIds)
+                .stream().collect(Collectors.toMap(EmployeeDO::getId, Function.identity()));
+        Page<WechatBindingVO> result = new Page<>(rows.getCurrent(), rows.getSize(), rows.getTotal());
+        result.setRecords(rows.getRecords().stream().map(binding -> {
+            SysUserDO user = users.get(binding.getUserId());
+            EmployeeDO employee = employees.get(binding.getEmployeeId());
+            String userName = user == null ? null
+                    : (StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
+            return WechatBindingVO.from(binding, userName, employee == null ? null : employee.getName());
+        }).toList());
+        return result;
     }
 
     public void bindLoginUser(String openid, String nickname, LoginUser loginUser) {

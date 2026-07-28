@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { getData, postData, putData } from "../../../lib/axios";
+import { getAllPages, getData, postData, putData } from "../../../lib/axios";
 import type { Department } from "../../department/types";
 import type { Position } from "../../position/types";
 import type { Employee } from "../types";
@@ -35,14 +35,14 @@ export function EmployeeFormPage() {
   });
   const { data: departmentsData } = useQuery({
     queryKey: ["departments", "options"],
-    queryFn: () => getData<{ records: Department[] }>("/departments", { page: 1, pageSize: 200, status: "active" })
+    queryFn: () => getAllPages<Department>("/departments", { status: "active" })
   });
   const { data: positionsData } = useQuery({
     queryKey: ["positions", "options", form.departmentId],
-    queryFn: () => getData<{ records: Position[] }>("/positions", { page: 1, pageSize: 200, status: "active", departmentId: form.departmentId || undefined })
+    queryFn: () => getAllPages<Position>("/positions", { status: "active", departmentId: form.departmentId || undefined })
   });
-  const departments = departmentsData?.records ?? [];
-  const positions = positionsData?.records ?? [];
+  const departments = departmentsData ?? [];
+  const positions = positionsData ?? [];
   useEffect(() => {
     if (data) setForm(normalizeEmployee(data));
   }, [data]);

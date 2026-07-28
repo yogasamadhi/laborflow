@@ -1,11 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { deleteData, getData, PageResult, postData, putData } from "../../lib/axios";
+import { deleteData, postData, putData } from "../../lib/axios";
 import { statusText } from "../../lib/utils";
 import { Button } from "../ui/Button";
 import { Field, TextInput } from "./Field";
 import { Page } from "./Page";
+import { usePagedQuery } from "./usePagedQuery";
 
 type Row = {
   id: string;
@@ -22,11 +23,8 @@ export function SimpleCrudPage({ title, resource, readonly = false }: SimpleCrud
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Row | null>(null);
   const [name, setName] = useState("");
-  const { data } = useQuery({
-    queryKey: [resource],
-    queryFn: () => getData<PageResult<Row> | Row[]>(`/${resource}`, { page: 1, pageSize: 100 })
-  });
-  const rows = Array.isArray(data) ? data : data?.records ?? [];
+  const listing = usePagedQuery<Row>([resource], `/${resource}`);
+  const rows = listing.data?.records ?? [];
   const saveMutation = useMutation({
     mutationFn: () => {
       const payload = { ...editing, name, status: editing?.status ?? "active" };
@@ -86,6 +84,7 @@ export function SimpleCrudPage({ title, resource, readonly = false }: SimpleCrud
           </tbody>
         </table>
       </div>
+      {listing.pagination}
     </Page>
   );
 }

@@ -10,6 +10,8 @@ Page({
     items: [],
     loading: false,
     confirming: false,
+    feedback: "",
+    feedbackOpen: false,
     hasLoaded: false,
     loadError: "",
     canConfirmPayslip: false,
@@ -54,7 +56,7 @@ Page({
         hasLoaded: true,
         canConfirmPayslip: !!mappedDetail && mappedDetail.payslipStatus !== "confirmed" && mappedDetail.payslipStatus !== "exception",
         payslipNotice: mappedDetail && mappedDetail.payslipStatus === "exception"
-          ? "该工资条已标记为异常，请联系管理员核对后再处理。"
+          ? "已提出异议：" + (mappedDetail.payslipFeedback || "等待后台处理") + (mappedDetail.payslipFeedbackAt ? "（" + mappedDetail.payslipFeedbackAt.replace("T", " ").slice(0, 16) + "）" : "")
           : (mappedDetail && mappedDetail.payslipStatus === "confirmed" ? "本工资条已确认，无需重复操作。" : "确认前请核对工资项目、扣减和实发金额。")
       });
     } catch (error) {
@@ -90,5 +92,37 @@ Page({
         }
       }
     });
+  },
+
+  openFeedback() {
+    if (this.data.canConfirmPayslip && !this.data.confirming) this.setData({ feedbackOpen: true, feedback: "" });
+  },
+
+  cancelFeedback() {
+    if (!this.data.confirming) this.setData({ feedbackOpen: false, feedback: "" });
+  },
+
+  onFeedback(event) {
+    const value = event.detail && event.detail.value !== undefined ? event.detail.value : event.detail;
+    this.setData({ feedback: value });
+  },
+
+  async submitFeedback() {
+    const feedback = String(this.data.feedback || "").trim();
+    if (!feedback) {
+      wx.showToast({ title: "请填写异议说明", icon: "none" });
+      return;
+    }
+    this.setData({ confirming: true });
+    try {
+      await salary.feedbackPayslip(this.data.detailId, feedback);
+      wx.showToast({ title: "异议已提交", icon: "success" });
+      this.setData({ feedbackOpen: false, feedback: "" });
+      await this.load();
+    } catch (error) {
+      wx.showToast({ title: error.message || "异议提交失败", icon: "none" });
+    } finally {
+      this.setData({ confirming: false });
+    }
   }
 });

@@ -12,8 +12,7 @@
 
   <view class="van-card-shell">
     <van-cell-group border="{{false}}">
-      <van-cell title="用户 ID" value="{{userIdText}}" icon="idcard" />
-      <van-cell title="员工 ID" value="{{employeeIdText}}" icon="contact-o" />
+      <van-cell title="员工绑定" value="{{employeeBindingText}}" icon="contact-o" />
       <van-cell title="角色" value="{{rolesText}}" icon="cluster-o" />
     </van-cell-group>
   </view>

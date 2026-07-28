@@ -7,8 +7,7 @@ Page({
     avatarText: "L",
     displayName: "",
     usernameText: "",
-    userIdText: "-",
-    employeeIdText: "未绑定",
+    employeeBindingText: "未绑定",
     employeeBound: false,
     rolesText: "-",
     refreshing: false,
@@ -61,8 +60,7 @@ Page({
       avatarText: displayName ? displayName.substring(0, 1) : "L",
       displayName,
       usernameText: user.username || "-",
-      userIdText: user.userId || "-",
-      employeeIdText: user.employeeId || "未绑定",
+      employeeBindingText: user.employeeId ? "已绑定" : "未绑定",
       employeeBound: !!user.employeeId,
       rolesText: user.roles && user.roles.length ? user.roles.join("、") : "-"
     });

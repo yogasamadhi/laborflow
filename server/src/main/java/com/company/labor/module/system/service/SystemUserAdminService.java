@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.exception.BusinessException;
+import com.company.labor.module.employee.domain.entity.EmployeeDO;
+import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.system.domain.dto.SysUserResetPasswordDTO;
 import com.company.labor.module.system.domain.dto.SysUserRoleAssignDTO;
 import com.company.labor.module.system.domain.dto.SysUserSaveDTO;
@@ -42,6 +44,7 @@ public class SystemUserAdminService {
     private static final String COL_UPDATED_AT = "updated_at";
 
     private final SysUserMapper userMapper;
+    private final EmployeeMapper employeeMapper;
     private final SysRoleMapper roleMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final OperationLogService operationLogService;
@@ -59,8 +62,18 @@ public class SystemUserAdminService {
         Page<SysUserDO> users = userMapper.selectPage(new Page<>(page, pageSize), query);
         List<Long> userIds = users.getRecords().stream().map(SysUserDO::getId).toList();
         Map<Long, List<SysRoleDO>> roles = rolesByUserId(userIds);
+        Map<Long, String> employeeNames = employeeNames(users.getRecords().stream()
+                .map(SysUserDO::getEmployeeId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList());
         Page<SysUserVO> result = new Page<>(users.getCurrent(), users.getSize(), users.getTotal());
-        result.setRecords(users.getRecords().stream().map(user -> toVO(user, roles.getOrDefault(user.getId(), List.of()))).toList());
+        result.setRecords(users.getRecords().stream()
+                .map(user -> toVO(
+                        user,
+                        roles.getOrDefault(user.getId(), List.of()),
+                        employeeNames.get(user.getEmployeeId())))
+                .toList());
         return result;
     }
 
@@ -79,7 +92,7 @@ public class SystemUserAdminService {
         userMapper.insert(user);
         assignRoles(user.getId(), dto.getRoleIds(), operator);
         log("create_user", user.getId(), operator, "创建用户: " + user.getUsername());
-        return toVO(user, rolesForUser(user.getId()));
+        return toVO(user, rolesForUser(user.getId()), employeeName(user.getEmployeeId()));
     }
 
     public SysUserVO update(Long id, SysUserSaveDTO dto, LoginUser operator) {
@@ -90,7 +103,7 @@ public class SystemUserAdminService {
         userMapper.updateById(user);
         assignRoles(id, dto.getRoleIds(), operator);
         log("update_user", id, operator, "更新用户: " + user.getUsername());
-        return toVO(user, rolesForUser(id));
+        return toVO(user, rolesForUser(id), employeeName(user.getEmployeeId()));
     }
 
     public void assignRoles(Long id, SysUserRoleAssignDTO dto, LoginUser operator) {
@@ -194,11 +207,12 @@ public class SystemUserAdminService {
         return rolesByUserId(List.of(userId)).getOrDefault(userId, List.of());
     }
 
-    private SysUserVO toVO(SysUserDO user, List<SysRoleDO> roles) {
+    private SysUserVO toVO(SysUserDO user, List<SysRoleDO> roles, String employeeName) {
         return new SysUserVO(
                 user.getId(),
                 user.getUsername(),
                 user.getEmployeeId(),
+                employeeName,
                 user.getNickname(),
                 user.getPhone(),
                 user.getStatus(),
@@ -208,6 +222,22 @@ public class SystemUserAdminService {
                 user.getLockedUntil(),
                 user.getPasswordUpdatedAt(),
                 user.getCreatedAt());
+    }
+
+    private Map<Long, String> employeeNames(List<Long> employeeIds) {
+        if (employeeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return employeeMapper.selectBatchIds(employeeIds).stream()
+                .collect(Collectors.toMap(EmployeeDO::getId, EmployeeDO::getName));
+    }
+
+    private String employeeName(Long employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        EmployeeDO employee = employeeMapper.selectByIdIncludingDeleted(employeeId);
+        return employee == null ? null : employee.getName();
     }
 
     private boolean deleted(Integer deleted) {

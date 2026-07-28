@@ -11,6 +11,7 @@ public class SysUserVO {
     private Long id;
     private String username;
     private Long employeeId;
+    private String employeeName;
     private String nickname;
     private String phone;
     private String status;

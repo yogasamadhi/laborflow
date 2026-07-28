@@ -48,7 +48,17 @@
     </view>
     <view class="payslip-action">
       <text class="payslip-note">{{payslipNotice}}</text>
-      <van-button wx:if="{{canConfirmPayslip}}" block type="primary" loading="{{confirming}}" disabled="{{confirming}}" bind:tap="confirmPayslip">确认工资条无误</van-button>
+      <view wx:if="{{canConfirmPayslip}}" class="button-row">
+        <van-button block plain type="danger" disabled="{{confirming}}" bind:tap="openFeedback">提出异议</van-button>
+        <van-button block type="primary" loading="{{confirming}}" disabled="{{confirming}}" bind:tap="confirmPayslip">确认无误</van-button>
+      </view>
+      <view wx:if="{{feedbackOpen}}" class="action-panel">
+        <van-field value="{{feedback}}" bind:change="onFeedback" label="异议说明" type="textarea" autosize required placeholder="请说明需核对的工资项目或金额" />
+        <view class="button-row">
+          <van-button block plain disabled="{{confirming}}" bind:tap="cancelFeedback">取消</van-button>
+          <van-button block type="danger" loading="{{confirming}}" disabled="{{confirming}}" bind:tap="submitFeedback">提交异议</van-button>
+        </view>
+      </view>
     </view>
   </view>
 

@@ -3,8 +3,9 @@ import { FormEvent, useMemo, useState } from "react";
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
 import { Button } from "../../../components/ui/Button";
-import { deleteData, getData, PageResult, postData, putData } from "../../../lib/axios";
+import { deleteData, getAllPages, postData, putData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
 import type { Department } from "../../department/types";
 import type { Position } from "../types";
@@ -40,21 +41,17 @@ export function PositionPage() {
 
   const { data: departmentsData } = useQuery({
     queryKey: ["departments", "options"],
-    queryFn: () => getData<PageResult<Department>>("/departments", { page: 1, pageSize: 200 })
+    queryFn: () => getAllPages<Department>("/departments")
   });
-  const departments = departmentsData?.records ?? [];
+  const departments = departmentsData ?? [];
   const departmentNameMap = useMemo(() => new Map(departments.map((item) => [item.id, item.name])), [departments]);
 
-  const { data } = useQuery({
-    queryKey: ["positions", filters],
-    queryFn: () => getData<PageResult<Position>>("/positions", {
-      keyword: filters.keyword,
-      status: filters.status,
-      departmentId: filters.departmentId || undefined,
-      page: 1,
-      pageSize: 200
-    })
+  const listing = usePagedQuery<Position>(["positions", filters], "/positions", {
+    keyword: filters.keyword,
+    status: filters.status,
+    departmentId: filters.departmentId || undefined
   });
+  const data = listing.data;
   const rows = data?.records ?? [];
 
   const saveMutation = useMutation({
@@ -122,6 +119,7 @@ export function PositionPage() {
           </SelectInput>
         </Field>
       </div>
+      {listing.pagination}
 
       <div className="panel table-wrap">
         <table>

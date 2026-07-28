@@ -1,0 +1,43 @@
+<view class="page">
+  <view class="page-header row">
+    <view><text class="eyebrow">施工现场</text><text class="title">日报与签证</text><text class="subtitle">服务端分页、筛选和详情名称均已接通。</text></view>
+    <van-button round size="small" type="primary" icon="plus" bind:tap="create">新增</van-button>
+  </view>
+
+  <view class="card">
+    <picker range="{{categoryNames}}" bindchange="onCategoryChange"><van-cell title="业务类型" value="{{category === 'report' ? '日报' : '签证'}}" is-link /></picker>
+    <picker range="{{statusNames}}" bindchange="onStatusChange"><van-cell title="状态" value="{{statusLabel}}" is-link /></picker>
+    <picker mode="date" value="{{date}}" bindchange="onDate"><van-cell title="发生日期" value="{{date || '全部日期'}}" is-link /></picker>
+    <van-field value="{{keyword}}" bind:change="onKeyword" label="关键词" placeholder="项目、施工段、工序或原因" />
+    <view class="button-row">
+      <van-button block plain bind:tap="resetFilters">重置</van-button>
+      <van-button block type="primary" data-reset="{{true}}" bind:tap="load">查询</van-button>
+    </view>
+  </view>
+
+  <view wx:if="{{loadError}}" class="status-banner error-banner"><text>{{loadError}}</text><text class="status-banner-action" data-reset="{{true}}" bind:tap="load">重试</text></view>
+  <view wx:if="{{loading && !hasLoaded}}" class="loading-state"><van-loading vertical>正在加载现场记录</van-loading></view>
+  <van-empty wx:if="{{hasLoaded && !loading && rows.length === 0 && !loadError}}" image="search" description="没有符合条件的现场记录" />
+
+  <view wx:for="{{rows}}" wx:key="id" class="card">
+    <view class="row">
+      <view><text class="row-title">{{item.titleText}}</text><text class="muted small">{{item.dateText}} · {{item.subText}}</text></view>
+      <van-tag plain type="{{item.statusTagType}}">{{item.statusText}}</van-tag>
+    </view>
+    <view class="metric-row"><text>{{item.pricingText}}</text><text>{{item.amountText}}</text></view>
+    <text wx:if="{{item.rejectedReason}}" class="reject-reason">驳回原因：{{item.rejectedReason}}</text>
+    <view class="list-actions">
+      <van-button size="small" plain data-item="{{item}}" bind:tap="viewDetail">查看详情</van-button>
+      <van-button wx:if="{{item.canEdit}}" size="small" plain type="primary" data-item="{{item}}" bind:tap="edit">编辑记录</van-button>
+    </view>
+  </view>
+  <view wx:if="{{loadingMore}}" class="loading-state"><van-loading>加载更多</van-loading></view>
+  <text wx:if="{{hasLoaded && !hasMore && rows.length}}" class="muted small list-end">已加载全部记录</text>
+
+  <view wx:if="{{activeDetail}}" class="card action-panel">
+    <view class="row"><text class="section-title">{{activeDetail.titleText}}</text><text class="status-banner-action" bind:tap="closeDetail">关闭</text></view>
+    <view wx:for="{{activeDetail.detailRows}}" wx:key="label" class="row detail-row">
+      <text class="muted">{{item.label}}</text><text>{{item.value}}</text>
+    </view>
+  </view>
+</view>

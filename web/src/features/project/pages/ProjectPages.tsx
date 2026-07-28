@@ -1,18 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useMemo, useState } from "react";
 import { ActionConfirmationModal } from "../../../components/common/ActionConfirmationModal";
+import { AsyncLookupSelect } from "../../../components/common/AsyncLookupSelect";
+import { AttachmentViewer, type FileMetadata } from "../../../components/common/AttachmentViewer";
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
+import { Pagination } from "../../../components/common/Pagination";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, postData, putData, uploadFile } from "../../../lib/axios";
+import { deleteData, getAllPages, getData, PageResult, postData, putData, uploadFile } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 
 type Project = { id: string; name: string; clientName?: string; contractAmount?: number; status?: string; projectManager?: string; address?: string; scope?: string; remark?: string };
+type ProjectMember = { id: string; projectId: string; employeeId: string; employeeName: string; positionId?: string; positionName?: string; employeeStatus: string; roleName?: string; status: string; remark?: string; createdAt?: string; joinedAt?: string };
 type Section = { id: string; projectId: string; name: string; bidSectionName?: string; startStakeNo?: string; endStakeNo?: string; startWellNo?: string; endWellNo?: string; length?: number; remark?: string };
 type Process = { id: string; name: string; unit: string; sortOrder?: number; status?: string };
 type Team = { id: string; name: string; leaderName?: string; phone?: string; workType?: string; settlementMethod?: string; status?: string };
-type DailyReport = { id: string; workDate: string; projectId: string; projectSectionId: string; contractItemId?: string; workProcessId: string; completedQuantity: number; unit: string; outputValue?: number; pricingBasis?: string; teamId?: string; workerCount?: number; machineryUsage?: string; reporterName?: string; status: string; exceptionNote?: string; rejectedReason?: string };
+type DailyReport = { id: string; workDate: string; projectId: string; projectSectionId: string; contractItemId?: string; workProcessId: string; completedQuantity: number; unit: string; outputValue?: number; pricingBasis?: string; pricingStatus?: string; pricingSourceType?: string; unitPriceSnapshot?: number; teamId?: string; workerCount?: number; machineryUsage?: string; reporterName?: string; status: string; exceptionNote?: string; rejectedReason?: string };
 type TeamUnitPrice = { id: string; projectId: string; teamId: string; workProcessId: string; unit: string; unitPrice: number; effectiveDate?: string; status?: string };
 type ProcessPrice = { id: string; projectId: string; workProcessId: string; unit: string; unitPrice: number; effectiveDate?: string; status?: string };
 type ContractItem = { id: string; projectId: string; projectSectionId?: string; workProcessId: string; itemCode?: string; itemName: string; unit: string; contractQuantity: number; unitPrice: number; contractAmount: number; status?: string; remark?: string };
@@ -27,31 +32,45 @@ type DocumentArchive = { id: string; projectId: string; projectSectionId?: strin
 type FinanceBreakdown = { category: string; amount: number; ratio: number; source: string };
 type Dashboard = { projectName: string; contractAmount: number; completedOutputValue: number; confirmedQuantity: number; revenueAmount: number; teamPayableAmount: number; teamPaidAmount: number; salaryAllocatedCostAmount: number; otherCostAmount: number; machineryCostAmount: number; materialCostAmount: number; totalCostAmount: number; grossProfit: number; profitRate: number; costRate: number; receivableAmount: number; invoicedAmount: number; confirmedVariationAmount: number; pendingVariationAmount: number; receivedAmount: number; cashInAmount: number; cashOutAmount: number; cashBalanceAmount: number; retentionAmount: number; retentionReturnedAmount: number; retentionBalanceAmount: number; paymentProgress: number; revenueBreakdowns: FinanceBreakdown[]; costBreakdowns: FinanceBreakdown[]; cashFlowBreakdowns: FinanceBreakdown[]; risks: { type: string; level: string; message: string }[] };
 type ApprovalRecord = { id: string; confirmStage: string; confirmStatus: string; confirmerName?: string; statusBefore?: string; statusAfter?: string; remark?: string; createdAt?: string };
-type EvidenceFile = { id: string; fileId: string; fileType: string; createdAt?: string };
-type EvidenceTarget = { type: "daily" | "variation"; id: string; title: string };
+type EvidenceFile = { bindingId: string; fileType: string; attachedAt?: string; file?: FileMetadata };
+type EvidenceTarget = { type: "daily" | "variation"; id: string; title: string; status?: string };
+type PricingPreview = { priced: boolean; selectionRequired: boolean; selectedContractItemId?: string; sourceType?: string; sourceId?: string; unitPrice?: number; outputValue?: number; basis?: string; candidates: ContractItem[] };
 
-function useLookups() {
-  const projects = useQuery({ queryKey: ["project-lookup"], queryFn: () => getData<PageResult<Project>>("/projects", { page: 1, pageSize: 500 }) });
-  const sections = useQuery({ queryKey: ["section-lookup"], queryFn: () => getData<PageResult<Section>>("/project-sections", { page: 1, pageSize: 500 }) });
-  const processes = useQuery({ queryKey: ["process-lookup"], queryFn: () => getData<PageResult<Process>>("/work-processes", { page: 1, pageSize: 500 }) });
-  const teams = useQuery({ queryKey: ["team-lookup"], queryFn: () => getData<PageResult<Team>>("/teams", { page: 1, pageSize: 500 }) });
-  const machinery = useQuery({ queryKey: ["machinery-lookup"], queryFn: () => getData<PageResult<MachineryEquipment>>("/machinery-equipments", { page: 1, pageSize: 500 }) });
+function useLookups(options: { sections?: boolean; processes?: boolean; teams?: boolean; machinery?: boolean } = { sections: true, processes: true, teams: true, machinery: true }) {
+  const projects = useQuery({ queryKey: ["project-lookup"], queryFn: () => getAllPages<Project>("/projects") });
+  const sections = useQuery({ queryKey: ["section-lookup"], enabled: options.sections !== false, queryFn: () => getAllPages<Section>("/project-sections") });
+  const processes = useQuery({ queryKey: ["process-lookup"], enabled: options.processes !== false, queryFn: () => getAllPages<Process>("/work-processes", { status: "active" }) });
+  const teams = useQuery({ queryKey: ["team-lookup"], enabled: options.teams !== false, queryFn: () => getAllPages<Team>("/teams", { status: "active" }) });
+  const machinery = useQuery({ queryKey: ["machinery-lookup"], enabled: options.machinery !== false, queryFn: () => getAllPages<MachineryEquipment>("/machinery-equipments", { status: "active" }) });
   return {
-    projects: projects.data?.records ?? [],
-    sections: sections.data?.records ?? [],
-    processes: processes.data?.records ?? [],
-    teams: teams.data?.records ?? [],
-    machinery: machinery.data?.records ?? []
+    projects: projects.data ?? [],
+    sections: sections.data ?? [],
+    processes: processes.data ?? [],
+    teams: teams.data ?? [],
+    machinery: machinery.data ?? []
   };
 }
 
 function nameOf<T extends { id: string; name: string }>(rows: T[], id?: string) {
-  return rows.find((item) => item.id === id)?.name ?? id ?? "-";
+  if (!id) return "-";
+  return rows.find((item) => item.id === id)?.name ?? "已删除记录";
 }
 
 function contractItemText(item?: ContractItem) {
   if (!item) return "-";
   return item.itemCode ? `${item.itemCode} / ${item.itemName}` : item.itemName;
+}
+
+function StoredFile({ fileId }: { fileId?: string }) {
+  const file = useQuery({
+    queryKey: ["file-metadata", fileId],
+    enabled: Boolean(fileId),
+    queryFn: () => getData<FileMetadata>(`/files/${fileId}`)
+  });
+  if (!fileId) return <span className="muted">无附件</span>;
+  if (file.isPending) return <span className="muted">加载中…</span>;
+  if (!file.data) return <span className="form-error">附件不可访问</span>;
+  return <AttachmentViewer file={file.data} />;
 }
 
 function percent(value?: number | string | null) {
@@ -67,7 +86,8 @@ export function ProjectLedgerPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Partial<Project>>({});
   const [open, setOpen] = useState(false);
-  const { data } = useQuery({ queryKey: ["projects"], queryFn: () => getData<PageResult<Project>>("/projects", { page: 1, pageSize: 100 }) });
+  const listing = usePagedQuery<Project>(["projects"], "/projects");
+  const data = listing.data;
   const save = useMutation({
     mutationFn: () => form.id ? putData(`/projects/${form.id}`, form) : postData("/projects", form),
     onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["projects"] }); queryClient.invalidateQueries({ queryKey: ["project-lookup"] }); }
@@ -76,6 +96,7 @@ export function ProjectLedgerPage() {
   return (
     <Page title="项目台账" actions={<Button onClick={() => { setForm({ status: "not_started", contractAmount: 0 }); setOpen(true); }}>新增项目</Button>}>
       <div className="panel table-wrap"><table><thead><tr><th>项目名称</th><th>甲方/总包</th><th>合同金额</th><th>项目经理</th><th>状态</th><th>操作</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td>{row.name}</td><td>{row.clientName ?? "-"}</td><td>{money(row.contractAmount)}</td><td>{row.projectManager ?? "-"}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button></td></tr>)}</tbody></table></div>
+      {listing.pagination}
       <Modal open={open} title={form.id ? "编辑项目" : "新增项目"} onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
         <div className="grid grid-2">
           <Field label="项目名称"><TextInput value={form.name ?? ""} onChange={e => setForm({ ...form, name: e.target.value })} /></Field>
@@ -91,18 +112,134 @@ export function ProjectLedgerPage() {
   );
 }
 
+export function ProjectMemberPage() {
+  const queryClient = useQueryClient();
+  const { projects } = useLookups({ sections: false, processes: false, teams: false, machinery: false });
+  const [projectId, setProjectId] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [positionId, setPositionId] = useState("");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [form, setForm] = useState<Partial<ProjectMember>>({ status: "active", roleName: "项目成员" });
+  const members = useQuery({
+    queryKey: ["project-members", projectId, keyword, positionId, status, page, pageSize],
+    queryFn: () => getData<PageResult<ProjectMember>>("/project-members", {
+      page,
+      pageSize,
+      projectId: projectId || undefined,
+      keyword: keyword.trim() || undefined,
+      positionId: positionId || undefined,
+      status: status || undefined
+    })
+  });
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {
+        projectId: form.projectId || projectId,
+        employeeId: form.employeeId,
+        roleName: form.roleName,
+        status: form.status ?? "active",
+        remark: form.remark
+      };
+      return form.id ? putData(`/project-members/${form.id}`, payload) : postData("/project-members", payload);
+    },
+    onSuccess: async () => {
+      setForm({ projectId: projectId || projects[0]?.id, status: "active", roleName: "项目成员" });
+      await queryClient.invalidateQueries({ queryKey: ["project-members"] });
+    }
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteData(`/project-members/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["project-members"] })
+  });
+  return (
+    <Page title="项目成员" description="维护现场人员的项目范围；成员启用后，小程序才能选择对应项目。">
+      <div className="panel toolbar">
+        <Field label="查看项目">
+          <SelectInput value={projectId} onChange={(event) => {
+            const value = event.target.value;
+            setProjectId(value);
+            setPage(1);
+            setForm((current) => ({ ...current, projectId: value || undefined, employeeId: undefined, employeeName: undefined }));
+          }}>
+            <option value="">全部项目</option>
+            {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="姓名"><TextInput value={keyword} onChange={event => { setKeyword(event.target.value); setPage(1); }} placeholder="员工姓名" /></Field>
+        <Field label="岗位">
+          <AsyncLookupSelect endpoint="/reference/positions" value={positionId} onChange={value => { setPositionId(value); setPage(1); }} placeholder="搜索岗位" />
+        </Field>
+        <Field label="成员状态">
+          <SelectInput value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
+            <option value="">全部状态</option><option value="active">启用</option><option value="inactive">停用</option>
+          </SelectInput>
+        </Field>
+        <Button variant="secondary" onClick={() => { setKeyword(""); setPositionId(""); setStatus(""); setPage(1); }}>重置</Button>
+      </div>
+      <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
+        <Field label="项目">
+          <SelectInput value={form.projectId ?? projectId} onChange={event => setForm({ ...form, projectId: event.target.value, employeeId: undefined, employeeName: undefined })}>
+            <option value="">请选择项目</option>
+            {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="员工">
+          <AsyncLookupSelect endpoint="/reference/employees" value={form.employeeId ?? ""} params={{ status: "active" }} onChange={(value, employee) => setForm({ ...form, employeeId: value, employeeName: employee?.name })} placeholder="搜索有效员工" />
+        </Field>
+        <Field label="项目角色"><TextInput value={form.roleName ?? ""} onChange={event => setForm({ ...form, roleName: event.target.value })} /></Field>
+        <Field label="状态">
+          <SelectInput value={form.status ?? "active"} onChange={event => setForm({ ...form, status: event.target.value })}>
+            <option value="active">启用</option>
+            <option value="inactive">停用</option>
+          </SelectInput>
+        </Field>
+        <Field label="备注"><TextInput value={form.remark ?? ""} onChange={event => setForm({ ...form, remark: event.target.value })} /></Field>
+        <Button type="submit" disabled={save.isPending}>{form.id ? "保存成员" : "添加成员"}</Button>
+      </form>
+      <div className="panel table-wrap">
+        <table>
+          <thead><tr><th>项目</th><th>员工</th><th>岗位</th><th>项目职责</th><th>员工状态</th><th>成员状态</th><th>加入时间</th><th>备注</th><th>操作</th></tr></thead>
+          <tbody>{(members.data?.records ?? []).map(member => (
+            <tr key={member.id}>
+              <td>{nameOf(projects, member.projectId)}</td>
+              <td>{member.employeeName}</td>
+              <td>{member.positionName ?? "-"}</td>
+              <td>{member.roleName ?? "-"}</td>
+              <td><Badge status={member.employeeStatus} /></td>
+              <td><Badge status={member.status} /></td>
+              <td>{timeText(member.joinedAt ?? member.createdAt)}</td>
+              <td>{member.remark ?? "-"}</td>
+              <td><div className="table-actions">
+                <Button variant="secondary" onClick={() => setForm(member)}>编辑</Button>
+                <Button variant="danger" disabled={remove.isPending} onClick={() => {
+                  if (window.confirm("确认移除该项目成员？移除后其小程序项目权限将立即失效。")) remove.mutate(member.id);
+                }}>移除</Button>
+              </div></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <Pagination page={page} pageSize={pageSize} total={Number(members.data?.total ?? 0)} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1); }} />
+    </Page>
+  );
+}
+
 export function ProjectSectionPage() {
   const queryClient = useQueryClient();
   const { projects } = useLookups();
   const [projectId, setProjectId] = useState("");
   const [form, setForm] = useState<Partial<Section>>({});
   const [open, setOpen] = useState(false);
-  const { data } = useQuery({ queryKey: ["project-sections", projectId], queryFn: () => getData<PageResult<Section>>("/project-sections", { page: 1, pageSize: 200, filterProjectId: projectId || undefined }) });
+  const listing = usePagedQuery<Section>(["project-sections", projectId], "/project-sections", { filterProjectId: projectId || undefined });
+  const data = listing.data;
   const save = useMutation({ mutationFn: () => form.id ? putData(`/project-sections/${form.id}`, form) : postData("/project-sections", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["project-sections"] }); queryClient.invalidateQueries({ queryKey: ["section-lookup"] }); } });
   return (
     <Page title="施工段管理" actions={<Button onClick={() => { setForm({ projectId: projectId || projects[0]?.id, length: 0 }); setOpen(true); }}>新增施工段</Button>}>
       <div className="panel toolbar"><Field label="项目"><SelectInput value={projectId} onChange={e => setProjectId(e.target.value)}><option value="">全部项目</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field></div>
       <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>起止桩号</th><th>起止井号</th><th>长度</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(projects, row.projectId)}</td><td>{row.name}</td><td>{row.startStakeNo ?? "-"} / {row.endStakeNo ?? "-"}</td><td>{row.startWellNo ?? "-"} / {row.endWellNo ?? "-"}</td><td>{row.length ?? 0}</td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button></td></tr>)}</tbody></table></div>
+      {listing.pagination}
       <Modal open={open} title="施工段" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
         <div className="grid grid-2">
           <Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value })}>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
@@ -122,11 +259,13 @@ export function WorkProcessPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Partial<Process>>({});
   const [open, setOpen] = useState(false);
-  const { data } = useQuery({ queryKey: ["work-processes"], queryFn: () => getData<PageResult<Process>>("/work-processes", { page: 1, pageSize: 300 }) });
+  const listing = usePagedQuery<Process>(["work-processes"], "/work-processes");
+  const data = listing.data;
   const save = useMutation({ mutationFn: () => form.id ? putData(`/work-processes/${form.id}`, form) : postData("/work-processes", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["work-processes"] }); queryClient.invalidateQueries({ queryKey: ["process-lookup"] }); } });
   return (
     <Page title="工序库" actions={<Button onClick={() => { setForm({ unit: "m", status: "active", sortOrder: 0 }); setOpen(true); }}>新增工序</Button>}>
       <div className="panel table-wrap"><table><thead><tr><th>工序</th><th>单位</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.name}</td><td>{row.unit}</td><td>{row.sortOrder ?? 0}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button></td></tr>)}</tbody></table></div>
+      {listing.pagination}
       <Modal open={open} title="工序" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
         <div className="grid grid-2"><Field label="工序名称"><TextInput value={form.name ?? ""} onChange={e => setForm({ ...form, name: e.target.value })} /></Field><Field label="单位"><TextInput value={form.unit ?? ""} onChange={e => setForm({ ...form, unit: e.target.value })} /></Field><Field label="排序"><TextInput type="number" value={form.sortOrder ?? 0} onChange={e => setForm({ ...form, sortOrder: Number(e.target.value) })} /></Field><Field label="状态"><SelectInput value={form.status ?? "active"} onChange={e => setForm({ ...form, status: e.target.value })}><option value="active">启用</option><option value="inactive">停用</option></SelectInput></Field></div>
       </Modal>
@@ -138,11 +277,13 @@ export function TeamPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Partial<Team>>({});
   const [open, setOpen] = useState(false);
-  const { data } = useQuery({ queryKey: ["teams"], queryFn: () => getData<PageResult<Team>>("/teams", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<Team>(["teams"], "/teams");
+  const data = listing.data;
   const save = useMutation({ mutationFn: () => form.id ? putData(`/teams/${form.id}`, form) : postData("/teams", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["teams"] }); queryClient.invalidateQueries({ queryKey: ["team-lookup"] }); } });
   return (
     <Page title="班组管理" actions={<Button onClick={() => { setForm({ status: "active", settlementMethod: "quantity" }); setOpen(true); }}>新增班组</Button>}>
       <div className="panel table-wrap"><table><thead><tr><th>班组</th><th>负责人</th><th>电话</th><th>工种</th><th>结算方式</th><th>状态</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.name}</td><td>{row.leaderName ?? "-"}</td><td>{row.phone ?? "-"}</td><td>{row.workType ?? "-"}</td><td>{row.settlementMethod ?? "-"}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button></td></tr>)}</tbody></table></div>
+      {listing.pagination}
       <Modal open={open} title="班组" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
         <div className="grid grid-2"><Field label="班组名称"><TextInput value={form.name ?? ""} onChange={e => setForm({ ...form, name: e.target.value })} /></Field><Field label="负责人"><TextInput value={form.leaderName ?? ""} onChange={e => setForm({ ...form, leaderName: e.target.value })} /></Field><Field label="电话"><TextInput value={form.phone ?? ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></Field><Field label="工种"><TextInput value={form.workType ?? ""} onChange={e => setForm({ ...form, workType: e.target.value })} /></Field><Field label="结算方式"><TextInput value={form.settlementMethod ?? "quantity"} onChange={e => setForm({ ...form, settlementMethod: e.target.value })} /></Field><Field label="状态"><SelectInput value={form.status ?? "active"} onChange={e => setForm({ ...form, status: e.target.value })}><option value="active">启用</option><option value="inactive">停用</option></SelectInput></Field></div>
       </Modal>
@@ -159,7 +300,8 @@ export function DailyWorkReportPage() {
   const [pendingAction, setPendingAction] = useState<DailyReport | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { data } = useQuery({ queryKey: ["daily-work-reports"], queryFn: () => getData<PageResult<DailyReport>>("/daily-work-reports", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<DailyReport>(["daily-work-reports"], "/daily-work-reports");
+  const data = listing.data;
   const action = useMutation({ mutationFn: (row: DailyReport) => postData(`/daily-work-reports/${row.id}/submit`, {}), onSuccess: async (_result, row) => { setError(""); setSuccess("日报已提交，等待项目经理确认。"); setPendingAction(null); await queryClient.invalidateQueries({ queryKey: ["daily-work-reports"] }); await queryClient.invalidateQueries({ queryKey: ["project-evidence", "daily", row.id] }); }, onError: reason => setError(reason instanceof Error ? reason.message : "日报提交失败，请稍后重试。") });
   const save = useMutation({ mutationFn: () => form.id ? putData(`/daily-work-reports/${form.id}`, form) : postData("/daily-work-reports", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["daily-work-reports"] }); } });
   async function attach(row: DailyReport, file?: File) {
@@ -171,7 +313,8 @@ export function DailyWorkReportPage() {
   return (
     <Page title="工程量日报" description="按项目、工序和合同清单记录工程量，提交前确认产值与证据。" actions={<Button onClick={() => { const projectId = lookups.projects[0]?.id; setForm({ workDate: new Date().toISOString().slice(0, 10), completedQuantity: 0, workerCount: 0, projectId, projectSectionId: lookups.sections.find(section => section.projectId === projectId)?.id, workProcessId: lookups.processes[0]?.id, teamId: lookups.teams[0]?.id, unit: lookups.processes[0]?.unit ?? "m" }); setOpen(true); }}>新增日报</Button>}>
       {error ? <div className="form-error page-message" role="alert">{error}</div> : null}{success ? <div className="form-success page-message" role="status">{success}</div> : null}
-      <div className="panel table-wrap">{(data?.records ?? []).length === 0 ? <div className="empty-state">暂无日报，新增后可上传现场照片并提交确认。</div> : <table><thead><tr><th>日期</th><th>项目</th><th>施工段</th><th>工序</th><th>工程量</th><th>产值</th><th>计价口径</th><th>班组</th><th>状态</th><th>照片</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td>{money(row.outputValue)}</td><td title={row.pricingBasis ?? ""}>{row.pricingBasis ?? "-"}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => void attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}{row.status === "draft" ? <Button variant="secondary" onClick={() => setPendingAction(row)} disabled={action.isPending}>提交</Button> : null}{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></td></tr>)}</tbody></table>}</div>
+      <div className="panel table-wrap">{(data?.records ?? []).length === 0 ? <div className="empty-state">暂无日报，新增后可上传现场照片并提交确认。</div> : <table><thead><tr><th>日期</th><th>项目</th><th>施工段</th><th>工序</th><th>工程量</th><th>产值</th><th>计价口径</th><th>班组</th><th>状态</th><th>照片</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td>{money(row.outputValue)}</td><td title={row.pricingBasis ?? ""}>{row.pricingStatus === "unpriced" ? "未定价" : row.pricingBasis ?? "-"}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td><Badge status={row.status} /></td><td>{["draft", "rejected"].includes(row.status) ? <input type="file" onChange={e => void attach(row, e.target.files?.[0])} /> : <span className="muted">已锁定</span>}</td><td>{["draft", "rejected"].includes(row.status) ? <Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button> : null}{" "}{["draft", "rejected"].includes(row.status) ? <Button variant="secondary" onClick={() => setPendingAction(row)} disabled={action.isPending || row.pricingStatus === "unpriced"}>提交</Button> : null}{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}`, status: row.status })}>证据链</Button></td></tr>)}</tbody></table>}</div>
+      {listing.pagination}
       <DailyReportModal open={open} form={form} setForm={setForm} lookups={lookups} onClose={() => setOpen(false)} onSave={() => save.mutate()} />
       <ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} />
       {pendingAction ? <ActionConfirmationModal open title="确认提交工程量日报" description="提交后日报将进入项目经理确认流程，工程量、产值与附件将作为后续结算依据。" confirmLabel="确认提交" pending={action.isPending} onClose={() => { if (!action.isPending) setPendingAction(null); }} onConfirm={() => action.mutate(pendingAction)} summary={<><strong>{pendingAction.workDate}</strong><span>{nameOf(lookups.projects, pendingAction.projectId)}</span><span>{pendingAction.completedQuantity} {pendingAction.unit} · {money(pendingAction.outputValue)}</span></>} /> : null}
@@ -180,9 +323,23 @@ export function DailyWorkReportPage() {
 }
 
 function DailyReportModal({ open, form, setForm, lookups, onClose, onSave }: { open: boolean; form: Partial<DailyReport>; setForm: (form: Partial<DailyReport>) => void; lookups: ReturnType<typeof useLookups>; onClose: () => void; onSave: () => void }) {
-  const contractItems = useQuery({ queryKey: ["daily-contract-items", form.projectId], enabled: Boolean(form.projectId), queryFn: () => getData<PageResult<ContractItem>>("/project-contract-items", { page: 1, pageSize: 200, projectId: form.projectId, status: "active" }) });
-  const availableContractItems = contractItems.data?.records ?? [];
+  const contractItems = useQuery({ queryKey: ["daily-contract-items", form.projectId], enabled: Boolean(form.projectId), queryFn: () => getAllPages<ContractItem>("/project-contract-items", { projectId: form.projectId, status: "active" }) });
+  const availableContractItems = contractItems.data ?? [];
   const availableSections = lookups.sections.filter(section => section.projectId === form.projectId);
+  const pricingReady = Boolean(open && form.workDate && form.projectId && form.projectSectionId && form.workProcessId && form.unit && form.completedQuantity != null);
+  const pricing = useQuery({
+    queryKey: ["daily-pricing-preview", form.workDate, form.projectId, form.projectSectionId, form.contractItemId, form.workProcessId, form.completedQuantity, form.unit],
+    enabled: pricingReady,
+    queryFn: () => postData<PricingPreview>("/daily-work-reports/pricing-preview", {
+      workDate: form.workDate,
+      projectId: form.projectId,
+      projectSectionId: form.projectSectionId,
+      contractItemId: form.contractItemId || undefined,
+      workProcessId: form.workProcessId,
+      completedQuantity: form.completedQuantity,
+      unit: form.unit
+    })
+  });
   return <Modal open={open} title="工程量日报" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>取消</Button><Button onClick={onSave}>保存</Button></>}>
     <div className="grid grid-2">
       <Field label="施工日期"><TextInput type="date" value={form.workDate ?? ""} onChange={e => setForm({ ...form, workDate: e.target.value })} /></Field>
@@ -197,6 +354,13 @@ function DailyReportModal({ open, form, setForm, lookups, onClose, onSave }: { o
       <Field label="机械使用"><TextInput value={form.machineryUsage ?? ""} onChange={e => setForm({ ...form, machineryUsage: e.target.value })} /></Field>
       <Field label="填报人"><TextInput value={form.reporterName ?? ""} onChange={e => setForm({ ...form, reporterName: e.target.value })} /></Field>
     </div>
+    <div className={`panel ${pricing.data?.priced ? "form-success" : "form-warning"}`} role="status">
+      {!pricingReady ? "填写日期、项目、施工段、工序、数量和单位后显示定价预览。" :
+        pricing.isPending ? "正在解析有效价格…" :
+          pricing.data?.selectionRequired ? `匹配到 ${pricing.data.candidates.length} 个合同清单项，请明确选择后再提交。` :
+            pricing.data?.priced ? `${pricing.data.basis ?? "已定价"}；单价 ${money(pricing.data.unitPrice)}，预计产值 ${money(pricing.data.outputValue)}。` :
+              "当前日期没有有效价格。可以保存为未定价草稿，但不能提交。"}
+    </div>
     <Field label="异常说明"><TextArea value={form.exceptionNote ?? ""} onChange={e => setForm({ ...form, exceptionNote: e.target.value })} /></Field>
   </Modal>;
 }
@@ -208,11 +372,12 @@ export function WorkConfirmationPage() {
   const [pendingAction, setPendingAction] = useState<{ row: DailyReport; op: "pm-confirm" | "final-confirm" | "reject"; remark: string } | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { data } = useQuery({ queryKey: ["work-confirmation"], queryFn: () => getData<PageResult<DailyReport>>("/daily-work-reports", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<DailyReport>(["work-confirmation"], "/daily-work-reports");
+  const data = listing.data;
   const rows = (data?.records ?? []).filter(row => ["submitted", "pm_confirmed", "rejected", "confirmed"].includes(row.status));
   const action = useMutation({ mutationFn: (pending: NonNullable<typeof pendingAction>) => postData(`/daily-work-reports/${pending.row.id}/${pending.op}`, { remark: pending.remark.trim() || undefined }), onSuccess: async (_result, pending) => { setError(""); setSuccess(pending.op === "reject" ? "日报已驳回并退回处理。" : "日报确认状态已更新。"); setPendingAction(null); await queryClient.invalidateQueries({ queryKey: ["work-confirmation"] }); await queryClient.invalidateQueries({ queryKey: ["project-evidence", "daily", pending.row.id] }); }, onError: reason => setError(reason instanceof Error ? reason.message : "确认操作失败，请稍后重试。") });
   const title = pendingAction?.op === "pm-confirm" ? "确认项目经理审核" : pendingAction?.op === "final-confirm" ? "确认商务终审" : "确认驳回日报";
-  return <Page title="工程量确认" description="确认日报会推进工程量结算依据；驳回需说明需要复核的内容。">{error ? <div className="form-error page-message" role="alert">{error}</div> : null}{success ? <div className="form-success page-message" role="status">{success}</div> : null}<div className="panel table-wrap">{rows.length === 0 ? <div className="empty-state">暂无需要确认的工程量日报。</div> : <table><thead><tr><th>日期</th><th>项目</th><th>工序</th><th>工程量</th><th>状态</th><th>操作</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td><Badge status={row.status} /></td><td><div className="table-actions">{row.status === "submitted" ? <Button variant="secondary" onClick={() => setPendingAction({ row, op: "pm-confirm", remark: "" })}>项目经理确认</Button> : null}{row.status === "pm_confirmed" ? <Button onClick={() => setPendingAction({ row, op: "final-confirm", remark: "" })}>商务终审</Button> : null}{["submitted", "pm_confirmed"].includes(row.status) ? <Button variant="danger" onClick={() => setPendingAction({ row, op: "reject", remark: "" })}>驳回</Button> : null}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></div></td></tr>)}</tbody></table>}</div><ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} />{pendingAction ? <ActionConfirmationModal open title={title} description={pendingAction.op === "reject" ? "驳回后日报会退回处理。请填写原因，便于填报人复核。" : "确认后将推进日报状态，并记录本次确认。"} confirmLabel={pendingAction.op === "reject" ? "确认驳回" : "确认"} tone={pendingAction.op === "reject" ? "danger" : "primary"} pending={action.isPending} onClose={() => { if (!action.isPending) setPendingAction(null); }} onConfirm={() => { if (pendingAction.op === "reject" && !pendingAction.remark.trim()) { setError("请在驳回前填写原因。"); return; } action.mutate(pendingAction); }} summary={<><strong>{pendingAction.row.workDate}</strong><span>{nameOf(lookups.projects, pendingAction.row.projectId)}</span><span>{pendingAction.row.completedQuantity} {pendingAction.row.unit}</span></>}>{pendingAction.op === "reject" ? <Field label="驳回原因"><TextArea value={pendingAction.remark} onChange={e => setPendingAction({ ...pendingAction, remark: e.target.value })} required /></Field> : null}</ActionConfirmationModal> : null}</Page>;
+  return <Page title="工程量确认" description="确认日报会推进工程量结算依据；驳回需说明需要复核的内容。">{error ? <div className="form-error page-message" role="alert">{error}</div> : null}{success ? <div className="form-success page-message" role="status">{success}</div> : null}<div className="panel table-wrap">{rows.length === 0 ? <div className="empty-state">暂无需要确认的工程量日报。</div> : <table><thead><tr><th>日期</th><th>项目</th><th>工序</th><th>工程量</th><th>状态</th><th>操作</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td>{row.workDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.completedQuantity} {row.unit}</td><td><Badge status={row.status} /></td><td><div className="table-actions">{row.status === "submitted" ? <Button variant="secondary" onClick={() => setPendingAction({ row, op: "pm-confirm", remark: "" })}>项目经理确认</Button> : null}{row.status === "pm_confirmed" ? <Button onClick={() => setPendingAction({ row, op: "final-confirm", remark: "" })}>商务终审</Button> : null}{["submitted", "pm_confirmed"].includes(row.status) ? <Button variant="danger" onClick={() => setPendingAction({ row, op: "reject", remark: "" })}>驳回</Button> : null}<Button variant="secondary" onClick={() => setEvidence({ type: "daily", id: row.id, title: `日报 ${row.workDate}` })}>证据链</Button></div></td></tr>)}</tbody></table>}</div>{listing.pagination}<ProjectEvidenceModal target={evidence} onClose={() => setEvidence(null)} />{pendingAction ? <ActionConfirmationModal open title={title} description={pendingAction.op === "reject" ? "驳回后日报会退回处理。请填写原因，便于填报人复核。" : "确认后将推进日报状态，并记录本次确认。"} confirmLabel={pendingAction.op === "reject" ? "确认驳回" : "确认"} tone={pendingAction.op === "reject" ? "danger" : "primary"} pending={action.isPending} onClose={() => { if (!action.isPending) setPendingAction(null); }} onConfirm={() => { if (pendingAction.op === "reject" && !pendingAction.remark.trim()) { setError("请在驳回前填写原因。"); return; } action.mutate(pendingAction); }} summary={<><strong>{pendingAction.row.workDate}</strong><span>{nameOf(lookups.projects, pendingAction.row.projectId)}</span><span>{pendingAction.row.completedQuantity} {pendingAction.row.unit}</span></>}>{pendingAction.op === "reject" ? <Field label="驳回原因"><TextArea value={pendingAction.remark} onChange={e => setPendingAction({ ...pendingAction, remark: e.target.value })} required /></Field> : null}</ActionConfirmationModal> : null}</Page>;
 }
 
 export function TeamUnitPricePage() {
@@ -220,15 +385,17 @@ export function TeamUnitPricePage() {
   const lookups = useLookups();
   const [teamPrice, setTeamPrice] = useState<Partial<TeamUnitPrice>>({});
   const [processPrice, setProcessPrice] = useState<Partial<ProcessPrice>>({});
-  const teamPrices = useQuery({ queryKey: ["team-unit-prices"], queryFn: () => getData<PageResult<TeamUnitPrice>>("/team-unit-prices", { page: 1, pageSize: 200 }) });
-  const processPrices = useQuery({ queryKey: ["project-process-prices"], queryFn: () => getData<PageResult<ProcessPrice>>("/project-process-prices", { page: 1, pageSize: 200 }) });
+  const teamPrices = usePagedQuery<TeamUnitPrice>(["team-unit-prices"], "/team-unit-prices");
+  const processPrices = usePagedQuery<ProcessPrice>(["project-process-prices"], "/project-process-prices");
   const saveTeamPrice = useMutation({ mutationFn: () => postData("/team-unit-prices", teamPrice), onSuccess: () => { setTeamPrice({}); queryClient.invalidateQueries({ queryKey: ["team-unit-prices"] }); } });
   const saveProcessPrice = useMutation({ mutationFn: () => postData("/project-process-prices", processPrice), onSuccess: () => { setProcessPrice({}); queryClient.invalidateQueries({ queryKey: ["project-process-prices"] }); } });
   return <Page title="班组单价">
     <div className="panel toolbar"><LookupPriceFields lookups={lookups} value={teamPrice} onChange={setTeamPrice} includeTeam /><Button onClick={() => saveTeamPrice.mutate()}>保存班组单价</Button></div>
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>班组</th><th>工序</th><th>单位</th><th>单价</th><th>状态</th></tr></thead><tbody>{(teamPrices.data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.teams, row.teamId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.unit}</td><td>{money(row.unitPrice)}</td><td><Badge status={row.status} /></td></tr>)}</tbody></table></div>
+    {teamPrices.pagination}
     <div className="panel toolbar" style={{ marginTop: 16 }}><LookupPriceFields lookups={lookups} value={processPrice} onChange={setProcessPrice} /><Button onClick={() => saveProcessPrice.mutate()}>保存产值单价</Button></div>
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>工序</th><th>单位</th><th>产值单价</th><th>状态</th></tr></thead><tbody>{(processPrices.data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.unit}</td><td>{money(row.unitPrice)}</td><td><Badge status={row.status} /></td></tr>)}</tbody></table></div>
+    {processPrices.pagination}
   </Page>;
 }
 
@@ -238,7 +405,8 @@ export function ProjectContractItemPage() {
   const [projectId, setProjectId] = useState("");
   const [form, setForm] = useState<Partial<ContractItem>>({});
   const [open, setOpen] = useState(false);
-  const { data } = useQuery({ queryKey: ["project-contract-items", projectId], queryFn: () => getData<PageResult<ContractItem>>("/project-contract-items", { page: 1, pageSize: 300, projectId: projectId || undefined }) });
+  const listing = usePagedQuery<ContractItem>(["project-contract-items", projectId], "/project-contract-items", { projectId: projectId || undefined });
+  const data = listing.data;
   const save = useMutation({
     mutationFn: () => form.id ? putData(`/project-contract-items/${form.id}`, form) : postData("/project-contract-items", form),
     onSuccess: () => {
@@ -253,6 +421,7 @@ export function ProjectContractItemPage() {
   return <Page title="合同清单" actions={<Button onClick={() => { setForm({ projectId: defaultProjectId, workProcessId: defaultProcess?.id, unit: defaultProcess?.unit ?? "m", contractQuantity: 0, unitPrice: 0, status: "active" }); setOpen(true); }}>新增清单</Button>}>
     <div className="panel toolbar"><Field label="项目"><SelectInput value={projectId} onChange={e => setProjectId(e.target.value)}><option value="">全部项目</option>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field></div>
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>工序</th><th>清单</th><th>工程量</th><th>单位</th><th>单价</th><th>合同额</th><th>状态</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{contractItemText(row)}</td><td>{row.contractQuantity}</td><td>{row.unit}</td><td>{money(row.unitPrice)}</td><td>{money(row.contractAmount)}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button></td></tr>)}</tbody></table></div>
+    {listing.pagination}
     <Modal open={open} title="合同清单" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
       <div className="grid grid-2">
         <Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value, projectSectionId: undefined })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field>
@@ -307,12 +476,17 @@ function ProjectEvidenceModal({ target, onClose }: { target: EvidenceTarget | nu
         </div>
         <div>
           <div className="section-heading"><h3>附件证据</h3><span className="muted">{files.data?.length ?? 0} 个</span></div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>时间</th><th>文件 ID</th><th>类型</th></tr></thead>
-              <tbody>{(files.data ?? []).map(item => <tr key={item.id}><td>{timeText(item.createdAt)}</td><td>{item.fileId}</td><td>{item.fileType}</td></tr>)}</tbody>
-            </table>
-          </div>
+          <div className="grid">{(files.data ?? []).map(item => (
+            <AttachmentViewer
+              key={item.bindingId}
+              file={item.file}
+              removable={target?.status === "draft" || target?.status === "rejected"}
+              onRemove={item.file ? async () => {
+                await deleteData(`${filesUrl}/${item.file?.id}`);
+                await files.refetch();
+              } : undefined}
+            />
+          ))}</div>
         </div>
       </div>
     </Modal>
@@ -347,15 +521,17 @@ function paymentRecordTypeText(type?: string) {
 
 export function TeamSettlementPage() {
   const queryClient = useQueryClient();
-  const lookups = useLookups();
+  const lookups = useLookups({ sections: false, processes: false, machinery: false });
   const [form, setForm] = useState({ projectId: "", teamId: "", settlementMonth: new Date().toISOString().slice(0, 7), compensationAmount: 0, deductionAmount: 0 });
   const [pendingAction, setPendingAction] = useState<{ row: Settlement; op: "confirm" | "reject" | "mark-paid"; remark: string } | null>(null);
-  const { data } = useQuery({ queryKey: ["team-settlements"], queryFn: () => getData<PageResult<Settlement>>("/team-settlements", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<Settlement>(["team-settlements"], "/team-settlements");
+  const data = listing.data;
   const generate = useMutation({ mutationFn: () => postData("/team-settlements/generate", form), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["team-settlements"] }) });
   const action = useMutation({ mutationFn: ({ id, op, remark }: { id: string; op: string; remark?: string }) => postData(`/team-settlements/${id}/${op}`, { remark: remark?.trim() || undefined }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["team-settlements"] }) });
   return <Page title="班组结算" description="结算确认后才可登记付款；付款会影响项目成本和经营看板。">
     <form className="panel toolbar" onSubmit={(e: FormEvent) => { e.preventDefault(); generate.mutate(); }}><Field label="项目"><SelectInput value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="班组"><SelectInput value={form.teamId} onChange={e => setForm({ ...form, teamId: e.target.value })}>{lookups.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</SelectInput></Field><Field label="月份"><TextInput type="month" value={form.settlementMonth} onChange={e => setForm({ ...form, settlementMonth: e.target.value })} /></Field><Field label="零星补偿"><TextInput type="number" value={form.compensationAmount} onChange={e => setForm({ ...form, compensationAmount: Number(e.target.value) })} /></Field><Field label="扣款"><TextInput type="number" value={form.deductionAmount} onChange={e => setForm({ ...form, deductionAmount: Number(e.target.value) })} /></Field><Button type="submit">生成结算</Button></form>
     <div className="panel table-wrap">{(data?.records ?? []).length === 0 ? <div className="empty-state">暂无班组结算，需先确认工程量后生成结算。</div> : <table><thead><tr><th>项目</th><th>班组</th><th>月份</th><th>确认工程量</th><th>结算金额</th><th>实付</th><th>结算状态</th><th>付款状态</th><th>驳回原因</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.projectName ?? nameOf(lookups.projects, row.projectId)}</td><td>{row.teamName ?? nameOf(lookups.teams, row.teamId)}</td><td>{row.settlementMonth}</td><td>{row.confirmedQuantity}</td><td>{money(row.settlementAmount)}</td><td>{money(row.actualPayAmount)}</td><td><Badge status={row.settlementStatus} /></td><td><Badge status={row.paymentStatus} /></td><td>{row.rejectedReason ?? "-"}</td><td><div className="table-actions">{row.settlementStatus === "draft" ? <Button variant="secondary" onClick={() => setPendingAction({ row, op: "confirm", remark: "" })}>确认</Button> : null}{row.settlementStatus === "draft" ? <Button variant="danger" onClick={() => setPendingAction({ row, op: "reject", remark: "" })}>驳回</Button> : null}{row.settlementStatus === "confirmed" && row.paymentStatus !== "paid" ? <Button onClick={() => setPendingAction({ row, op: "mark-paid", remark: "" })}>标记付款</Button> : null}</div></td></tr>)}</tbody></table>}</div>
+    {listing.pagination}
     {pendingAction ? <ActionConfirmationModal open title={pendingAction.op === "confirm" ? "确认班组结算" : pendingAction.op === "reject" ? "确认驳回班组结算" : "确认班组结算付款"} description={pendingAction.op === "confirm" ? "确认后结算金额将进入待付款状态。" : pendingAction.op === "reject" ? "驳回后结算将退回处理。请填写复核原因。" : "付款登记会更新班组结算状态和项目成本。"} confirmLabel={pendingAction.op === "confirm" ? "确认结算" : pendingAction.op === "reject" ? "确认驳回" : "确认付款"} tone={pendingAction.op === "reject" ? "danger" : "primary"} pending={action.isPending} onClose={() => { if (!action.isPending) setPendingAction(null); }} onConfirm={() => { if (pendingAction.op === "reject" && !pendingAction.remark.trim()) return; action.mutate({ id: pendingAction.row.id, op: pendingAction.op, remark: pendingAction.remark }, { onSuccess: () => setPendingAction(null) }); }} summary={<><strong>{pendingAction.row.teamName ?? nameOf(lookups.teams, pendingAction.row.teamId)}</strong><span>{pendingAction.row.settlementMonth}</span><span>实付：{money(pendingAction.row.actualPayAmount)}</span></>}>{pendingAction.op === "reject" ? <Field label="驳回原因"><TextArea value={pendingAction.remark} onChange={e => setPendingAction({ ...pendingAction, remark: e.target.value })} required /></Field> : null}</ActionConfirmationModal> : null}
   </Page>;
 }
@@ -366,9 +542,10 @@ export function VariationOrderPage() {
   const [form, setForm] = useState<Partial<Variation>>({});
   const [open, setOpen] = useState(false);
   const [evidence, setEvidence] = useState<EvidenceTarget | null>(null);
-  const [confirming, setConfirming] = useState<{ row: Variation; confirmedAmount: number; remark: string } | null>(null);
+  const [confirming, setConfirming] = useState<{ row: Variation; confirmedAmount: string; remark: string } | null>(null);
   const [rejecting, setRejecting] = useState<{ row: Variation; remark: string } | null>(null);
-  const { data } = useQuery({ queryKey: ["variation-orders"], queryFn: () => getData<PageResult<Variation>>("/variation-orders", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<Variation>(["variation-orders"], "/variation-orders");
+  const data = listing.data;
   const save = useMutation({ mutationFn: () => form.id ? putData(`/variation-orders/${form.id}`, form) : postData("/variation-orders", form), onSuccess: () => { setOpen(false); setForm({}); queryClient.invalidateQueries({ queryKey: ["variation-orders"] }); } });
   const action = useMutation({ mutationFn: ({ id, op, data }: { id: string; op: string; data?: unknown }) => postData(`/variation-orders/${id}/${op}`, data ?? {}), onSuccess: (_result, variables) => { queryClient.invalidateQueries({ queryKey: ["variation-orders"] }); queryClient.invalidateQueries({ queryKey: ["project-evidence", "variation", variables.id] }); queryClient.invalidateQueries({ queryKey: ["project-dashboard"] }); } });
   async function attach(row: Variation, file?: File) {
@@ -378,11 +555,12 @@ export function VariationOrderPage() {
     await queryClient.invalidateQueries({ queryKey: ["project-evidence", "variation", row.id] });
   }
   function confirmVariation(row: Variation) {
-    setConfirming({ row, confirmedAmount: Number(row.confirmedAmount ?? row.estimatedAmount ?? 0), remark: row.confirmRemark ?? "" });
+    setConfirming({ row, confirmedAmount: row.confirmedAmount == null ? "" : String(row.confirmedAmount), remark: row.confirmRemark ?? "" });
   }
   return <Page title="签证变更" actions={<Button onClick={() => { setForm({ occurrenceDate: new Date().toISOString().slice(0, 10), variationType: "工程量增加", projectId: lookups.projects[0]?.id, estimatedAmount: 0, increasedQuantity: 0 }); setOpen(true); }}>新增签证</Button>}>
-    <div className="panel table-wrap">{(data?.records ?? []).length === 0 ? <div className="empty-state">暂无签证变更，新增后可上传证据并提交确认。</div> : <table><thead><tr><th>日期</th><th>项目</th><th>类型</th><th>预计金额</th><th>确认金额</th><th>状态</th><th>证据</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.occurrenceDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{row.variationType}</td><td>{money(row.estimatedAmount)}</td><td>{money(row.confirmedAmount)}</td><td><Badge status={row.status} /></td><td><input type="file" onChange={e => void attach(row, e.target.files?.[0])} /></td><td><Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button>{" "}{row.status === "draft" ? <Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button> : null}{" "}{row.status === "submitted" ? <Button onClick={() => confirmVariation(row)}>确认</Button> : null}{" "}{row.status === "submitted" ? <Button variant="danger" onClick={() => setRejecting({ row, remark: "" })}>驳回</Button> : null}{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "variation", id: row.id, title: `签证 ${row.variationType}` })}>证据链</Button></td></tr>)}</tbody></table>}</div>
-    {confirming ? <ActionConfirmationModal open title="确认签证金额" description="确认金额会计入项目收入和经营看板。请核对金额与签证依据。" confirmLabel="确认金额" pending={action.isPending} onClose={() => { if (!action.isPending) setConfirming(null); }} onConfirm={() => { if (confirming.confirmedAmount < 0 || !Number.isFinite(confirming.confirmedAmount)) return; action.mutate({ id: confirming.row.id, op: "confirm", data: { confirmedAmount: confirming.confirmedAmount, remark: confirming.remark } }, { onSuccess: () => setConfirming(null) }); }} summary={<><strong>{confirming.row.variationType}</strong><span>{nameOf(lookups.projects, confirming.row.projectId)}</span><span>预计：{money(confirming.row.estimatedAmount)}</span></>}><Field label="确认金额"><TextInput type="number" min="0" step="0.01" value={confirming.confirmedAmount} onChange={e => setConfirming({ ...confirming, confirmedAmount: Number(e.target.value) })} /></Field><Field label="确认说明"><TextArea value={confirming.remark} onChange={e => setConfirming({ ...confirming, remark: e.target.value })} /></Field></ActionConfirmationModal> : null}
+    <div className="panel table-wrap">{(data?.records ?? []).length === 0 ? <div className="empty-state">暂无签证变更，新增后可上传证据并提交确认。</div> : <table><thead><tr><th>日期</th><th>项目</th><th>类型</th><th>预计金额</th><th>确认金额</th><th>状态</th><th>证据</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{row.occurrenceDate}</td><td>{nameOf(lookups.projects, row.projectId)}</td><td>{row.variationType}</td><td>{money(row.estimatedAmount)}</td><td>{row.confirmedAmount == null ? "待确认" : money(row.confirmedAmount)}</td><td><Badge status={row.status} /></td><td>{["draft", "rejected"].includes(row.status) ? <input type="file" onChange={e => void attach(row, e.target.files?.[0])} /> : <span className="muted">已锁定</span>}</td><td>{["draft", "rejected"].includes(row.status) ? <Button variant="secondary" onClick={() => { setForm(row); setOpen(true); }}>编辑</Button> : null}{" "}{["draft", "rejected"].includes(row.status) ? <Button variant="secondary" onClick={() => action.mutate({ id: row.id, op: "submit" })}>提交</Button> : null}{" "}{row.status === "submitted" ? <Button onClick={() => confirmVariation(row)}>确认</Button> : null}{" "}{row.status === "submitted" ? <Button variant="danger" onClick={() => setRejecting({ row, remark: "" })}>驳回</Button> : null}{" "}<Button variant="secondary" onClick={() => setEvidence({ type: "variation", id: row.id, title: `签证 ${row.variationType}`, status: row.status })}>证据链</Button></td></tr>)}</tbody></table>}</div>
+    {listing.pagination}
+    {confirming ? <ActionConfirmationModal open title="确认签证金额" description="确认金额会计入项目收入和经营看板。请核对金额与签证依据。" confirmLabel="确认金额" pending={action.isPending} onClose={() => { if (!action.isPending) setConfirming(null); }} onConfirm={() => { const amount = Number(confirming.confirmedAmount); if (!confirming.confirmedAmount.trim() || amount < 0 || !Number.isFinite(amount)) return; action.mutate({ id: confirming.row.id, op: "confirm", data: { confirmedAmount: amount, remark: confirming.remark } }, { onSuccess: () => setConfirming(null) }); }} summary={<><strong>{confirming.row.variationType}</strong><span>{nameOf(lookups.projects, confirming.row.projectId)}</span><span>预计：{money(confirming.row.estimatedAmount)}</span></>}><Field label="确认金额"><TextInput type="number" min="0" step="0.01" value={confirming.confirmedAmount} onChange={e => setConfirming({ ...confirming, confirmedAmount: e.target.value })} required /></Field><Field label="确认说明"><TextArea value={confirming.remark} onChange={e => setConfirming({ ...confirming, remark: e.target.value })} /></Field></ActionConfirmationModal> : null}
     {rejecting ? <ActionConfirmationModal open title="确认驳回签证" description="驳回后签证会退回处理。请填写原因，便于提交人修订。" confirmLabel="确认驳回" tone="danger" pending={action.isPending} onClose={() => { if (!action.isPending) setRejecting(null); }} onConfirm={() => { if (!rejecting.remark.trim()) return; action.mutate({ id: rejecting.row.id, op: "reject", data: { remark: rejecting.remark } }, { onSuccess: () => setRejecting(null) }); }} summary={<><strong>{rejecting.row.variationType}</strong><span>{nameOf(lookups.projects, rejecting.row.projectId)}</span><span>预计：{money(rejecting.row.estimatedAmount)}</span></>}><Field label="驳回原因"><TextArea value={rejecting.remark} onChange={e => setRejecting({ ...rejecting, remark: e.target.value })} required /></Field></ActionConfirmationModal> : null}
     <Modal open={open} title="签证变更" onClose={() => setOpen(false)} footer={<><Button variant="secondary" onClick={() => setOpen(false)}>取消</Button><Button onClick={() => save.mutate()}>保存</Button></>}>
       <div className="grid grid-2"><Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value, projectSectionId: undefined })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="施工段"><SelectInput value={form.projectSectionId ?? ""} onChange={e => setForm({ ...form, projectSectionId: e.target.value || undefined })}><option value="">无</option>{lookups.sections.filter(section => section.projectId === form.projectId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field><Field label="发生日期"><TextInput type="date" value={form.occurrenceDate ?? ""} onChange={e => setForm({ ...form, occurrenceDate: e.target.value })} /></Field><Field label="签证类型"><SelectInput value={form.variationType ?? "工程量增加"} onChange={e => setForm({ ...form, variationType: e.target.value })}>{["设计变更","工程量增加","障碍物处理","管线迁改配合","返工","停工窝工","夜间施工","临时排水","二次倒运","零星用工","其他"].map(item => <option key={item} value={item}>{item}</option>)}</SelectInput></Field><Field label="增加工程量"><TextInput type="number" value={form.increasedQuantity ?? 0} onChange={e => setForm({ ...form, increasedQuantity: Number(e.target.value) })} /></Field><Field label="预计金额"><TextInput type="number" value={form.estimatedAmount ?? 0} onChange={e => setForm({ ...form, estimatedAmount: Number(e.target.value) })} /></Field><Field label="人工数量"><TextInput type="number" value={form.laborCount ?? 0} onChange={e => setForm({ ...form, laborCount: Number(e.target.value) })} /></Field><Field label="责任方"><TextInput value={form.responsibleParty ?? ""} onChange={e => setForm({ ...form, responsibleParty: e.target.value })} /></Field></div>
@@ -394,10 +572,11 @@ export function VariationOrderPage() {
 
 export function ProjectPaymentPage() {
   const queryClient = useQueryClient();
-  const { projects } = useLookups();
+  const { projects } = useLookups({ sections: false, processes: false, teams: false, machinery: false });
   const [form, setForm] = useState<Partial<PaymentRecord>>({ recordType: "received", paymentDate: new Date().toISOString().slice(0, 10), amount: 0 });
   const [file, setFile] = useState<File | undefined>();
-  const { data } = useQuery({ queryKey: ["project-payment-records"], queryFn: () => getData<PageResult<PaymentRecord>>("/project-payment-records", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<PaymentRecord>(["project-payment-records"], "/project-payment-records");
+  const data = listing.data;
   const save = useMutation({
     mutationFn: async () => {
       const uploaded = file ? await uploadFile(file) : undefined;
@@ -418,15 +597,17 @@ export function ProjectPaymentPage() {
       <Field label="凭证"><input type="file" onChange={e => setFile(e.target.files?.[0])} /></Field>
       <Button type="submit">{form.id ? "保存" : "登记"}</Button>
     </form>
-    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>类型</th><th>日期</th><th>金额</th><th>付款单位</th><th>发票号</th><th>质保到期</th><th>凭证</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(projects, row.projectId)}</td><td>{paymentRecordTypeText(row.recordType)}</td><td>{row.paymentDate}</td><td>{money(row.amount)}</td><td>{row.payerName ?? "-"}</td><td>{row.invoiceNo ?? "-"}</td><td>{row.retentionDueDate ?? "-"}</td><td>{row.voucherFileId ?? "-"}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>类型</th><th>日期</th><th>金额</th><th>付款单位</th><th>发票号</th><th>质保到期</th><th>凭证</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(projects, row.projectId)}</td><td>{paymentRecordTypeText(row.recordType)}</td><td>{row.paymentDate}</td><td>{money(row.amount)}</td><td>{row.payerName ?? "-"}</td><td>{row.invoiceNo ?? "-"}</td><td>{row.retentionDueDate ?? "-"}</td><td><StoredFile fileId={row.voucherFileId} /></td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    {listing.pagination}
   </Page>;
 }
 
 export function ProjectCostPage() {
   const queryClient = useQueryClient();
-  const { projects } = useLookups();
+  const { projects } = useLookups({ sections: false, processes: false, teams: false, machinery: false });
   const [form, setForm] = useState<Partial<CostRecord>>({ costDate: new Date().toISOString().slice(0, 10), costType: "其他成本", amount: 0 });
-  const { data } = useQuery({ queryKey: ["project-cost-page-records"], queryFn: () => getData<PageResult<CostRecord>>("/project-cost-records", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<CostRecord>(["project-cost-page-records"], "/project-cost-records");
+  const data = listing.data;
   const save = useMutation({ mutationFn: () => form.id ? putData(`/project-cost-records/${form.id}`, form) : postData("/project-cost-records", form), onSuccess: () => { setForm({ costDate: new Date().toISOString().slice(0, 10), costType: "其他成本", amount: 0 }); queryClient.invalidateQueries({ queryKey: ["project-cost-page-records"] }); queryClient.invalidateQueries({ queryKey: ["project-dashboard"] }); } });
   return <Page title="项目成本管理">
     <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
@@ -438,6 +619,7 @@ export function ProjectCostPage() {
       <Button type="submit">{form.id ? "保存" : "登记"}</Button>
     </form>
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>日期</th><th>类型</th><th>金额</th><th>说明</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(projects, row.projectId)}</td><td>{row.costDate}</td><td>{row.costType}</td><td>{money(row.amount)}</td><td>{row.description ?? "-"}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    {listing.pagination}
   </Page>;
 }
 
@@ -446,15 +628,17 @@ export function MachineryPage() {
   const lookups = useLookups();
   const [equipment, setEquipment] = useState<Partial<MachineryEquipment>>({ equipmentType: "挖机", unitPrice: 0, status: "active" });
   const [record, setRecord] = useState<Partial<MachineryWorkRecord>>({ workDate: new Date().toISOString().slice(0, 10), shiftCount: 0, unitPrice: 0 });
-  const equipments = useQuery({ queryKey: ["machinery-equipments"], queryFn: () => getData<PageResult<MachineryEquipment>>("/machinery-equipments", { page: 1, pageSize: 200 }) });
-  const records = useQuery({ queryKey: ["machinery-work-records"], queryFn: () => getData<PageResult<MachineryWorkRecord>>("/machinery-work-records", { page: 1, pageSize: 200 }) });
+  const equipments = usePagedQuery<MachineryEquipment>(["machinery-equipments"], "/machinery-equipments");
+  const records = usePagedQuery<MachineryWorkRecord>(["machinery-work-records"], "/machinery-work-records");
   const saveEquipment = useMutation({ mutationFn: () => equipment.id ? putData(`/machinery-equipments/${equipment.id}`, equipment) : postData("/machinery-equipments", equipment), onSuccess: () => { setEquipment({ equipmentType: "挖机", unitPrice: 0, status: "active" }); queryClient.invalidateQueries({ queryKey: ["machinery-equipments"] }); queryClient.invalidateQueries({ queryKey: ["machinery-lookup"] }); } });
   const saveRecord = useMutation({ mutationFn: () => record.id ? putData(`/machinery-work-records/${record.id}`, record) : postData("/machinery-work-records", record), onSuccess: () => { setRecord({ workDate: new Date().toISOString().slice(0, 10), shiftCount: 0, unitPrice: 0 }); queryClient.invalidateQueries({ queryKey: ["machinery-work-records"] }); queryClient.invalidateQueries({ queryKey: ["project-dashboard"] }); } });
   return <Page title="机械台班管理">
     <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); saveEquipment.mutate(); }}><Field label="设备名称"><TextInput value={equipment.name ?? ""} onChange={e => setEquipment({ ...equipment, name: e.target.value })} /></Field><Field label="类型"><SelectInput value={equipment.equipmentType ?? "挖机"} onChange={e => setEquipment({ ...equipment, equipmentType: e.target.value })}>{["挖机","吊车","渣土车","发电机","水泵","空压机","运输车辆","小型机具"].map(item => <option key={item} value={item}>{item}</option>)}</SelectInput></Field><Field label="台班单价"><TextInput type="number" value={equipment.unitPrice ?? 0} onChange={e => setEquipment({ ...equipment, unitPrice: Number(e.target.value) })} /></Field><Button type="submit">保存设备</Button></form>
     <div className="panel table-wrap"><table><thead><tr><th>设备</th><th>类型</th><th>台班单价</th><th>状态</th><th>操作</th></tr></thead><tbody>{(equipments.data?.records ?? []).map(row => <tr key={row.id}><td>{row.name}</td><td>{row.equipmentType}</td><td>{money(row.unitPrice)}</td><td><Badge status={row.status} /></td><td><Button variant="secondary" onClick={() => setEquipment(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    {equipments.pagination}
     <form className="panel toolbar" style={{ marginTop: 16 }} onSubmit={(event: FormEvent) => { event.preventDefault(); saveRecord.mutate(); }}><Field label="项目"><SelectInput value={record.projectId ?? ""} onChange={e => setRecord({ ...record, projectId: e.target.value, projectSectionId: undefined })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="施工段"><SelectInput value={record.projectSectionId ?? ""} onChange={e => setRecord({ ...record, projectSectionId: e.target.value || undefined })}><option value="">无</option>{lookups.sections.filter(section => section.projectId === record.projectId).map(section => <option key={section.id} value={section.id}>{section.name}</option>)}</SelectInput></Field><Field label="设备"><SelectInput value={record.machineryEquipmentId ?? ""} onChange={e => { const selected = lookups.machinery.find(item => item.id === e.target.value); setRecord({ ...record, machineryEquipmentId: e.target.value, unitPrice: selected?.unitPrice ?? record.unitPrice }); }}>{lookups.machinery.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</SelectInput></Field><Field label="日期"><TextInput type="date" value={record.workDate ?? ""} onChange={e => setRecord({ ...record, workDate: e.target.value })} /></Field><Field label="台班数"><TextInput type="number" value={record.shiftCount ?? 0} onChange={e => setRecord({ ...record, shiftCount: Number(e.target.value) })} /></Field><Field label="单价"><TextInput type="number" value={record.unitPrice ?? 0} onChange={e => setRecord({ ...record, unitPrice: Number(e.target.value) })} /></Field><Field label="窝工原因"><TextInput value={record.idleReason ?? ""} onChange={e => setRecord({ ...record, idleReason: e.target.value })} /></Field><Button type="submit">登记台班</Button></form>
-    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>设备</th><th>日期</th><th>台班</th><th>金额</th><th>窝工原因</th></tr></thead><tbody>{(records.data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.machinery, row.machineryEquipmentId)}</td><td>{row.workDate}</td><td>{row.shiftCount}</td><td>{money(row.amount)}</td><td>{row.idleReason ?? "-"}</td></tr>)}</tbody></table></div>
+    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>设备</th><th>日期</th><th>台班</th><th>金额</th><th>窝工原因</th><th>操作</th></tr></thead><tbody>{(records.data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.machinery, row.machineryEquipmentId)}</td><td>{row.workDate}</td><td>{row.shiftCount}</td><td>{money(row.amount)}</td><td>{row.idleReason ?? "-"}</td><td><Button variant="secondary" onClick={() => setRecord(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    {records.pagination}
   </Page>;
 }
 
@@ -462,11 +646,13 @@ export function MaterialRecordPage() {
   const queryClient = useQueryClient();
   const lookups = useLookups();
   const [form, setForm] = useState<Partial<MaterialRecord>>({ recordType: "arrival", recordDate: new Date().toISOString().slice(0, 10), quantity: 0, unitPrice: 0 });
-  const { data } = useQuery({ queryKey: ["material-records"], queryFn: () => getData<PageResult<MaterialRecord>>("/material-records", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<MaterialRecord>(["material-records"], "/material-records");
+  const data = listing.data;
   const save = useMutation({ mutationFn: () => form.id ? putData(`/material-records/${form.id}`, form) : postData("/material-records", form), onSuccess: () => { setForm({ recordType: "arrival", recordDate: new Date().toISOString().slice(0, 10), quantity: 0, unitPrice: 0 }); queryClient.invalidateQueries({ queryKey: ["material-records"] }); queryClient.invalidateQueries({ queryKey: ["project-dashboard"] }); } });
   return <Page title="材料辅材管理">
     <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}><Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value, projectSectionId: undefined })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="施工段"><SelectInput value={form.projectSectionId ?? ""} onChange={e => setForm({ ...form, projectSectionId: e.target.value || undefined })}><option value="">无</option>{lookups.sections.filter(section => section.projectId === form.projectId).map(section => <option key={section.id} value={section.id}>{section.name}</option>)}</SelectInput></Field><Field label="材料"><TextInput value={form.materialName ?? ""} onChange={e => setForm({ ...form, materialName: e.target.value })} /></Field><Field label="类型"><SelectInput value={form.recordType ?? "arrival"} onChange={e => setForm({ ...form, recordType: e.target.value })}><option value="arrival">到货</option><option value="usage">使用</option><option value="impact">影响施工</option></SelectInput></Field><Field label="日期"><TextInput type="date" value={form.recordDate ?? ""} onChange={e => setForm({ ...form, recordDate: e.target.value })} /></Field><Field label="数量"><TextInput type="number" value={form.quantity ?? 0} onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} /></Field><Field label="单位"><TextInput value={form.unit ?? ""} onChange={e => setForm({ ...form, unit: e.target.value })} /></Field><Field label="单价"><TextInput type="number" value={form.unitPrice ?? 0} onChange={e => setForm({ ...form, unitPrice: Number(e.target.value) })} /></Field><Field label="影响说明"><TextInput value={form.impactNote ?? ""} onChange={e => setForm({ ...form, impactNote: e.target.value })} /></Field><Button type="submit">保存</Button></form>
     <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>材料</th><th>类型</th><th>日期</th><th>数量</th><th>金额</th><th>影响说明</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{row.materialName}</td><td>{row.recordType}</td><td>{row.recordDate}</td><td>{row.quantity} {row.unit ?? ""}</td><td>{money(row.amount)}</td><td>{row.impactNote ?? "-"}</td><td><Button variant="secondary" onClick={() => setForm(row)}>编辑</Button></td></tr>)}</tbody></table></div>
+    {listing.pagination}
   </Page>;
 }
 
@@ -475,7 +661,8 @@ export function DocumentArchivePage() {
   const lookups = useLookups();
   const [form, setForm] = useState<Partial<DocumentArchive>>({ archiveDate: new Date().toISOString().slice(0, 10), documentType: "现场照片" });
   const [file, setFile] = useState<File | undefined>();
-  const { data } = useQuery({ queryKey: ["project-document-archives"], queryFn: () => getData<PageResult<DocumentArchive>>("/project-document-archives", { page: 1, pageSize: 200 }) });
+  const listing = usePagedQuery<DocumentArchive>(["project-document-archives"], "/project-document-archives");
+  const data = listing.data;
   const save = useMutation({
     mutationFn: async () => {
       const uploaded = file ? await uploadFile(file) : undefined;
@@ -485,12 +672,13 @@ export function DocumentArchivePage() {
   });
   return <Page title="资料照片归档">
     <form className="panel toolbar" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}><Field label="项目"><SelectInput value={form.projectId ?? ""} onChange={e => setForm({ ...form, projectId: e.target.value, projectSectionId: undefined })}>{lookups.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="施工段"><SelectInput value={form.projectSectionId ?? ""} onChange={e => setForm({ ...form, projectSectionId: e.target.value || undefined })}><option value="">无</option>{lookups.sections.filter(section => section.projectId === form.projectId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field><Field label="工序"><SelectInput value={form.workProcessId ?? ""} onChange={e => setForm({ ...form, workProcessId: e.target.value || undefined })}><option value="">无</option>{lookups.processes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectInput></Field><Field label="日期"><TextInput type="date" value={form.archiveDate ?? ""} onChange={e => setForm({ ...form, archiveDate: e.target.value })} /></Field><Field label="资料类型"><SelectInput value={form.documentType ?? "现场照片"} onChange={e => setForm({ ...form, documentType: e.target.value })}>{["现场照片","签证资料","隐蔽工程照片","验收资料","安全整改","其他"].map(item => <option key={item} value={item}>{item}</option>)}</SelectInput></Field><Field label="上传人"><TextInput value={form.uploaderName ?? ""} onChange={e => setForm({ ...form, uploaderName: e.target.value })} /></Field><Field label="附件"><input type="file" onChange={e => setFile(e.target.files?.[0])} /></Field><Button type="submit">归档</Button></form>
-    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>工序</th><th>日期</th><th>类型</th><th>文件</th><th>上传人</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.archiveDate}</td><td>{row.documentType}</td><td>{row.fileId}</td><td>{row.uploaderName ?? "-"}</td></tr>)}</tbody></table></div>
+    <div className="panel table-wrap"><table><thead><tr><th>项目</th><th>施工段</th><th>工序</th><th>日期</th><th>类型</th><th>文件</th><th>上传人</th><th>操作</th></tr></thead><tbody>{(data?.records ?? []).map(row => <tr key={row.id}><td>{nameOf(lookups.projects, row.projectId)}</td><td>{nameOf(lookups.sections, row.projectSectionId)}</td><td>{nameOf(lookups.processes, row.workProcessId)}</td><td>{row.archiveDate}</td><td>{row.documentType}</td><td><StoredFile fileId={row.fileId} /></td><td>{row.uploaderName ?? "-"}</td><td><Button variant="secondary" onClick={() => { setForm(row); setFile(undefined); }}>编辑</Button></td></tr>)}</tbody></table></div>
+    {listing.pagination}
   </Page>;
 }
 
 export function ProjectRiskPage() {
-  const { projects } = useLookups();
+  const { projects } = useLookups({ sections: false, processes: false, teams: false, machinery: false });
   const [projectId, setProjectId] = useState("");
   const selectedId = projectId || String(projects[0]?.id ?? "");
   const { data } = useQuery({ queryKey: ["project-risk-page", selectedId], enabled: Boolean(selectedId), queryFn: () => getData<Dashboard>(`/project-dashboard/${selectedId}`) });
@@ -502,12 +690,12 @@ export function ProjectRiskPage() {
 
 export function ProjectDashboardPage() {
   const queryClient = useQueryClient();
-  const { projects } = useLookups();
+  const { projects } = useLookups({ sections: false, processes: false, teams: false, machinery: false });
   const [projectId, setProjectId] = useState("");
   const [cost, setCost] = useState({ costDate: new Date().toISOString().slice(0, 10), costType: "其他成本", amount: 0, description: "" });
   const selectedId = projectId || String(projects[0]?.id ?? "");
   const { data } = useQuery({ queryKey: ["project-dashboard", selectedId], enabled: Boolean(selectedId), queryFn: () => getData<Dashboard>(`/project-dashboard/${selectedId}`) });
-  const costs = useQuery({ queryKey: ["project-cost-records", selectedId], enabled: Boolean(selectedId), queryFn: () => getData<PageResult<CostRecord>>("/project-cost-records", { page: 1, pageSize: 100, projectId: selectedId }) });
+  const costs = useQuery({ queryKey: ["project-cost-records", selectedId], enabled: Boolean(selectedId), queryFn: () => getAllPages<CostRecord>("/project-cost-records", { projectId: selectedId }) });
   const saveCost = useMutation({
     mutationFn: () => postData("/project-cost-records", { ...cost, projectId: selectedId }),
     onSuccess: () => {
@@ -561,7 +749,7 @@ export function ProjectDashboardPage() {
     <div className="panel table-wrap" style={{ marginTop: 16 }}>
       <table><thead><tr><th>现金流</th><th>金额</th><th>占比</th><th>来源</th></tr></thead><tbody>{(data?.cashFlowBreakdowns ?? []).map(row => <tr key={row.category}><td>{row.category}</td><td>{money(row.amount)}</td><td>{percent(row.ratio)}</td><td>{row.source}</td></tr>)}</tbody></table>
     </div>
-    <div className="panel table-wrap" style={{ marginTop: 16 }}><table><thead><tr><th>日期</th><th>类型</th><th>金额</th><th>说明</th></tr></thead><tbody>{(costs.data?.records ?? []).map(row => <tr key={row.id}><td>{row.costDate}</td><td>{row.costType}</td><td>{money(row.amount)}</td><td>{row.description ?? "-"}</td></tr>)}</tbody></table></div>
+    <div className="panel table-wrap" style={{ marginTop: 16 }}><table><thead><tr><th>日期</th><th>类型</th><th>金额</th><th>说明</th></tr></thead><tbody>{(costs.data ?? []).map(row => <tr key={row.id}><td>{row.costDate}</td><td>{row.costType}</td><td>{money(row.amount)}</td><td>{row.description ?? "-"}</td></tr>)}</tbody></table></div>
     <div className="panel table-wrap" style={{ marginTop: 16 }}><table><thead><tr><th>级别</th><th>风险</th></tr></thead><tbody>{(data?.risks ?? []).map(risk => <tr key={risk.type}><td><span className={risk.level === "danger" ? "badge badge-red" : "badge badge-yellow"}>{risk.level}</span></td><td>{risk.message}</td></tr>)}</tbody></table></div>
   </Page>;
 }

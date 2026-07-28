@@ -213,9 +213,9 @@ class FileAccessBoundaryIntegrationTest {
 
     private void addProjectMember(long memberId, long projectId, long userId, long employeeId) {
         jdbcTemplate.update("""
-                INSERT INTO project_member (id, project_id, user_id, employee_id, role_name, status, deleted)
-                VALUES (?, ?, ?, ?, '现场成员', 'active', 0)
-                """, memberId, projectId, userId, employeeId);
+                INSERT INTO project_member (id, project_id, employee_id, role_name, status, deleted)
+                VALUES (?, ?, ?, '现场成员', 'active', 0)
+                """, memberId, projectId, employeeId);
     }
 
     private JsonNode uploadTextFile(String filename, String content, String token) throws Exception {

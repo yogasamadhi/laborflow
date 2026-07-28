@@ -49,10 +49,7 @@ Page({
 
   onLoad(query) {
     const editId = query && query.editId ? query.editId : "";
-    // Read the edit payload passed from the list page, then clear it so stale
-    // data does not linger if the user navigates away and back later.
-    const editRecord = editId ? wx.getStorageSync("laborflow_edit_variation") : null;
-    if (editId && editRecord) wx.removeStorageSync("laborflow_edit_variation");
+    const editRecord = null;
     const user = auth.getUser();
     if (!user || !user.userId) {
       wx.reLaunch({ url: "/pages/login/index" });
@@ -92,6 +89,8 @@ Page({
       });
       if (this.data.editRecord) {
         this.applyEditRecord(this.data.editRecord);
+      } else if (this.data.editId) {
+        await this.loadEditDetail();
       }
     } catch (error) {
       wx.showToast({ title: error.message, icon: "none" });
@@ -100,12 +99,29 @@ Page({
     }
   },
 
+  async loadEditDetail() {
+    const detail = await project.variationOrderDetail(this.data.editId);
+    const record = Object.assign({}, detail.order, {
+      projectName: detail.projectName,
+      sectionName: detail.sectionName
+    });
+    const uploadedFiles = (detail.files || []).filter((binding) => binding.file).map((binding) => binding.file);
+    await new Promise((resolve) => this.setData({
+      editRecord: record,
+      uploadedFiles,
+      attachedFileIds: uploadedFiles.map((item) => String(item.id)),
+      photoCount: uploadedFiles.length,
+      uploadText: uploadedFiles.length ? "已加载 " + uploadedFiles.length + " 个已有附件" : "尚未添加现场照片"
+    }, resolve));
+    this.applyEditRecord(record);
+  },
+
   applyEditRecord(record) {
     const projectItem = this.data.projects.find((item) => String(item.id) === String(record.projectId));
     this.setData({
       form: Object.assign({}, EMPTY_FORM, record, { occurrenceDate: record.occurrenceDate || format.today() }),
-      projectText: projectItem ? projectItem.name : record.projectId ? "项目 #" + record.projectId : "请选择项目",
-      sectionText: record.projectSectionId ? "施工段 #" + record.projectSectionId : "请选择施工段",
+      projectText: projectItem ? projectItem.name : (record.projectName || "项目不可用"),
+      sectionText: record.sectionName || (record.projectSectionId ? "施工段不可用" : "请选择施工段"),
       variationTypeText: record.variationType || "请选择类型"
     });
     if (record.projectId) {
@@ -133,7 +149,7 @@ Page({
     this.setData({
       "form.projectId": item.id,
       "form.projectSectionId": "",
-      projectText: item.name || "项目 #" + item.id,
+      projectText: item.name || "项目名称缺失",
       sectionText: "请选择施工段",
       sections: [],
       sectionNames: [],
@@ -162,7 +178,7 @@ Page({
 
   onSectionChange(event) {
     const item = this.data.sections[Number(event.detail.value)];
-    this.setData({ "form.projectSectionId": item.id, sectionText: item.name || "施工段 #" + item.id, draftCleared: false }, () => this.persistLocalDraft());
+    this.setData({ "form.projectSectionId": item.id, sectionText: item.name || "施工段名称缺失", draftCleared: false }, () => this.persistLocalDraft());
   },
 
   async uploadPhotos() {
@@ -201,17 +217,22 @@ Page({
     }
   },
 
-  removePhoto(event) {
+  async removePhoto(event) {
     if (this.isBusy()) return;
     const index = Number(event.currentTarget.dataset.index);
     const removed = this.data.uploadedFiles[index];
-    if (removed && this.data.attachedFileIds.some((fileId) => String(fileId) === String(removed.id))) {
-      wx.showToast({ title: "该照片已保存到服务器，不能在此页移除", icon: "none" });
-      return;
+    if (removed && this.data.editId && this.data.attachedFileIds.some((fileId) => String(fileId) === String(removed.id))) {
+      try {
+        await project.removeVariationFile(this.data.editId, removed.id);
+      } catch (error) {
+        wx.showToast({ title: error.message || "附件移除失败", icon: "none" });
+        return;
+      }
     }
     const uploadedFiles = this.data.uploadedFiles.filter((item, itemIndex) => itemIndex !== index);
     this.setData({
       uploadedFiles,
+      attachedFileIds: this.data.attachedFileIds.filter((fileId) => !removed || String(fileId) !== String(removed.id)),
       photoCount: uploadedFiles.length,
       uploadText: uploadedFiles.length ? "已保留 " + uploadedFiles.length + " 张照片" : "尚未添加现场照片",
       draftCleared: false

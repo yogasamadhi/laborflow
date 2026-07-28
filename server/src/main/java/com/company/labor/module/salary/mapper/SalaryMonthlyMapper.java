@@ -9,20 +9,44 @@ import org.apache.ibatis.annotations.Update;
 
 public interface SalaryMonthlyMapper extends BaseMapper<SalaryMonthlyDO> {
     @Select("""
+        <script>
         SELECT *
         FROM salary_monthly
-        WHERE (#{deleted} < 0 OR deleted = #{deleted})
+        WHERE (#{deleted} &lt; 0 OR deleted = #{deleted})
+        <if test="salaryMonth != null and salaryMonth != ''">
+          AND salary_month = #{salaryMonth}
+        </if>
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
         ORDER BY salary_month DESC, created_at DESC
         LIMIT #{limit} OFFSET #{offset}
+        </script>
         """)
-    List<SalaryMonthlyDO> selectPageIncludingDeleted(@Param("deleted") Integer deleted, @Param("limit") long limit, @Param("offset") long offset);
+    List<SalaryMonthlyDO> selectPageIncludingDeleted(
+            @Param("deleted") Integer deleted,
+            @Param("salaryMonth") String salaryMonth,
+            @Param("status") String status,
+            @Param("limit") long limit,
+            @Param("offset") long offset);
 
     @Select("""
+        <script>
         SELECT COUNT(*)
         FROM salary_monthly
-        WHERE (#{deleted} < 0 OR deleted = #{deleted})
+        WHERE (#{deleted} &lt; 0 OR deleted = #{deleted})
+        <if test="salaryMonth != null and salaryMonth != ''">
+          AND salary_month = #{salaryMonth}
+        </if>
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+        </script>
         """)
-    long countIncludingDeleted(@Param("deleted") Integer deleted);
+    long countIncludingDeleted(
+            @Param("deleted") Integer deleted,
+            @Param("salaryMonth") String salaryMonth,
+            @Param("status") String status);
 
     @Select("SELECT * FROM salary_monthly WHERE id = #{id}")
     SalaryMonthlyDO selectByIdIncludingDeleted(@Param("id") Long id);

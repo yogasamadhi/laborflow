@@ -89,6 +89,21 @@ export async function getData<T>(url: string, params?: Record<string, unknown>):
   return unwrapResult(result);
 }
 
+export async function getAllPages<T>(
+  url: string,
+  params?: Record<string, unknown>,
+  pageSize = 50
+): Promise<T[]> {
+  const records: T[] = [];
+  let page = 1;
+  for (;;) {
+    const result = await getData<PageResult<T>>(url, { ...params, page, pageSize });
+    records.push(...result.records);
+    if (records.length >= Number(result.total) || result.records.length === 0) return records;
+    page += 1;
+  }
+}
+
 export async function postData<T>(url: string, data?: unknown): Promise<T> {
   const result = await http.post<unknown, ApiResult<T>>(url, data);
   return unwrapResult(result);
@@ -119,5 +134,13 @@ export async function downloadFile(url: string, filename: string, params?: Recor
 export async function uploadFile(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return postData<{ id: string; filePath: string; originalName: string }>("/files/upload", formData);
+  return postData<{
+    id: string;
+    originalName: string;
+    contentType: string;
+    fileSize: string;
+    createdAt: string;
+    downloadUrl: string;
+    previewUrl: string;
+  }>("/files/upload", formData);
 }

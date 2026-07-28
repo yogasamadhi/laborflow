@@ -49,7 +49,7 @@ class FlywayLegacyUpgradeIntegrationTest {
                 WHERE success = true
                 ORDER BY installed_rank DESC
                 LIMIT 1
-                """)).isEqualTo("23");
+                """)).isEqualTo("24");
         assertThat(count("SELECT COUNT(*) FROM sys_user WHERE id = " + USER_ID + " AND username = 'legacy_upgrade_user'"))
                 .isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM employee WHERE id = " + EMPLOYEE_ID + " AND name = '历史迁移员工'"))
@@ -85,10 +85,13 @@ class FlywayLegacyUpgradeIntegrationTest {
                 SELECT COUNT(*)
                 FROM project_member
                 WHERE project_id = 9100006
-                  AND user_id = 9100004
                   AND employee_id = 9100003
                   AND status = 'active'
                 """)).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM project_member WHERE id = 9100021")).isZero();
+        assertThat(count("SELECT COUNT(*) FROM performance_indicator WHERE id = 9100022")).isZero();
+        assertThat(count("SELECT COUNT(*) FROM performance_plan WHERE id = 9100023")).isZero();
+        assertThat(count("SELECT COUNT(*) FROM performance_score WHERE id = 9100024")).isZero();
         assertThat(count("""
                 SELECT COUNT(*)
                 FROM salary_monthly_detail
@@ -211,8 +214,29 @@ class FlywayLegacyUpgradeIntegrationTest {
                     VALUES (9100016, 'legacy_upgrade_openid', 9100004, 9100003, '历史迁移微信', 'active', 0, 9100004)
                     """);
             statement.executeUpdate("""
-                    INSERT INTO project_member (id, project_id, user_id, employee_id, role_name, status, deleted, created_by)
-                    VALUES (9100017, 9100006, 9100004, 9100003, '现场人员', 'active', 0, 9100004)
+                    INSERT INTO project_member (id, project_id, employee_id, role_name, status, deleted, created_by)
+                    VALUES (9100017, 9100006, 9100003, '现场人员', 'active', 0, 9100004)
+                    """);
+            statement.executeUpdate("""
+                    INSERT INTO project_member (id, project_id, user_id, role_name, status, deleted, created_by)
+                    VALUES (9100021, 9100006, 9100004, '旧用户身份成员', 'active', 0, 9100004)
+                    """);
+            statement.executeUpdate("""
+                    INSERT INTO performance_indicator (
+                      id, name, category, score_weight, data_source, status, deleted, created_by)
+                    VALUES (9100022, '旧绩效指标', 'legacy', 100.00, 'manual', 'active', 0, 9100004)
+                    """);
+            statement.executeUpdate("""
+                    INSERT INTO performance_plan (
+                      id, name, performance_month, project_id, status, deleted, created_by)
+                    VALUES (9100023, '旧绩效方案', '2025-01', 9100006, 'draft', 0, 9100004)
+                    """);
+            statement.executeUpdate("""
+                    INSERT INTO performance_score (
+                      id, performance_plan_id, performance_month, project_id, employee_id,
+                      score, performance_amount, status, deleted, created_by)
+                    VALUES (9100024, 9100023, '2025-01', 9100006, 9100003,
+                      90.00, 900.00, 'confirmed', 0, 9100004)
                     """);
             statement.executeUpdate("""
                     INSERT INTO material_record (

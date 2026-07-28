@@ -14,7 +14,6 @@ public class ProjectMemberDO extends BaseDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long projectId;
-    private Long userId;
     private Long employeeId;
     private String roleName;
     private String status;

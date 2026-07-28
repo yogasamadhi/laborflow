@@ -8,7 +8,7 @@ import lombok.Data;
 public class ProjectMemberSaveDTO {
     @NotNull(message = "项目必填")
     private Long projectId;
-    private Long userId;
+    @NotNull(message = "员工必填")
     private Long employeeId;
     private String roleName;
     @Pattern(regexp = "active|inactive", message = "项目成员状态不合法")

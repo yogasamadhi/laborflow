@@ -24,6 +24,9 @@
       <picker range="{{sectionNames}}" disabled="{{lookupLoading || sectionsLoading || !form.projectId}}" bindchange="onSectionChange">
         <van-cell title="施工段" value="{{sectionText}}" icon="location-o" is-link />
       </picker>
+      <picker range="{{contractItemNames}}" disabled="{{lookupLoading || !form.projectId}}" bindchange="onContractItemChange">
+        <van-cell title="合同清单" value="{{contractItemText}}" icon="orders-o" is-link />
+      </picker>
       <picker range="{{processNames}}" disabled="{{lookupLoading}}" bindchange="onProcessChange">
         <van-cell title="工序" value="{{processText}}" icon="apps-o" is-link />
       </picker>
@@ -37,6 +40,13 @@
       <van-field value="{{form.exceptionNote}}" data-key="exceptionNote" bind:change="onInput" label="异常说明" type="textarea" autosize placeholder="无异常可留空" />
       <van-field value="{{form.reporterName}}" data-key="reporterName" bind:change="onInput" label="填报人" placeholder="请输入" />
     </van-cell-group>
+
+    <view class="status-banner {{canSubmit ? '' : 'error-banner'}}">
+      <view>
+        <text class="status-banner-title">{{pricingLoading ? '正在解析价格' : (canSubmit ? '定价预览' : '定价提示')}}</text>
+        <text class="status-banner-copy">{{pricingText}}</text>
+      </view>
+    </view>
 
     <view class="upload-panel">
       <view class="row">
@@ -54,7 +64,7 @@
     <view class="form-actions">
       <van-button block plain type="primary" icon="bookmark-o" disabled="{{saving || submitting || uploading}}" bind:tap="saveLocalDraft">暂存到本机</van-button>
       <van-button block plain type="primary" loading="{{saving}}" disabled="{{saving || submitting || uploading}}" icon="description" bind:tap="saveDraft">保存草稿</van-button>
-      <van-button block type="primary" loading="{{submitting}}" disabled="{{saving || submitting || uploading}}" icon="success" bind:tap="submit">提交日报</van-button>
+      <van-button block type="primary" loading="{{submitting}}" disabled="{{saving || submitting || uploading || !canSubmit}}" icon="success" bind:tap="submit">提交日报</van-button>
     </view>
   </view>
 </view>

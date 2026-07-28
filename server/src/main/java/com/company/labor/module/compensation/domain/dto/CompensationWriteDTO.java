@@ -1,10 +1,13 @@
 package com.company.labor.module.compensation.domain.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.Data;
 
 public final class CompensationWriteDTO {
@@ -65,6 +68,11 @@ public final class CompensationWriteDTO {
         private BigDecimal scoreWeight;
         @Pattern(regexp = "manual|project|attendance|salary", message = "数据来源不合法")
         private String dataSource;
+        private String metricCode;
+        @Pattern(regexp = "higher_better|lower_better", message = "评分方向不合法")
+        private String scoringDirection;
+        @DecimalMin(value = "0.00", message = "目标值不能小于 0")
+        private BigDecimal targetValue;
         @Pattern(regexp = "active|inactive", message = "指标状态不合法")
         private String status;
         private String remark;
@@ -79,28 +87,33 @@ public final class CompensationWriteDTO {
         private String performanceMonth;
         private Long projectId;
         private Long positionId;
-        @Pattern(regexp = "draft|active|inactive|confirmed", message = "绩效方案状态不合法")
-        private String status;
+        @NotEmpty(message = "绩效方案至少选择一个指标")
+        private List<Long> indicatorIds;
         private String remark;
     }
 
     @Data
-    public static class PerformanceScoreRequest {
-        private Long performancePlanId;
-        @NotBlank(message = "绩效月份必填")
-        @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "绩效月份格式必须为 yyyy-MM")
-        private String performanceMonth;
-        private Long projectId;
-        @NotNull(message = "员工必填")
-        private Long employeeId;
-        private Long positionId;
-        @DecimalMin(value = "0.00", message = "绩效分数不能小于 0")
-        private BigDecimal score;
-        @DecimalMin(value = "0.00", message = "绩效金额不能小于 0")
-        private BigDecimal performanceAmount;
-        @Pattern(regexp = "draft|confirmed", message = "绩效评分状态不合法")
-        private String status;
+    public static class PerformanceScoreGenerateRequest {
+        @NotEmpty(message = "至少选择一名员工")
+        private List<Long> employeeIds;
+    }
+
+    @Data
+    public static class PerformanceScoreUpdateRequest {
+        @NotEmpty(message = "绩效评分明细必填")
+        private List<PerformanceScoreItemRequest> items;
         private String remark;
+    }
+
+    @Data
+    public static class PerformanceScoreItemRequest {
+        @NotNull(message = "方案指标必填")
+        private Long planIndicatorId;
+        @NotNull(message = "最终评分必填")
+        @DecimalMin(value = "0.00", message = "最终评分不能小于 0")
+        @DecimalMax(value = "100.00", message = "最终评分不能大于 100")
+        private BigDecimal finalScore;
+        private String overrideReason;
     }
 
     @Data

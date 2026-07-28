@@ -73,10 +73,16 @@ class SalarySourcesLifecycleIntegrationTest {
                 "employeeId", employeeId,
                 "effectiveDate", "2031-11-01",
                 "status", "active",
-                "items", List.of(Map.of(
-                        "salaryItemName", "Fixed salary excluded by rule",
-                        "salaryItemType", "earning",
-                        "amount", new BigDecimal("1000.00")))), token);
+                "items", List.of(
+                        Map.of(
+                                "salaryItemName", "Fixed salary excluded by rule",
+                                "salaryItemType", "earning",
+                                "amount", new BigDecimal("1000.00")),
+                        Map.of(
+                                "salaryItemId", 2003,
+                                "salaryItemName", "绩效工资",
+                                "salaryItemType", "earning",
+                                "amount", new BigDecimal("1000.00")))), token);
 
         JsonNode attendance = post("/api/compensation/attendance", Map.of(
                 "employeeId", employeeId,
@@ -97,13 +103,31 @@ class SalarySourcesLifecycleIntegrationTest {
         assertThat(statutoryDeduction.path("salaryItemName").asText()).isEqualTo("社保扣款");
         assertThat(statutoryDeduction.path("status").asText()).isEqualTo("active");
 
-        long performanceScoreId = id(post("/api/compensation/scores", Map.of(
+        long indicatorId = id(post("/api/compensation/indicators", Map.of(
+                "name", "Salary Sources E2E manual score",
+                "category", "manual",
+                "scoreWeight", new BigDecimal("100.00"),
+                "dataSource", "manual",
+                "scoringDirection", "higher_better",
+                "targetValue", new BigDecimal("100.00"),
+                "status", "active"), token));
+        long planId = post("/api/compensation/plans", Map.of(
+                "name", "Salary Sources E2E plan",
                 "performanceMonth", SALARY_MONTH,
                 "projectId", projectId,
-                "employeeId", employeeId,
-                "score", new BigDecimal("95.00"),
-                "performanceAmount", new BigDecimal("200.00"),
-                "remark", "E2E confirmed performance"), token));
+                "indicatorIds", List.of(indicatorId)), token)
+                .path("data").path("plan").path("id").asLong();
+        assertThat(planId).isPositive();
+        post("/api/compensation/plans/" + planId + "/activate", null, token);
+        JsonNode generatedScores = post("/api/compensation/plans/" + planId + "/scores/generate",
+                Map.of("employeeIds", List.of(employeeId)), token).path("data");
+        long performanceScoreId = generatedScores.get(0).path("score").path("id").asLong();
+        long planIndicatorId = generatedScores.get(0).path("items").get(0).path("planIndicatorId").asLong();
+        put("/api/compensation/scores/" + performanceScoreId, Map.of(
+                "items", List.of(Map.of(
+                        "planIndicatorId", planIndicatorId,
+                        "finalScore", new BigDecimal("20.00"))),
+                "remark", "E2E confirmed performance"), token);
         post("/api/compensation/scores/" + performanceScoreId + "/confirm", null, token);
         assertThat(get("/api/compensation/scores?month=" + SALARY_MONTH + "&employeeId=" + employeeId, token)
                 .path("data").path("records").get(0).path("status").asText()).isEqualTo("confirmed");
@@ -160,6 +184,13 @@ class SalarySourcesLifecycleIntegrationTest {
         assertThat(sourcesByType.get("salary_deduction").path("amount").asDouble()).isEqualTo(-120.0);
         assertThat(sourcesByType.get("performance_salary").path("sourceId").asLong()).isEqualTo(performanceScoreId);
         assertThat(sourcesByType.get("performance_salary").path("amount").asDouble()).isEqualTo(200.0);
+        assertThat(sourcesByType.get("performance_salary").path("remark").asText())
+                .contains("绩效方案ID:" + planId,
+                        "绩效成绩ID:" + performanceScoreId,
+                        "绩效基数快照:1000.00",
+                        "加权总分:20.00",
+                        "绩效金额:200.00",
+                        "确认时间:");
         assertThat(sourcesByType.get("project_bonus").path("sourceId").asLong()).isEqualTo(bonusAllocationId);
         assertThat(sourcesByType.get("project_bonus").path("amount").asDouble()).isEqualTo(300.0);
 
@@ -204,6 +235,15 @@ class SalarySourcesLifecycleIntegrationTest {
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
         }
         return readSuccess(httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString()));
+    }
+
+    private JsonNode put(String path, Object payload, String token) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri(path))
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                .build();
+        return readSuccess(httpClient.send(request, HttpResponse.BodyHandlers.ofString()));
     }
 
     private JsonNode readSuccess(HttpResponse<String> response) throws Exception {

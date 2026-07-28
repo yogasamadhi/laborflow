@@ -3,7 +3,7 @@ package com.company.labor.module.project.controller;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.project.domain.dto.ProjectMemberSaveDTO;
-import com.company.labor.module.project.domain.entity.ProjectMemberDO;
+import com.company.labor.module.project.domain.vo.ProjectMemberVO;
 import com.company.labor.module.project.service.ProjectMemberService;
 import com.company.labor.security.RoleExpressions;
 import jakarta.validation.Valid;
@@ -27,22 +27,25 @@ public class ProjectMemberController {
     private final ProjectMemberService service;
 
     @GetMapping
-    public Result<PageResult<ProjectMemberDO>> page(
+    public Result<PageResult<ProjectMemberVO>> page(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) Long positionId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status) {
-        return Result.success(PageResult.of(service.page(page, pageSize, projectId, employeeId, status)));
+        return Result.success(PageResult.of(service.page(
+                page, pageSize, projectId, employeeId, positionId, keyword, status)));
     }
 
     @PostMapping
-    public Result<ProjectMemberDO> create(@Valid @RequestBody ProjectMemberSaveDTO dto) {
+    public Result<ProjectMemberVO> create(@Valid @RequestBody ProjectMemberSaveDTO dto) {
         return Result.success(service.create(dto));
     }
 
     @PutMapping("/{id}")
-    public Result<ProjectMemberDO> update(@PathVariable Long id, @Valid @RequestBody ProjectMemberSaveDTO dto) {
+    public Result<ProjectMemberVO> update(@PathVariable Long id, @Valid @RequestBody ProjectMemberSaveDTO dto) {
         return Result.success(service.update(id, dto));
     }
 

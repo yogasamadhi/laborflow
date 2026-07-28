@@ -24,12 +24,14 @@ import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
 import com.company.labor.module.salary.domain.entity.SalaryAuditRecordDO;
 import com.company.labor.module.salary.domain.entity.SalaryDetailItemDO;
+import com.company.labor.module.salary.domain.entity.SalaryItemDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDetailDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileItemDO;
 import com.company.labor.module.salary.mapper.SalaryAuditRecordMapper;
 import com.company.labor.module.salary.mapper.SalaryDetailItemMapper;
+import com.company.labor.module.salary.mapper.SalaryItemMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyDetailMapper;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.salary.mapper.SalaryProfileItemMapper;
@@ -49,18 +51,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 @Service
-@RequiredArgsConstructor
 public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, SalaryMonthlyDO> implements SalaryMonthlyService {
     private final EmployeeMapper employeeMapper;
     private final SalaryProfileMapper salaryProfileMapper;
     private final SalaryProfileItemMapper salaryProfileItemMapper;
+    private final SalaryItemMapper salaryItemMapper;
     private final SalaryMonthlyDetailMapper detailMapper;
     private final SalaryDetailItemMapper detailItemMapper;
     private final SalaryAuditRecordMapper auditRecordMapper;
@@ -72,6 +73,65 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     private final SalaryDeductionRecordMapper salaryDeductionRecordMapper;
     private final SalarySourceRecordMapper salarySourceRecordMapper;
     private final FileBindingGuard fileBindingGuard;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public SalaryMonthlyServiceImpl(
+            EmployeeMapper employeeMapper,
+            SalaryProfileMapper salaryProfileMapper,
+            SalaryProfileItemMapper salaryProfileItemMapper,
+            SalaryItemMapper salaryItemMapper,
+            SalaryMonthlyDetailMapper detailMapper,
+            SalaryDetailItemMapper detailItemMapper,
+            SalaryAuditRecordMapper auditRecordMapper,
+            OperationLogService operationLogService,
+            AuditUserProvider auditUserProvider,
+            AttendanceRecordMapper attendanceRecordMapper,
+            PerformanceScoreMapper performanceScoreMapper,
+            ProjectBonusAllocationMapper bonusAllocationMapper,
+            SalaryDeductionRecordMapper salaryDeductionRecordMapper,
+            SalarySourceRecordMapper salarySourceRecordMapper,
+            FileBindingGuard fileBindingGuard) {
+        this.employeeMapper = employeeMapper;
+        this.salaryProfileMapper = salaryProfileMapper;
+        this.salaryProfileItemMapper = salaryProfileItemMapper;
+        this.salaryItemMapper = salaryItemMapper;
+        this.detailMapper = detailMapper;
+        this.detailItemMapper = detailItemMapper;
+        this.auditRecordMapper = auditRecordMapper;
+        this.operationLogService = operationLogService;
+        this.auditUserProvider = auditUserProvider;
+        this.attendanceRecordMapper = attendanceRecordMapper;
+        this.performanceScoreMapper = performanceScoreMapper;
+        this.bonusAllocationMapper = bonusAllocationMapper;
+        this.salaryDeductionRecordMapper = salaryDeductionRecordMapper;
+        this.salarySourceRecordMapper = salarySourceRecordMapper;
+        this.fileBindingGuard = fileBindingGuard;
+    }
+
+    /**
+     * Compatibility constructor for unit tests that do not inspect salary-item
+     * calculation roles.
+     */
+    public SalaryMonthlyServiceImpl(
+            EmployeeMapper employeeMapper,
+            SalaryProfileMapper salaryProfileMapper,
+            SalaryProfileItemMapper salaryProfileItemMapper,
+            SalaryMonthlyDetailMapper detailMapper,
+            SalaryDetailItemMapper detailItemMapper,
+            SalaryAuditRecordMapper auditRecordMapper,
+            OperationLogService operationLogService,
+            AuditUserProvider auditUserProvider,
+            AttendanceRecordMapper attendanceRecordMapper,
+            PerformanceScoreMapper performanceScoreMapper,
+            ProjectBonusAllocationMapper bonusAllocationMapper,
+            SalaryDeductionRecordMapper salaryDeductionRecordMapper,
+            SalarySourceRecordMapper salarySourceRecordMapper,
+            FileBindingGuard fileBindingGuard) {
+        this(employeeMapper, salaryProfileMapper, salaryProfileItemMapper, null, detailMapper,
+                detailItemMapper, auditRecordMapper, operationLogService, auditUserProvider,
+                attendanceRecordMapper, performanceScoreMapper, bonusAllocationMapper,
+                salaryDeductionRecordMapper, salarySourceRecordMapper, fileBindingGuard);
+    }
 
     @Override
     @Transactional
@@ -150,8 +210,17 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                 skippedReasons.add("员工 " + employee.getName() + " 非在职状态");
                 continue;
             }
+            List<SalaryProfileItemDO> allProfileItems = salaryProfileItemMapper.selectList(
+                    new LambdaQueryWrapper<SalaryProfileItemDO>()
+                            .eq(SalaryProfileItemDO::getSalaryProfileId, profile.getId()));
+            List<SalaryProfileItemDO> performanceBaseItems = allProfileItems.stream()
+                    .filter(item -> {
+                        if (item.getSalaryItemId() == null) return false;
+                        SalaryItemDO salaryItem = salaryItemMapper.selectById(item.getSalaryItemId());
+                        return salaryItem != null && "performance_base".equals(salaryItem.getCalculationRole());
+                    }).toList();
             List<SalaryProfileItemDO> profileItems = rules.fixedSalary()
-                    ? salaryProfileItemMapper.selectList(new LambdaQueryWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profile.getId()))
+                    ? allProfileItems.stream().filter(item -> !performanceBaseItems.contains(item)).toList()
                     : List.of();
             BigDecimal payable = BigDecimal.ZERO;
             BigDecimal deduction = BigDecimal.ZERO;
@@ -193,6 +262,15 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                             .eq(PerformanceScoreDO::getPerformanceMonth, monthly.getSalaryMonth())
                             .eq(PerformanceScoreDO::getStatus, "confirmed"))
                     : List.of();
+            if (rules.performanceSalary()) {
+                if (performanceBaseItems.size() != 1) {
+                    throw new BusinessException("员工“" + employee.getName() + "”缺少唯一有效绩效基数");
+                }
+                if (scores.size() != 1) {
+                    throw new BusinessException("员工“" + employee.getName() + "”在 "
+                            + monthly.getSalaryMonth() + " 缺少唯一已确认绩效成绩");
+                }
+            }
             BigDecimal performanceAmount = BigDecimal.ZERO;
             for (PerformanceScoreDO score : scores) {
                 performanceAmount = performanceAmount.add(score.getPerformanceAmount() == null ? BigDecimal.ZERO : score.getPerformanceAmount());
@@ -257,7 +335,14 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                 detailItemMapper.insert(detailItem(detail.getId(), 2201L, "绩效奖金", "earning", performanceAmount, "来自绩效评分"));
                 for (PerformanceScoreDO score : scores) {
                     source(monthlyId, detail.getId(), employee.getId(), "performance_salary", score.getId(), "绩效工资", score.getPerformanceAmount(),
-                            generationAuditRemark(employee, profile, score.getAutoMetricSnapshot()));
+                            generationAuditRemark(employee, profile,
+                                    "绩效方案ID:" + score.getPerformancePlanId()
+                                            + ";绩效成绩ID:" + score.getId()
+                                            + ";绩效基数快照:" + amount(score.getPerformanceBaseSnapshot())
+                                            + ";加权总分:" + amount(score.getScore())
+                                            + ";绩效金额:" + amount(score.getPerformanceAmount())
+                                            + ";确认时间:" + (score.getConfirmedAt() == null ? "-" : score.getConfirmedAt())
+                                            + ";指标证据:" + valueOrDefault(score.getAutoMetricSnapshot(), "-")));
                 }
             }
             if (projectBonus.compareTo(BigDecimal.ZERO) != 0) {
@@ -428,6 +513,9 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDetailDO detail = requireDetail(detailId);
         SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
         BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved", "paid");
+        if (!"unconfirmed".equals(detail.getPayslipStatus())) {
+            throw new BusinessException("工资条已反馈，不能重复确认");
+        }
         detail.setPayslipStatus("confirmed");
         detail.setPayslipConfirmedAt(LocalDateTime.now());
         detail.setPayslipFeedback(null);
@@ -446,6 +534,9 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDetailDO detail = requireDetail(detailId);
         SalaryMonthlyDO monthly = requireMonthly(detail.getSalaryMonthlyId());
         BusinessStateMachine.requireCurrent(Flow.SALARY_MONTHLY, monthly.getStatus(), "approved", "paid");
+        if (!"unconfirmed".equals(detail.getPayslipStatus())) {
+            throw new BusinessException("工资条已反馈，不能重复提交异议");
+        }
         detail.setPayslipStatus("exception");
         detail.setPayslipFeedback(limit(feedback, 500));
         detail.setPayslipFeedbackAt(LocalDateTime.now());

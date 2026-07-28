@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.system.domain.dto.SysUserResetPasswordDTO;
 import com.company.labor.module.system.domain.dto.SysUserSaveDTO;
 import com.company.labor.module.system.domain.entity.SysRoleDO;
@@ -66,7 +67,13 @@ class SystemUserAdminServiceTest {
     }
 
     private SystemUserAdminService service(SysUserMapper userMapper, SysRoleMapper roleMapper, SysUserRoleMapper userRoleMapper, OperationLogService logService) {
-        return new SystemUserAdminService(userMapper, roleMapper, userRoleMapper, logService, new BCryptPasswordEncoder());
+        return new SystemUserAdminService(
+                userMapper,
+                mock(EmployeeMapper.class),
+                roleMapper,
+                userRoleMapper,
+                logService,
+                new BCryptPasswordEncoder());
     }
 
     private SysUserSaveDTO saveDto() {

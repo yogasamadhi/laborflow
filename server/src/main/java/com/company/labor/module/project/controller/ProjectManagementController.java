@@ -5,8 +5,10 @@ import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
+import com.company.labor.module.project.domain.dto.DailyReportPricingPreviewDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
 import com.company.labor.module.project.domain.dto.ProjectWriteDTO;
+import com.company.labor.module.project.domain.dto.VariationConfirmDTO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportDO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportFileDO;
 import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
@@ -28,6 +30,11 @@ import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
 import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
+import com.company.labor.module.project.domain.vo.BusinessFileVO;
+import com.company.labor.module.project.domain.vo.DailyReportPricingVO;
+import com.company.labor.module.project.domain.vo.DailyWorkReportDetailVO;
+import com.company.labor.module.project.domain.vo.TeamSettlementDetailVO;
+import com.company.labor.module.project.domain.vo.VariationOrderDetailVO;
 import com.company.labor.module.project.service.ProjectAccessService;
 import com.company.labor.module.project.service.ProjectManagementService;
 import com.company.labor.security.AccessControlSupport;
@@ -309,6 +316,20 @@ public class ProjectManagementController {
         return Result.success(service.saveDailyReport(report));
     }
 
+    @PostMapping("/api/daily-work-reports/pricing-preview")
+    public Result<DailyReportPricingVO> previewDailyReportPricing(
+            @Valid @RequestBody DailyReportPricingPreviewDTO dto,
+            Authentication authentication) {
+        projectAccessService.requireProjectAccess(dto.getProjectId(), authentication);
+        return Result.success(service.previewDailyReportPricing(dto));
+    }
+
+    @GetMapping("/api/daily-work-reports/{id}")
+    public Result<DailyWorkReportDetailVO> dailyReportDetail(@PathVariable Long id, Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
+        return Result.success(service.dailyReportDetail(id));
+    }
+
     @PutMapping("/api/daily-work-reports/{id}")
     public Result<DailyWorkReportDO> updateDailyReport(@PathVariable Long id, @Valid @RequestBody ProjectWriteDTO.DailyWorkReportRequest dto, Authentication authentication) {
         requireDailyReportOwnerIfNeeded(id, authentication);
@@ -353,6 +374,16 @@ public class ProjectManagementController {
         return Result.success();
     }
 
+    @DeleteMapping("/api/daily-work-reports/{id}/files/{fileId}")
+    public Result<Void> removeDailyReportFile(
+            @PathVariable Long id,
+            @PathVariable Long fileId,
+            Authentication authentication) {
+        requireDailyReportOwnerIfNeeded(id, authentication);
+        service.removeDailyReportFile(id, fileId);
+        return Result.success();
+    }
+
     @GetMapping("/api/daily-work-reports/{id}/confirms")
     public Result<List<WorkQuantityConfirmDO>> dailyReportConfirms(@PathVariable Long id, Authentication authentication) {
         requireDailyReportOwnerIfNeeded(id, authentication);
@@ -360,7 +391,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/daily-work-reports/{id}/files")
-    public Result<List<DailyWorkReportFileDO>> dailyReportFiles(@PathVariable Long id, Authentication authentication) {
+    public Result<List<BusinessFileVO>> dailyReportFiles(@PathVariable Long id, Authentication authentication) {
         requireDailyReportOwnerIfNeeded(id, authentication);
         return Result.success(service.dailyReportFiles(id));
     }
@@ -373,6 +404,12 @@ public class ProjectManagementController {
                                                                 @RequestParam(required = false) Long teamId,
                                                                 @RequestParam(required = false) String settlementMonth) {
         return Result.success(PageResult.of(service.teamSettlements(page, pageSize, projectId, teamId, settlementMonth)));
+    }
+
+    @GetMapping("/api/team-settlements/{id}")
+    @PreAuthorize(RoleExpressions.PROJECT_FINANCE)
+    public Result<TeamSettlementDetailVO> teamSettlementDetail(@PathVariable Long id) {
+        return Result.success(service.teamSettlementDetail(id));
     }
 
     @PostMapping("/api/team-settlements/generate")
@@ -416,6 +453,12 @@ public class ProjectManagementController {
         return Result.success(PageResult.of(service.variationOrders(page, pageSize, projectId, status, createdBy)));
     }
 
+    @GetMapping("/api/variation-orders/{id}")
+    public Result<VariationOrderDetailVO> variationOrderDetail(@PathVariable Long id, Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
+        return Result.success(service.variationOrderDetail(id));
+    }
+
     @PostMapping("/api/variation-orders")
     public Result<VariationOrderDO> saveVariationOrder(@Valid @RequestBody ProjectWriteDTO.VariationOrderRequest dto, Authentication authentication) {
         projectAccessService.requireProjectAccess(dto.getProjectId(), authentication);
@@ -444,7 +487,7 @@ public class ProjectManagementController {
 
     @PostMapping("/api/variation-orders/{id}/confirm")
     @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
-    public Result<Void> confirmVariationOrder(@PathVariable Long id, @Valid @RequestBody(required = false) ProjectActionDTO dto) {
+    public Result<Void> confirmVariationOrder(@PathVariable Long id, @Valid @RequestBody VariationConfirmDTO dto) {
         service.confirmVariationOrder(id, dto);
         return Result.success();
     }
@@ -463,6 +506,16 @@ public class ProjectManagementController {
         return Result.success();
     }
 
+    @DeleteMapping("/api/variation-orders/{id}/files/{fileId}")
+    public Result<Void> removeVariationOrderFile(
+            @PathVariable Long id,
+            @PathVariable Long fileId,
+            Authentication authentication) {
+        requireVariationOrderOwnerIfNeeded(id, authentication);
+        service.removeVariationOrderFile(id, fileId);
+        return Result.success();
+    }
+
     @GetMapping("/api/variation-orders/{id}/confirms")
     public Result<List<VariationOrderConfirmDO>> variationOrderConfirms(@PathVariable Long id, Authentication authentication) {
         requireVariationOrderOwnerIfNeeded(id, authentication);
@@ -470,7 +523,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/variation-orders/{id}/files")
-    public Result<List<VariationOrderFileDO>> variationOrderFiles(@PathVariable Long id, Authentication authentication) {
+    public Result<List<BusinessFileVO>> variationOrderFiles(@PathVariable Long id, Authentication authentication) {
         requireVariationOrderOwnerIfNeeded(id, authentication);
         return Result.success(service.variationOrderFiles(id));
     }

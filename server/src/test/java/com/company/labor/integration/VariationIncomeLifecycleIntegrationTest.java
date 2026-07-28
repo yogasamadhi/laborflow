@@ -100,7 +100,7 @@ class VariationIncomeLifecycleIntegrationTest {
         long fileId = uploadedFile.path("id").asLong();
         assertThat(fileId).isPositive();
         assertThat(uploadedFile.path("originalName").asText()).isEqualTo("variation-evidence.txt");
-        assertThat(get("/api/files/" + fileId, token).path("data").path("filePath").asText())
+        assertThat(get("/api/files/" + fileId, token).path("data").path("downloadUrl").asText())
                 .isEqualTo("/api/files/" + fileId + "/download");
 
         post("/api/variation-orders/" + variationId + "/files", Map.of(
@@ -108,7 +108,7 @@ class VariationIncomeLifecycleIntegrationTest {
                 "fileType", "photo"), token);
         JsonNode files = get("/api/variation-orders/" + variationId + "/files", token).path("data");
         assertThat(files).hasSize(1);
-        assertThat(files.get(0).path("fileId").asLong()).isEqualTo(fileId);
+        assertThat(files.get(0).path("file").path("id").asLong()).isEqualTo(fileId);
         assertThat(files.get(0).path("fileType").asText()).isEqualTo("photo");
 
         post("/api/variation-orders/" + variationId + "/submit", null, token);

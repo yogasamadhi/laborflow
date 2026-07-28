@@ -23,6 +23,8 @@ public class SalaryItemServiceImpl extends ServiceImpl<SalaryItemMapper, SalaryI
         validate(item, null);
         if (item.getStatus() == null) item.setStatus("active");
         if (item.getIsFixed() == null) item.setIsFixed(1);
+        if (!StringUtils.hasText(item.getCalculationRole())) item.setCalculationRole("fixed_component");
+        if ("performance_base".equals(item.getCalculationRole())) item.setIsFixed(0);
         if (item.getSortOrder() == null) item.setSortOrder(0);
         save(item);
         return item;
@@ -37,6 +39,8 @@ public class SalaryItemServiceImpl extends ServiceImpl<SalaryItemMapper, SalaryI
         validate(item, id);
         if (item.getStatus() == null) item.setStatus(old.getStatus());
         if (item.getIsFixed() == null) item.setIsFixed(old.getIsFixed());
+        if (!StringUtils.hasText(item.getCalculationRole())) item.setCalculationRole(old.getCalculationRole());
+        if ("performance_base".equals(item.getCalculationRole())) item.setIsFixed(0);
         if (item.getSortOrder() == null) item.setSortOrder(old.getSortOrder());
         updateById(item);
         return getById(id);
@@ -76,6 +80,9 @@ public class SalaryItemServiceImpl extends ServiceImpl<SalaryItemMapper, SalaryI
         }
         if (!StringUtils.hasText(item.getType())) {
             throw new BusinessException("工资项类型必填");
+        }
+        if ("performance_base".equals(item.getCalculationRole()) && !"earning".equals(item.getType())) {
+            throw new BusinessException("绩效基数必须是应发工资项");
         }
         Long id = selfId == null ? -1L : selfId;
         if (baseMapper.countActiveByNameAndTypeExceptId(item.getName(), item.getType(), id) > 0) {

@@ -8,8 +8,8 @@ function monthlyList(params) {
   return request.get("/salary/monthly", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
 
-function monthlyDetails(monthlyId, params) {
-  return request.get("/salary/monthly/" + monthlyId + "/details", Object.assign({ page: 1, pageSize: 100 }, params || {}));
+function monthlyDetails(monthlyId) {
+  return request.getAllPages("/salary/monthly/" + monthlyId + "/details");
 }
 
 function detail(detailId) {
@@ -22,6 +22,10 @@ function detailItems(detailId) {
 
 function confirmPayslip(detailId) {
   return request.post("/salary/details/" + detailId + "/payslip/confirm");
+}
+
+function feedbackPayslip(detailId, feedback) {
+  return request.post("/salary/details/" + detailId + "/payslip/feedback", { feedback });
 }
 
 function monthlyAudits(monthlyId) {
@@ -43,6 +47,7 @@ module.exports = {
   detail,
   detailItems,
   confirmPayslip,
+  feedbackPayslip,
   monthlyAudits,
   approveMonthly,
   rejectMonthly

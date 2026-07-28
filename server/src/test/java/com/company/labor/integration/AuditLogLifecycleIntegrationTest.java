@@ -111,11 +111,30 @@ class AuditLogLifecycleIntegrationTest {
                 "salaryItemName", "Audit E2E deduction updated",
                 "amount", new BigDecimal("12.00"),
                 "status", "active"), adminToken);
-        long scoreId = id(post("/api/compensation/scores", Map.of(
+        long indicatorId = id(post("/api/compensation/indicators", Map.of(
+                "name", "Audit E2E manual score",
+                "category", "manual",
+                "scoreWeight", new BigDecimal("100.00"),
+                "dataSource", "manual",
+                "scoringDirection", "higher_better",
+                "targetValue", new BigDecimal("100.00"),
+                "status", "active"), adminToken));
+        long planId = post("/api/compensation/plans", Map.of(
+                "name", "Audit E2E performance plan",
                 "performanceMonth", "2032-01",
-                "employeeId", employeeId,
-                "score", new BigDecimal("90.00"),
-                "performanceAmount", new BigDecimal("200.00")), adminToken));
+                "projectId", projectId,
+                "indicatorIds", List.of(indicatorId)), adminToken)
+                .path("data").path("plan").path("id").asLong();
+        assertThat(planId).isPositive();
+        post("/api/compensation/plans/" + planId + "/activate", null, adminToken);
+        JsonNode generated = post("/api/compensation/plans/" + planId + "/scores/generate",
+                Map.of("employeeIds", List.of(employeeId)), adminToken).path("data").get(0);
+        long scoreId = generated.path("score").path("id").asLong();
+        long planIndicatorId = generated.path("items").get(0).path("planIndicatorId").asLong();
+        put("/api/compensation/scores/" + scoreId, Map.of(
+                "items", List.of(Map.of(
+                        "planIndicatorId", planIndicatorId,
+                        "finalScore", new BigDecimal("90.00")))), adminToken);
         post("/api/compensation/scores/" + scoreId + "/confirm", null, adminToken);
 
         long bindingId = 9_300_001L;
@@ -178,10 +197,16 @@ class AuditLogLifecycleIntegrationTest {
                 "employeeId", employeeId,
                 "effectiveDate", "2032-01-01",
                 "status", "active",
-                "items", List.of(Map.of(
-                        "salaryItemName", "Audit E2E fixed salary",
-                        "salaryItemType", "earning",
-                        "amount", new BigDecimal("1000.00")))), token);
+                "items", List.of(
+                        Map.of(
+                                "salaryItemName", "Audit E2E fixed salary",
+                                "salaryItemType", "earning",
+                                "amount", new BigDecimal("1000.00")),
+                        Map.of(
+                                "salaryItemId", 2003,
+                                "salaryItemName", "绩效工资",
+                                "salaryItemType", "earning",
+                                "amount", new BigDecimal("1000.00")))), token);
     }
 
     private long createUser(String username, long employeeId, long roleId, String token) throws Exception {
@@ -217,7 +242,7 @@ class AuditLogLifecycleIntegrationTest {
                     && action.equals(log.path("action").asText())) {
                 assertThat(log.path("operatorName").asText()).isEqualTo(ADMIN_USERNAME);
                 assertThat(log.path("operatorId").asLong()).isPositive();
-                assertThat(log.path("content").asText()).isNotBlank();
+                assertThat(log.path("summary").asText()).isNotBlank();
                 return;
             }
         }

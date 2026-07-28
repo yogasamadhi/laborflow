@@ -8,7 +8,7 @@ import { Field, SelectInput, TextArea, TextInput } from "../../../components/com
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { downloadFile, getData, PageResult, postData, putData } from "../../../lib/axios";
+import { downloadFile, getAllPages, getData, postData, putData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import type { Employee } from "../../employee/types";
 import { canRunMonthlyAction, getMonthlyActionCopy, monthlyWorkflowStage } from "../salaryWorkflow";
@@ -135,11 +135,11 @@ export function SalaryMonthlyDetailPage() {
   });
   const detailsQuery = useQuery({
     queryKey: ["salary-details", monthlyId],
-    queryFn: () => getData<PageResult<Detail>>(`/salary/monthly/${monthlyId}/details`, { page: 1, pageSize: 500 })
+    queryFn: () => getAllPages<Detail>(`/salary/monthly/${monthlyId}/details`)
   });
   const { data: employeesData } = useQuery({
     queryKey: ["employees", "salary-monthly-detail-options"],
-    queryFn: () => getData<PageResult<Employee>>("/employees", { page: 1, pageSize: 1000 })
+    queryFn: () => getAllPages<Employee>("/reference/employees")
   });
   const { data: monthlyDetailItems } = useQuery({
     queryKey: ["salary-monthly-detail-items", monthlyId],
@@ -155,14 +155,14 @@ export function SalaryMonthlyDetailPage() {
   });
   const { data: profilesData } = useQuery({
     queryKey: ["salary-profiles", "monthly-detail-diagnostics"],
-    queryFn: () => getData<PageResult<Profile>>("/salary/profiles", { page: 1, pageSize: 500 })
+    queryFn: () => getAllPages<Profile>("/salary/profiles")
   });
 
   const monthly = monthlyQuery.data;
   const detailsData = detailsQuery.data;
-  const employees = employeesData?.records ?? [];
+  const employees = employeesData ?? [];
   const employeeMap = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
-  const details = detailsData?.records ?? [];
+  const details = detailsData ?? [];
   const detailItemMap = useMemo(() => {
     const map = new Map<string, DetailItem[]>();
     for (const item of monthlyDetailItems ?? []) {
@@ -190,7 +190,7 @@ export function SalaryMonthlyDetailPage() {
   const paidCount = details.filter((detail) => detail.paymentStatus === "paid").length;
   const paidAmount = details.reduce((sum, detail) => sum + (detail.paymentStatus === "paid" ? Number(detail.actualAmount ?? 0) : 0), 0);
   const editable = monthly?.status === "draft";
-  const activeProfileCount = (profilesData?.records ?? []).filter((profile) => profile.status === "active").length;
+  const activeProfileCount = (profilesData ?? []).filter((profile) => profile.status === "active").length;
   const coreError = monthlyQuery.error || detailsQuery.error;
   const isCorePending = monthlyQuery.isPending || detailsQuery.isPending;
 

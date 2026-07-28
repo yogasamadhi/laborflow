@@ -7,8 +7,9 @@ import { DataErrorState, RouteLoadingState } from "../../../components/common/Ac
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, postData } from "../../../lib/axios";
+import { getAllPages, postData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import { canRunMonthlyAction, getMonthlyActionCopy, type MonthlyAction } from "../salaryWorkflow";
 
@@ -64,19 +65,18 @@ export function SalaryMonthlyListPage() {
   const [success, setSuccess] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [confirmationError, setConfirmationError] = useState("");
-  const monthlyQuery = useQuery({
-    queryKey: ["salary-monthly", dataScope],
-    queryFn: () => getData<PageResult<Monthly>>("/salary/monthly", { page: 1, pageSize: 100, deleted: dataScope === "all" ? -1 : Number(dataScope) })
+  const monthlyQuery = usePagedQuery<Monthly>(["salary-monthly", dataScope], "/salary/monthly", {
+    deleted: dataScope === "all" ? -1 : Number(dataScope),
+    salaryMonth: monthFilter || undefined,
+    status: statusFilter || undefined
   });
   const recycleQuery = useQuery({
     queryKey: ["salary-monthly", "recycle-bin"],
-    queryFn: () => getData<PageResult<Monthly>>("/salary/monthly", { page: 1, pageSize: 100, deleted: 1 }),
+    queryFn: () => getAllPages<Monthly>("/salary/monthly", { deleted: 1 }),
     enabled: recycleOpen
   });
   const rows = monthlyQuery.data?.records ?? [];
-  const visibleRows = rows.filter((row) => {
-    return (!monthFilter || row.salaryMonth.includes(monthFilter)) && (!statusFilter || row.status === statusFilter);
-  });
+  const visibleRows = rows;
   const totals = visibleRows.reduce(
     (sum, row) => ({
       employeeCount: sum.employeeCount + Number(row.totalEmployeeCount ?? 0),
@@ -248,6 +248,7 @@ export function SalaryMonthlyListPage() {
               </table>
             )}
           </div>
+          {monthlyQuery.pagination}
         </>
       ) : null}
 
@@ -255,13 +256,13 @@ export function SalaryMonthlyListPage() {
         {recycleQuery.isPending ? <RouteLoadingState /> : null}
         {recycleQuery.error ? <DataErrorState message={recycleQuery.error instanceof Error ? recycleQuery.error.message : undefined} onRetry={() => void recycleQuery.refetch()} /> : null}
         {!recycleQuery.isPending && !recycleQuery.error ? (
-          (recycleQuery.data?.records ?? []).length === 0 ? (
+          (recycleQuery.data ?? []).length === 0 ? (
             <div className="empty-state">回收站里还没有已删除的工资表。</div>
           ) : (
             <div className="table-wrap">
               <table>
                 <thead><tr><th>月份</th><th>标题</th><th>人数</th><th>实发</th><th>状态</th><th>操作</th></tr></thead>
-                <tbody>{(recycleQuery.data?.records ?? []).map((monthly) => (
+                <tbody>{(recycleQuery.data ?? []).map((monthly) => (
                   <tr key={monthly.id}>
                     <td>{monthly.salaryMonth}</td>
                     <td>{monthly.title}</td>

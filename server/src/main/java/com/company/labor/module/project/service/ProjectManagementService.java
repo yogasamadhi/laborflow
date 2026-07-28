@@ -3,7 +3,9 @@ package com.company.labor.module.project.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.module.project.domain.dto.FileAttachDTO;
 import com.company.labor.module.project.domain.dto.GenerateTeamSettlementDTO;
+import com.company.labor.module.project.domain.dto.DailyReportPricingPreviewDTO;
 import com.company.labor.module.project.domain.dto.ProjectActionDTO;
+import com.company.labor.module.project.domain.dto.VariationConfirmDTO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportDO;
 import com.company.labor.module.project.domain.entity.DailyWorkReportFileDO;
 import com.company.labor.module.project.domain.entity.MachineryEquipmentDO;
@@ -25,6 +27,11 @@ import com.company.labor.module.project.domain.entity.VariationOrderFileDO;
 import com.company.labor.module.project.domain.entity.WorkQuantityConfirmDO;
 import com.company.labor.module.project.domain.entity.WorkProcessDO;
 import com.company.labor.module.project.domain.vo.ProjectDashboardVO;
+import com.company.labor.module.project.domain.vo.BusinessFileVO;
+import com.company.labor.module.project.domain.vo.DailyReportPricingVO;
+import com.company.labor.module.project.domain.vo.DailyWorkReportDetailVO;
+import com.company.labor.module.project.domain.vo.TeamSettlementDetailVO;
+import com.company.labor.module.project.domain.vo.VariationOrderDetailVO;
 import java.util.List;
 import java.util.Set;
 
@@ -69,6 +76,8 @@ public interface ProjectManagementService {
     void deleteContractItem(Long id);
 
     Page<DailyWorkReportDO> dailyReports(long page, long pageSize, Long projectId, Long teamId, String status, Long createdBy);
+    DailyWorkReportDetailVO dailyReportDetail(Long id);
+    DailyReportPricingVO previewDailyReportPricing(DailyReportPricingPreviewDTO dto);
     DailyWorkReportDO saveDailyReport(DailyWorkReportDO report);
     DailyWorkReportDO updateDailyReport(Long id, DailyWorkReportDO report);
     void submitDailyReport(Long id);
@@ -76,25 +85,29 @@ public interface ProjectManagementService {
     void finalConfirmDailyReport(Long id, ProjectActionDTO dto);
     void rejectDailyReport(Long id, ProjectActionDTO dto);
     void attachDailyReportFile(Long id, FileAttachDTO dto);
+    void removeDailyReportFile(Long id, Long fileId);
     List<WorkQuantityConfirmDO> dailyReportConfirms(Long id);
-    List<DailyWorkReportFileDO> dailyReportFiles(Long id);
+    List<BusinessFileVO> dailyReportFiles(Long id);
     void requireDailyReportOwner(Long id, Long userId);
 
     Page<TeamSettlementDO> teamSettlements(long page, long pageSize, Long projectId, Long teamId, String settlementMonth);
+    TeamSettlementDetailVO teamSettlementDetail(Long id);
     TeamSettlementDO generateTeamSettlement(GenerateTeamSettlementDTO dto);
     void confirmTeamSettlement(Long id, ProjectActionDTO dto);
     void rejectTeamSettlement(Long id, ProjectActionDTO dto);
     void markTeamSettlementPaid(Long id, ProjectActionDTO dto);
 
     Page<VariationOrderDO> variationOrders(long page, long pageSize, Long projectId, String status, Long createdBy);
+    VariationOrderDetailVO variationOrderDetail(Long id);
     VariationOrderDO saveVariationOrder(VariationOrderDO order);
     VariationOrderDO updateVariationOrder(Long id, VariationOrderDO order);
     void submitVariationOrder(Long id);
-    void confirmVariationOrder(Long id, ProjectActionDTO dto);
+    void confirmVariationOrder(Long id, VariationConfirmDTO dto);
     void rejectVariationOrder(Long id, ProjectActionDTO dto);
     void attachVariationOrderFile(Long id, FileAttachDTO dto);
+    void removeVariationOrderFile(Long id, Long fileId);
     List<VariationOrderConfirmDO> variationOrderConfirms(Long id);
-    List<VariationOrderFileDO> variationOrderFiles(Long id);
+    List<BusinessFileVO> variationOrderFiles(Long id);
     void requireVariationOrderOwner(Long id, Long userId);
 
     Page<ProjectCostRecordDO> costRecords(long page, long pageSize, Long projectId);

@@ -73,10 +73,29 @@ function put(url, data, options) {
   return request(Object.assign({}, options, { url, data, method: "PUT" }));
 }
 
+function del(url, data, options) {
+  return request(Object.assign({}, options, { url, data, method: "DELETE" }));
+}
+
+async function getAllPages(url, data, options) {
+  const records = [];
+  let page = 1;
+  const pageSize = 20;
+  for (;;) {
+    const result = await get(url, Object.assign({}, data || {}, { page, pageSize }), options);
+    const pageRecords = result && Array.isArray(result.records) ? result.records : [];
+    records.push.apply(records, pageRecords);
+    if (pageRecords.length === 0 || records.length >= Number(result && result.total || 0)) return records;
+    page += 1;
+  }
+}
+
 module.exports = {
   request,
   get,
   post,
   put,
+  del,
+  getAllPages,
   recoverExpiredSession
 };

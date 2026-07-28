@@ -24,10 +24,10 @@
 
 | 编号 | 检查 | 实际结果 | 状态 | 证据 |
 | --- | --- | --- | --- | --- |
-| AUTO-01 | `mvn -f server/pom.xml test` | 126 tests，0 failures，0 errors，0 skipped；Docker/Testcontainers PostgreSQL 18 验证空库、V12→V23 升级及异常存量不阻塞 | pass | 2026-07-28 本地回归输出 |
+| AUTO-01 | `mvn -B -ntp -f server/pom.xml clean test` | 130 tests，0 failures，0 errors，0 skipped；Docker/Testcontainers PostgreSQL 18 验证空库、V12→V24 升级、废弃开发数据清理及财务历史保留；JaCoCo 报告已生成 | pass | 2026-07-28 本地回归输出 |
 | AUTO-02 | `npm --prefix web run typecheck && npm --prefix web run lint && npm --prefix web test -- --run && npm --prefix web run build` | typecheck、ESLint、Vitest 21 tests 和生产构建通过 | pass | 2026-07-28 本地回归输出；构建体积观察项见 OBS-001 |
 | AUTO-03 | `npm --prefix miniapp run check` | first-party JS 语法、ESLint 和 Node tests 19/19 通过 | pass | 2026-07-28 本地回归输出 |
-| AUTO-04 | `node scripts/ci/check-docs.mjs` | 43 个 Markdown 文件、23 个 Flyway 迁移及 `.env.example` 同步检查通过 | pass | 2026-07-28 本地回归输出 |
+| AUTO-04 | `node scripts/ci/check-docs.mjs` | 44 个 Markdown 文件、24 个 Flyway 迁移及 `.env.example` 同步检查通过 | pass | 2026-07-28 本地回归输出 |
 | AUTO-05 | Gitee Go PR workflow 与 required-status 分支保护 | workflow 文件存在；未取得远端导入、首次运行或保护规则已启用的证据 | blocked | GATE-003 |
 
 `pass` 仅表示该自动化命令的结果，不能替代真实角色业务流程、真实账号登录、设备权限、
@@ -40,8 +40,10 @@
 | UAT-01 月度工资生成、审核、发放与员工确认 | FINANCE、BOSS、EMPLOYEE、ADMIN | blocked | 未执行带脱敏夹具的跨角色流程；员工工资条确认依赖真实小程序账号流程 | 创建五类非生产账号与工资夹具，完成全部六步并保留脱敏记录 |
 | UAT-02 工程量日报到班组结算 | EMPLOYEE、MANAGER、FINANCE、ADMIN | blocked | 未执行项目成员/非成员越权、附件、确认、结算与审计抽查 | 准备项目夹具，完成五步并记录正向、越权和失败证据 |
 | UAT-03 签证变更收入闭环 | EMPLOYEE、MANAGER、BOSS/FINANCE、ADMIN | blocked | 未执行真实提交、附件、金额确认、收入查看与日志抽查 | 准备项目与附件夹具，完成五步并记录正向、越权和失败证据 |
+| UAT-04 绩效方案到工资计薪 | FINANCE、BOSS、ADMIN | blocked | 未用完整业务月执行方案权重、自动评分、人工覆盖、确认和工资来源核对 | 准备绩效基数与指标数据，执行完整业务月并由薪酬、财务签字 |
+| UAT-05 综合入口、分页和审计 | 五类角色 | blocked | 未执行角色化 Dashboard、成员失权、分页边界、附件和 ADMIN 日志抽查 | 用五类非生产账号完成角色隔离、分页、失败反馈与日志留痕验证 |
 
-2026-07-28 登记的八项 P0/P1 缺陷已完成工程修复和自动化复测，详见
+2026-07-28 登记的十五项 P0/P1 缺陷已完成工程修复和自动化复测，详见
 [`LAUNCH_ISSUES.md`](LAUNCH_ISSUES.md)，但仍为 `resolved` 而非 `closed`。上述人工流程与
 目标数据库存量复核未执行，不得据此宣称“无 P0/P1 未关闭缺陷”这一上线条件已被证明。
 
@@ -76,7 +78,7 @@
 
 1. 关闭或以正式范围变更批准 GATE-001 至 GATE-003；用户聊天中的“先不要管”不等同于
    缺陷策略要求的书面延期批准。
-2. 以非生产夹具执行 `UAT_CHECKLIST.md` 的 UAT-01 至 UAT-03，逐步记录角色、结果、证据
+2. 以非生产夹具执行 `UAT_CHECKLIST.md` 的 UAT-01 至 UAT-05，逐步记录角色、结果、证据
    位置、问题编号和复测结果。
 3. 完成小程序真实账号、上传、审批、工资确认、弱网、截图和录屏，或取得符合
    `LAUNCH_DEFECT_POLICY.md` 的书面范围延期批准。

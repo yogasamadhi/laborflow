@@ -7,7 +7,7 @@ import { DataErrorState, RouteLoadingState } from "../../../components/common/Ac
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, postData, uploadFile } from "../../../lib/axios";
+import { getAllPages, getData, postData, uploadFile } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import type { Employee } from "../../employee/types";
 
@@ -60,22 +60,22 @@ export function SalaryMonthlyPaymentPage() {
   });
   const detailsQuery = useQuery({
     queryKey: ["salary-payment", monthlyId],
-    queryFn: () => getData<PageResult<Detail>>(`/salary/monthly/${monthlyId}/details`, { page: 1, pageSize: 500 })
+    queryFn: () => getAllPages<Detail>(`/salary/monthly/${monthlyId}/details`)
   });
   const { data: employeesData } = useQuery({
     queryKey: ["employees", "salary-payment-options"],
-    queryFn: () => getData<PageResult<Employee>>("/employees", { page: 1, pageSize: 1000 })
+    queryFn: () => getAllPages<Employee>("/reference/employees")
   });
 
   const monthly = monthlyQuery.data;
-  const details = detailsQuery.data?.records ?? [];
+  const details = detailsQuery.data ?? [];
   const unpaidDetails = details.filter((detail) => detail.paymentStatus !== "paid");
   const paidDetails = details.filter((detail) => detail.paymentStatus === "paid");
   const selectedDetails = details.filter((detail) => selectedIds.includes(detail.id));
   const batchDetails = selectedDetails.length > 0 ? selectedDetails : unpaidDetails;
   const batchAmount = batchDetails.reduce((sum, detail) => sum + Number(detail.actualAmount ?? 0), 0);
   const paidAmount = paidDetails.reduce((sum, detail) => sum + Number(detail.actualAmount ?? 0), 0);
-  const employeeMap = useMemo(() => new Map((employeesData?.records ?? []).map((employee) => [employee.id, employee])), [employeesData]);
+  const employeeMap = useMemo(() => new Map((employeesData ?? []).map((employee) => [employee.id, employee])), [employeesData]);
   const canPay = monthly?.status === "approved";
   const coreError = monthlyQuery.error || detailsQuery.error;
   const isCorePending = monthlyQuery.isPending || detailsQuery.isPending;

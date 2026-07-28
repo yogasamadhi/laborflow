@@ -68,6 +68,7 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
         saveOrUpdate(profile);
 
         profileItemMapper.delete(new LambdaUpdateWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profile.getId()));
+        int performanceBaseCount = 0;
         if (dto.getItems() != null) {
             for (SalaryProfileItemDTO itemDTO : dto.getItems()) {
                 SalaryProfileItemDO item = new SalaryProfileItemDO();
@@ -80,6 +81,9 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
                     if (salaryItem != null) {
                         item.setSalaryItemName(salaryItem.getName());
                         item.setSalaryItemType(salaryItem.getType());
+                        if ("performance_base".equals(salaryItem.getCalculationRole())) {
+                            performanceBaseCount++;
+                        }
                     }
                 }
                 item.setAmount(itemDTO.getAmount() == null ? BigDecimal.ZERO : itemDTO.getAmount());
@@ -89,6 +93,9 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
                 }
                 profileItemMapper.insert(item);
             }
+        }
+        if (performanceBaseCount > 1) {
+            throw new BusinessException("每份工资档案最多配置一个绩效基数");
         }
         return profile;
     }

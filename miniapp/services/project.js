@@ -1,19 +1,19 @@
 const request = require("../utils/request");
 
 function projects(params) {
-  return request.get("/projects", Object.assign({ page: 1, pageSize: 100 }, params || {}));
+  return request.getAllPages("/projects", params || {});
 }
 
 function sections(projectId) {
-  return request.get("/projects/" + projectId + "/sections", { page: 1, pageSize: 100 });
+  return request.getAllPages("/projects/" + projectId + "/sections");
 }
 
 function workProcesses() {
-  return request.get("/work-processes", { page: 1, pageSize: 100, status: "active" });
+  return request.getAllPages("/work-processes", { status: "active" });
 }
 
 function teams() {
-  return request.get("/teams", { page: 1, pageSize: 100, status: "active" });
+  return request.getAllPages("/teams", { status: "active" });
 }
 
 function dailyReports(params) {
@@ -26,6 +26,18 @@ function myDailyReports(params) {
 
 function createDailyReport(data) {
   return request.post("/daily-work-reports", data);
+}
+
+function dailyReportDetail(id) {
+  return request.get("/daily-work-reports/" + id);
+}
+
+function contractItems(params) {
+  return request.getAllPages("/project-contract-items", Object.assign({ status: "active" }, params || {}));
+}
+
+function previewDailyReportPricing(data) {
+  return request.post("/daily-work-reports/pricing-preview", data);
 }
 
 function updateDailyReport(id, data) {
@@ -57,6 +69,10 @@ function dailyReportFiles(id) {
   return request.get("/daily-work-reports/" + id + "/files");
 }
 
+function removeDailyReportFile(id, fileId) {
+  return request.del("/daily-work-reports/" + id + "/files/" + fileId);
+}
+
 function variationOrders(params) {
   return request.get("/variation-orders", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
@@ -67,6 +83,10 @@ function myVariationOrders(params) {
 
 function createVariationOrder(data) {
   return request.post("/variation-orders", data);
+}
+
+function variationOrderDetail(id) {
+  return request.get("/variation-orders/" + id);
 }
 
 function updateVariationOrder(id, data) {
@@ -97,6 +117,10 @@ function variationFiles(id) {
   return request.get("/variation-orders/" + id + "/files");
 }
 
+function removeVariationFile(id, fileId) {
+  return request.del("/variation-orders/" + id + "/files/" + fileId);
+}
+
 function settlements(params) {
   return request.get("/team-settlements", Object.assign({ page: 1, pageSize: 20 }, params || {}));
 }
@@ -121,6 +145,9 @@ module.exports = {
   dailyReports,
   myDailyReports,
   createDailyReport,
+  dailyReportDetail,
+  contractItems,
+  previewDailyReportPricing,
   updateDailyReport,
   submitDailyReport,
   confirmDailyReport,
@@ -128,9 +155,11 @@ module.exports = {
   attachDailyReportFile,
   dailyReportConfirms,
   dailyReportFiles,
+  removeDailyReportFile,
   variationOrders,
   myVariationOrders,
   createVariationOrder,
+  variationOrderDetail,
   updateVariationOrder,
   submitVariationOrder,
   confirmVariationOrder,
@@ -138,6 +167,7 @@ module.exports = {
   attachVariationFile,
   variationConfirms,
   variationFiles,
+  removeVariationFile,
   settlements,
   confirmSettlement,
   rejectSettlement,

@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Page } from "../../../components/common/Page";
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
 import { Button } from "../../../components/ui/Button";
-import { getData, PageResult, putData } from "../../../lib/axios";
+import { getAllPages, putData } from "../../../lib/axios";
 import { employeeStatusText } from "../../../lib/utils";
 import type { Department } from "../../department/types";
 import type { Position } from "../../position/types";
@@ -14,20 +15,18 @@ import type { Employee } from "../types";
 export function EmployeeListPage() {
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState({ keyword: "", status: "", departmentId: "", positionId: "" });
-  const { data } = useQuery({
-    queryKey: ["employees", filters],
-    queryFn: () => getData<PageResult<Employee>>("/employees", { ...filters, page: 1, pageSize: 50 })
-  });
+  const listing = usePagedQuery<Employee>(["employees", filters], "/employees", filters);
+  const data = listing.data;
   const { data: departmentsData } = useQuery({
     queryKey: ["departments", "options"],
-    queryFn: () => getData<PageResult<Department>>("/departments", { page: 1, pageSize: 200, status: "active" })
+    queryFn: () => getAllPages<Department>("/departments", { status: "active" })
   });
   const { data: positionsData } = useQuery({
     queryKey: ["positions", "options", filters.departmentId],
-    queryFn: () => getData<PageResult<Position>>("/positions", { page: 1, pageSize: 200, status: "active", departmentId: filters.departmentId || undefined })
+    queryFn: () => getAllPages<Position>("/positions", { status: "active", departmentId: filters.departmentId || undefined })
   });
-  const departments = departmentsData?.records ?? [];
-  const positions = positionsData?.records ?? [];
+  const departments = departmentsData ?? [];
+  const positions = positionsData ?? [];
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => putData(`/employees/${id}/status`, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["employees"] })
@@ -89,8 +88,8 @@ export function EmployeeListPage() {
               <tr key={employee.id}>
                 <td><Link to={`/employees/${employee.id}`}>{employee.name}</Link></td>
                 <td>{employee.phone ?? "-"}</td>
-                <td>{employee.departmentName ?? employee.departmentId ?? "-"}</td>
-                <td>{employee.positionName ?? employee.positionId ?? "-"}</td>
+                <td>{employee.departmentName ?? (employee.departmentId ? "已删除部门" : "-")}</td>
+                <td>{employee.positionName ?? (employee.positionId ? "已删除岗位" : "-")}</td>
                 <td>{employee.employeeType}</td>
                 <td>
                   <span className={`badge ${employee.status === "active" ? "badge-green" : employee.status === "left" ? "badge-red" : "badge-yellow"}`}>
@@ -108,6 +107,7 @@ export function EmployeeListPage() {
           </tbody>
         </table>
       </div>
+      {listing.pagination}
     </Page>
   );
 }

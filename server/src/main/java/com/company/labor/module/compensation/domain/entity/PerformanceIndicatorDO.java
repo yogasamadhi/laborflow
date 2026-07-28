@@ -19,6 +19,9 @@ public class PerformanceIndicatorDO extends BaseDO {
     private String category;
     private BigDecimal scoreWeight;
     private String dataSource;
+    private String metricCode;
+    private String scoringDirection;
+    private BigDecimal targetValue;
     private String status;
     private String remark;
 }

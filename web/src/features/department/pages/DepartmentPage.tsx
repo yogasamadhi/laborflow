@@ -3,8 +3,9 @@ import { FormEvent, useMemo, useState } from "react";
 import { Field, SelectInput, TextInput } from "../../../components/common/Field";
 import { Modal } from "../../../components/common/Modal";
 import { Page } from "../../../components/common/Page";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
 import { Button } from "../../../components/ui/Button";
-import { deleteData, getData, PageResult, postData, putData } from "../../../lib/axios";
+import { deleteData, getAllPages, postData, putData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
 import type { Department } from "../types";
 
@@ -29,12 +30,15 @@ export function DepartmentPage() {
   const [form, setForm] = useState<DepartmentForm>(emptyForm);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data } = useQuery({
-    queryKey: ["departments", filters],
-    queryFn: () => getData<PageResult<Department>>("/departments", { ...filters, page: 1, pageSize: 200 })
+  const listing = usePagedQuery<Department>(["departments", filters], "/departments", filters);
+  const data = listing.data;
+  const allDepartments = useQuery({
+    queryKey: ["departments", "hierarchy-options"],
+    queryFn: () => getAllPages<Department>("/departments")
   });
   const rows = data?.records ?? [];
-  const departmentNameMap = useMemo(() => new Map(rows.map((item) => [item.id, item.name])), [rows]);
+  const departmentOptions = allDepartments.data ?? [];
+  const departmentNameMap = useMemo(() => new Map(departmentOptions.map((item) => [item.id, item.name])), [departmentOptions]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -93,6 +97,7 @@ export function DepartmentPage() {
           </SelectInput>
         </Field>
       </div>
+      {listing.pagination}
 
       <div className="panel table-wrap">
         <table>
@@ -143,7 +148,7 @@ export function DepartmentPage() {
             <Field label="上级部门">
               <SelectInput value={form.parentId} onChange={(event) => setForm({ ...form, parentId: event.target.value })}>
                 <option value="">无</option>
-                {rows.filter((item) => item.id !== form.id).map((item) => (
+                {departmentOptions.filter((item) => item.id !== form.id).map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </SelectInput>

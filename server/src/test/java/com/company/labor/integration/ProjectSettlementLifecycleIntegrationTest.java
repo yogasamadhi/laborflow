@@ -101,6 +101,34 @@ class ProjectSettlementLifecycleIntegrationTest {
                 "unitPrice", new BigDecimal("200.00"),
                 "status", "active"), token));
 
+        Map<String, Object> pricingRequest = Map.of(
+                "workDate", "2031-09-10",
+                "projectId", projectId,
+                "projectSectionId", sectionId,
+                "workProcessId", processId,
+                "completedQuantity", new BigDecimal("10.00"),
+                "unit", "m");
+        JsonNode singleCandidatePricing = post("/api/daily-work-reports/pricing-preview", pricingRequest, token).path("data");
+        assertThat(singleCandidatePricing.path("priced").asBoolean()).isTrue();
+        assertThat(singleCandidatePricing.path("selectionRequired").asBoolean()).isFalse();
+        assertThat(singleCandidatePricing.path("selectedContractItemId").asLong()).isEqualTo(contractItemId);
+        assertThat(singleCandidatePricing.path("outputValue").asDouble()).isEqualTo(2000.0);
+
+        post("/api/project-contract-items", Map.of(
+                "projectId", projectId,
+                "projectSectionId", sectionId,
+                "workProcessId", processId,
+                "itemCode", "E2E-002",
+                "itemName", "E2E alternative installation item",
+                "unit", "m",
+                "contractQuantity", new BigDecimal("100.00"),
+                "unitPrice", new BigDecimal("180.00"),
+                "status", "active"), token);
+        JsonNode ambiguousPricing = post("/api/daily-work-reports/pricing-preview", pricingRequest, token).path("data");
+        assertThat(ambiguousPricing.path("priced").asBoolean()).isFalse();
+        assertThat(ambiguousPricing.path("selectionRequired").asBoolean()).isTrue();
+        assertThat(ambiguousPricing.path("candidates")).hasSize(2);
+
         JsonNode report = post("/api/daily-work-reports", Map.of(
                 "workDate", "2031-09-10",
                 "projectId", projectId,
@@ -146,6 +174,28 @@ class ProjectSettlementLifecycleIntegrationTest {
                 "workerCount", 1,
                 "reporterName", "E2E Reporter"), token).path("data");
         assertThat(fallbackReport.path("outputValue").asDouble()).isEqualTo(10.0);
+
+        long unpricedProcessId = id(post("/api/work-processes", Map.of(
+                "name", "E2E Unpriced Work",
+                "unit", "m",
+                "sortOrder", 1001,
+                "status", "active"), token));
+        JsonNode unpricedReport = post("/api/daily-work-reports", Map.of(
+                "workDate", "2031-09-10",
+                "projectId", projectId,
+                "projectSectionId", sectionId,
+                "workProcessId", unpricedProcessId,
+                "completedQuantity", new BigDecimal("2.00"),
+                "unit", "m",
+                "workerCount", 1,
+                "reporterName", "E2E Reporter"), token).path("data");
+        assertThat(unpricedReport.path("status").asText()).isEqualTo("draft");
+        assertThat(unpricedReport.path("pricingStatus").asText()).isEqualTo("unpriced");
+        assertThat(unpricedReport.path("outputValue").asDouble()).isZero();
+        HttpResponse<String> unpricedSubmit = postRaw(
+                "/api/daily-work-reports/" + unpricedReport.path("id").asLong() + "/submit", null, token);
+        assertThat(unpricedSubmit.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        assertThat(objectMapper.readTree(unpricedSubmit.body()).path("message").asText()).contains("日报未定价");
 
         post("/api/daily-work-reports/" + reportId + "/submit", null, token);
         post("/api/daily-work-reports/" + reportId + "/pm-confirm", Map.of("remark", "E2E PM confirmation"), token);
@@ -205,6 +255,10 @@ class ProjectSettlementLifecycleIntegrationTest {
     }
 
     private JsonNode post(String path, Object payload, String token) throws Exception {
+        return readSuccess(postRaw(path, payload, token));
+    }
+
+    private HttpResponse<String> postRaw(String path, Object payload, String token) throws Exception {
         HttpRequest.Builder request = HttpRequest.newBuilder(uri(path));
         if (token != null) {
             request.header("Authorization", "Bearer " + token);
@@ -215,7 +269,7 @@ class ProjectSettlementLifecycleIntegrationTest {
             request.header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
         }
-        return readSuccess(httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString()));
+        return httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private JsonNode readSuccess(HttpResponse<String> response) throws Exception {

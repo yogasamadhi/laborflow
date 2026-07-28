@@ -11,6 +11,8 @@ import com.company.labor.module.compensation.domain.entity.ProjectBonusAllocatio
 import com.company.labor.module.compensation.domain.entity.ProjectBonusPoolDO;
 import com.company.labor.module.compensation.domain.entity.SalaryDeductionRecordDO;
 import com.company.labor.module.compensation.domain.vo.CompensationDashboardVO;
+import com.company.labor.module.compensation.domain.vo.PerformancePlanDetailVO;
+import com.company.labor.module.compensation.domain.vo.PerformanceScoreDetailVO;
 import com.company.labor.module.compensation.service.CompensationService;
 import com.company.labor.security.RoleExpressions;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 import static com.company.labor.common.util.RequestCopyUtils.copy;
 
@@ -104,13 +107,30 @@ public class CompensationController {
     }
 
     @PostMapping("/plans")
-    public Result<PerformancePlanDO> savePlan(@Valid @RequestBody CompensationWriteDTO.PerformancePlanRequest dto) {
-        return Result.success(service.savePlan(copy(dto, PerformancePlanDO.class)));
+    public Result<PerformancePlanDetailVO> savePlan(@Valid @RequestBody CompensationWriteDTO.PerformancePlanRequest dto) {
+        return Result.success(service.savePlan(copy(dto, PerformancePlanDO.class), dto.getIndicatorIds()));
     }
 
     @PutMapping("/plans/{id}")
-    public Result<PerformancePlanDO> updatePlan(@PathVariable Long id, @Valid @RequestBody CompensationWriteDTO.PerformancePlanRequest dto) {
-        return Result.success(service.updatePlan(id, copy(dto, PerformancePlanDO.class)));
+    public Result<PerformancePlanDetailVO> updatePlan(@PathVariable Long id, @Valid @RequestBody CompensationWriteDTO.PerformancePlanRequest dto) {
+        return Result.success(service.updatePlan(id, copy(dto, PerformancePlanDO.class), dto.getIndicatorIds()));
+    }
+
+    @GetMapping("/plans/{id}")
+    public Result<PerformancePlanDetailVO> planDetail(@PathVariable Long id) {
+        return Result.success(service.planDetail(id));
+    }
+
+    @PostMapping("/plans/{id}/activate")
+    public Result<Void> activatePlan(@PathVariable Long id) {
+        service.activatePlan(id);
+        return Result.success();
+    }
+
+    @PostMapping("/plans/{id}/close")
+    public Result<Void> closePlan(@PathVariable Long id) {
+        service.closePlan(id);
+        return Result.success();
     }
 
     @GetMapping("/scores")
@@ -122,14 +142,28 @@ public class CompensationController {
         return Result.success(PageResult.of(service.scores(page, pageSize, month, employeeId, projectId)));
     }
 
-    @PostMapping("/scores")
-    public Result<PerformanceScoreDO> saveScore(@Valid @RequestBody CompensationWriteDTO.PerformanceScoreRequest dto) {
-        return Result.success(service.saveScore(copy(dto, PerformanceScoreDO.class)));
+    @PostMapping("/plans/{id}/scores/generate")
+    public Result<List<PerformanceScoreDetailVO>> generateScores(
+            @PathVariable Long id,
+            @Valid @RequestBody CompensationWriteDTO.PerformanceScoreGenerateRequest dto) {
+        return Result.success(service.generateScores(id, dto.getEmployeeIds()));
+    }
+
+    @GetMapping("/scores/{id}")
+    public Result<PerformanceScoreDetailVO> scoreDetail(@PathVariable Long id) {
+        return Result.success(service.scoreDetail(id));
     }
 
     @PutMapping("/scores/{id}")
-    public Result<PerformanceScoreDO> updateScore(@PathVariable Long id, @Valid @RequestBody CompensationWriteDTO.PerformanceScoreRequest dto) {
-        return Result.success(service.updateScore(id, copy(dto, PerformanceScoreDO.class)));
+    public Result<PerformanceScoreDetailVO> updateScore(
+            @PathVariable Long id,
+            @Valid @RequestBody CompensationWriteDTO.PerformanceScoreUpdateRequest dto) {
+        return Result.success(service.updateScore(id, dto));
+    }
+
+    @PostMapping("/scores/{id}/refresh")
+    public Result<PerformanceScoreDetailVO> refreshScore(@PathVariable Long id) {
+        return Result.success(service.refreshScore(id));
     }
 
     @PostMapping("/scores/{id}/confirm")

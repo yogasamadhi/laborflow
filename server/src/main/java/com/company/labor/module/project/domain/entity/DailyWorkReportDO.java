@@ -24,6 +24,10 @@ public class DailyWorkReportDO extends BaseDO {
     private String unit;
     private BigDecimal outputValue;
     private String pricingBasis;
+    private String pricingStatus;
+    private String pricingSourceType;
+    private Long pricingSourceId;
+    private BigDecimal unitPriceSnapshot;
     private Long teamId;
     private Integer workerCount;
     private String machineryUsage;

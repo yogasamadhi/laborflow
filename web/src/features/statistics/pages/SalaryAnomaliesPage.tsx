@@ -57,7 +57,7 @@ export function SalaryAnomaliesPage() {
                 <tbody>{anomalies.map((item, index) => <tr key={`${item.anomalyKey}-${index}`}>
                   <td><span className={item.level === "danger" ? "badge badge-red" : "badge badge-yellow"}>{item.level}</span></td>
                   <td>{item.salaryMonth ?? "-"}</td>
-                  <td>{item.employeeName ?? item.employeeId ?? "-"}</td>
+                  <td>{item.employeeName ?? "未关联员工"}</td>
                   <td>{item.message}</td>
                   <td>{item.actualAmount == null ? "-" : money(item.actualAmount)}</td>
                   <td>{item.compareAmount == null ? "-" : money(item.compareAmount)}</td>
@@ -80,7 +80,7 @@ export function SalaryAnomaliesPage() {
           pending={handle.isPending}
           onClose={() => { if (!handle.isPending) setPendingHandling(null); }}
           onConfirm={() => handle.mutate(pendingHandling)}
-          summary={<><strong>{pendingHandling.item.employeeName ?? pendingHandling.item.employeeId ?? "未关联员工"}</strong><span>{pendingHandling.item.salaryMonth ?? "-"}</span><span>{pendingHandling.item.message}</span></>}
+          summary={<><strong>{pendingHandling.item.employeeName ?? "未关联员工"}</strong><span>{pendingHandling.item.salaryMonth ?? "-"}</span><span>{pendingHandling.item.message}</span></>}
         >
           <Field label="处理备注">
             <TextArea value={pendingHandling.remark} onChange={(event) => setPendingHandling({ ...pendingHandling, remark: event.target.value })} placeholder="说明核对结果、忽略原因或需要调整的事项" />

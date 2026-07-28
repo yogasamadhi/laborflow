@@ -67,7 +67,7 @@ class AccessControlIntegrationTest {
         Map<String, Long> roleIds = roleIds(adminToken);
         long employeeA = createEmployee("Access E2E Employee A", adminToken);
         long employeeB = createEmployee("Access E2E Employee B", adminToken);
-        long userA = createUser("access_e2e_employee_a", "access-e2e-employee-a-password", employeeA, roleIds.get("EMPLOYEE"), adminToken);
+        createUser("access_e2e_employee_a", "access-e2e-employee-a-password", employeeA, roleIds.get("EMPLOYEE"), adminToken);
         createUser("access_e2e_employee_b", "access-e2e-employee-b-password", employeeB, roleIds.get("EMPLOYEE"), adminToken);
         createUser("access_e2e_finance", "access-e2e-finance-password", null, roleIds.get("FINANCE"), adminToken);
         createUser("access_e2e_manager", "access-e2e-manager-password", null, roleIds.get("MANAGER"), adminToken);
@@ -77,9 +77,29 @@ class AccessControlIntegrationTest {
                 "contractAmount", new BigDecimal("10000.00"),
                 "status", "in_progress"), adminToken));
         jdbcTemplate.update("""
-                INSERT INTO project_member (id, project_id, user_id, employee_id, role_name, status, deleted)
-                VALUES (?, ?, ?, ?, '现场成员', 'active', 0)
-                """, 9_200_001L, projectId, userA, employeeA);
+                INSERT INTO project_member (id, project_id, employee_id, role_name, status, deleted)
+                VALUES (?, ?, ?, '现场成员', 'active', 0)
+                """, 9_200_001L, projectId, employeeA);
+        JsonNode member = get("/api/project-members?projectId=" + projectId + "&keyword=Employee+A", adminToken)
+                .path("data").path("records").get(0);
+        assertThat(member.path("employeeId").asLong()).isEqualTo(employeeA);
+        assertThat(member.path("employeeName").asText()).isEqualTo("Access E2E Employee A");
+        assertThat(member.path("employeeStatus").asText()).isEqualTo("active");
+        assertThat(member.path("joinedAt").asText()).isNotBlank();
+        assertThat(member.has("userId")).isFalse();
+        assertThat(member.has("deleted")).isFalse();
+        assertError(postRaw("/api/project-members", objectMapper.writeValueAsString(Map.of(
+                "projectId", projectId,
+                "employeeId", employeeA,
+                "roleName", "重复成员",
+                "status", "active")), adminToken), HttpStatus.BAD_REQUEST, "已是项目成员");
+
+        JsonNode referenceEmployee = get("/api/reference/employees?keyword=Access+E2E+Employee+A", adminToken)
+                .path("data").path("records").get(0);
+        assertThat(referenceEmployee.path("name").asText()).isEqualTo("Access E2E Employee A");
+        assertThat(referenceEmployee.has("phone")).isFalse();
+        assertThat(referenceEmployee.has("idCardNo")).isFalse();
+        assertThat(referenceEmployee.has("bankAccount")).isFalse();
 
         createProfile(employeeA, adminToken);
         createProfile(employeeB, adminToken);
@@ -101,6 +121,15 @@ class AccessControlIntegrationTest {
         assertError(getRaw("/api/salary/details/" + detailIds.get(employeeB), employeeAToken), HttpStatus.BAD_REQUEST, "无权查看该工资明细");
         assertError(getRaw("/api/system/users", employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
         assertError(getRaw("/api/salary/monthly/" + monthlyId + "/export", employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
+        assertError(getRaw("/api/project-members?page=1&pageSize=20", employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
+        assertError(getRaw("/api/reference/employees?page=1&pageSize=20", employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
+        JsonNode employeeDashboard = get("/api/dashboard/overview?month=2031-12", employeeAToken).path("data");
+        assertThat(employeeDashboard.path("capabilities").path("employeeHandoff").asBoolean()).isTrue();
+        assertThat(employeeDashboard.path("capabilities").path("salary").asBoolean()).isFalse();
+        assertThat(employeeDashboard.path("salary").isMissingNode() || employeeDashboard.path("salary").isNull()).isTrue();
+        assertThat(employeeDashboard.path("projects").isMissingNode() || employeeDashboard.path("projects").isNull()).isTrue();
+        assertThat(get("/api/todos?page=1&pageSize=20", employeeAToken)
+                .path("data").path("records")).isEmpty();
         List<String> projectManageReadPaths = List.of(
                 "/api/machinery-equipments?page=1&pageSize=20",
                 "/api/machinery-work-records?page=1&pageSize=20",
@@ -124,11 +153,17 @@ class AccessControlIntegrationTest {
                 "estimatedAmount", new BigDecimal("100.00"))), employeeBToken), HttpStatus.BAD_REQUEST, "无权访问该项目");
 
         String financeToken = login("access_e2e_finance", "access-e2e-finance-password");
+        JsonNode financeDashboard = get("/api/dashboard/overview?month=2031-12", financeToken).path("data");
+        assertThat(financeDashboard.path("capabilities").path("salary").asBoolean()).isTrue();
+        assertThat(financeDashboard.path("capabilities").path("projects").asBoolean()).isTrue();
+        assertThat(financeDashboard.path("capabilities").path("compensation").asBoolean()).isTrue();
         assertError(postRaw("/api/salary/monthly/" + monthlyId + "/approve", "{}", financeToken), HttpStatus.FORBIDDEN, "无权操作");
         for (String path : projectManageReadPaths) {
             assertError(getRaw(path, financeToken), HttpStatus.FORBIDDEN, "无权操作");
         }
         String managerToken = login("access_e2e_manager", "access-e2e-manager-password");
+        assertThat(get("/api/dashboard/overview?month=2031-12", managerToken)
+                .path("data").path("capabilities").path("projects").asBoolean()).isTrue();
         assertError(getRaw("/api/salary/monthly", managerToken), HttpStatus.FORBIDDEN, "无权操作");
         for (String path : projectManageReadPaths) {
             get(path, managerToken);

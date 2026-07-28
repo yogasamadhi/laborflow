@@ -23,25 +23,25 @@
 | Gate | 条件 | 状态 | 实际证据与结论 |
 | --- | --- | --- | --- |
 | G2A 上线范围冻结 | 范围、角色矩阵、验收清单和已知延期项成文 | pass | `LAUNCH_SCOPE.md`、角色矩阵、UAT 清单、角色手册和缺陷策略已在库；L2-27-01 已完成 |
-| G2B 回归体系可用 | 后端、Web、小程序、文档、权限与迁移有可执行入口 | pass-local / blocked-remote | 本地后端 126、Web 21、小程序 19、文档/23 migrations 通过；Gitee Go 远端导入、首跑和 required-status 保护未证实，见 GATE-003 |
-| G2C 业务 UAT | 五类角色关键场景通过并留痕 | blocked | UAT-01 至 UAT-03 及五类角色签字均未执行；没有非生产夹具、业务证据或签字，见 GATE-001 |
+| G2B 回归体系可用 | 后端、Web、小程序、文档、权限与迁移有可执行入口 | pass-local / blocked-remote | 本地后端 130、Web 21、小程序 19、文档/24 migrations 通过；Gitee Go 远端导入、首跑和 required-status 保护未证实，见 GATE-003 |
+| G2C 业务 UAT | 五类角色关键场景通过并留痕 | blocked | UAT-01 至 UAT-05 及五类角色签字均未执行；没有非生产夹具、业务证据或签字，见 GATE-001 |
 | G2D 体验验收 | Web 与小程序关键流程的状态、响应式、错误反馈和可访问性验收 | blocked | 字符串雪花 ID 和表单工程修复已自动化复测；真实登录、上传、审批、工资确认、弱网、截图和录屏尚未执行，见 GATE-001、GATE-002 |
-| G3 非部署正式上线就绪 | 必需条件满足、无 P0/P1 未关闭缺陷、延期有效 | not-approved | 八项 P0/P1 已完成工程修复但仍为 `resolved`；G2C/G2D、目标库审计和 GATE-003 未通过 |
+| G3 非部署正式上线就绪 | 必需条件满足、无 P0/P1 未关闭缺陷、延期有效 | not-approved | 十五项 P0/P1 已完成工程修复但仍为 `resolved`；G2C/G2D、目标库审计和 GATE-003 未通过 |
 
 ## 3. 自动化回归证据
 
 | 检查 | 结果 | 覆盖说明 |
 | --- | --- | --- |
-| 后端 Maven | pass，126 tests | Testcontainers PostgreSQL 18、23 个 Flyway 迁移、空库、V12 升级、异常存量、工资/项目/权限/文件/审计回归 |
-| Web | pass，typecheck、ESLint、Vitest 7 files / 21 tests、production build | 工资实发只读计算与项目施工段过滤完成；生产构建通过 |
-| 小程序 | pass，19 Node tests | JS 语法、ESLint、字符串雪花 ID、缓存、服务契约和失败恢复；不覆盖真实账号流程 |
-| 文档和迁移 | pass，43 Markdown / 23 migrations | 本地链接、Flyway 命名、版本和 `.env.example` 同步检查 |
+| 后端 Maven | pass，130 tests | Testcontainers PostgreSQL 18、24 个 Flyway 迁移、空库、V12 升级、废弃开发数据清理、财务历史、工资/绩效/定价/权限/文件/审计回归；JaCoCo 报告已生成 |
+| Web | pass，typecheck、ESLint、Vitest 7 files / 21 tests、production build | 绩效、成员、Dashboard、日志、附件、分页与工资流程完成；生产构建通过 |
+| 小程序 | pass，19 Node tests | JS 语法、ESLint、字符串雪花 ID、现场分页、服务契约和失败恢复；不覆盖真实账号流程 |
+| 文档和迁移 | pass，44 Markdown / 24 migrations | 本地链接、Flyway 命名、版本和 `.env.example` 同步检查 |
 
 所有命令的详细状态和不能替代的人工范围见 [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md)。
 
 ## 4. 阻断项与解除条件
 
-1. **GATE-001：完整跨角色 UAT 和签字。** 建立脱敏非生产夹具，执行 UAT-01 至 UAT-03，
+1. **GATE-001：完整跨角色 UAT 和签字。** 建立脱敏非生产夹具，执行 UAT-01 至 UAT-05，
    覆盖正向、越权、失败与审计路径，逐项记录并完成业务、财务、项目、现场和 QA 签字。
 2. **GATE-002：小程序真实账号和体验证据。** 完成真实登录/绑定、日报与签证上传、待办、
    工资确认、弱网、重复点击、多视口和截图/录屏；或者按缺陷策略取得书面范围延期批准。

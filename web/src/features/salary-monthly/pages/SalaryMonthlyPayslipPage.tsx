@@ -6,7 +6,7 @@ import { DataErrorState, RouteLoadingState } from "../../../components/common/Ac
 import { Field, SelectInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { downloadFile, getData, PageResult } from "../../../lib/axios";
+import { downloadFile, getAllPages } from "../../../lib/axios";
 import type { Employee } from "../../employee/types";
 
 type Detail = { id: string; employeeId: string; paymentStatus: string };
@@ -20,14 +20,14 @@ export function SalaryMonthlyPayslipPage() {
   const [success, setSuccess] = useState("");
   const detailsQuery = useQuery({
     queryKey: ["salary-payslip-details", monthlyId],
-    queryFn: () => getData<PageResult<Detail>>(`/salary/monthly/${monthlyId}/details`, { page: 1, pageSize: 500 })
+    queryFn: () => getAllPages<Detail>(`/salary/monthly/${monthlyId}/details`)
   });
   const employeesQuery = useQuery({
     queryKey: ["employees", "salary-payslip-options"],
-    queryFn: () => getData<PageResult<Employee>>("/employees", { page: 1, pageSize: 1000 })
+    queryFn: () => getAllPages<Employee>("/reference/employees")
   });
-  const employeeMap = useMemo(() => new Map((employeesQuery.data?.records ?? []).map((employee) => [employee.id, employee])), [employeesQuery.data]);
-  const records = detailsQuery.data?.records ?? [];
+  const employeeMap = useMemo(() => new Map((employeesQuery.data ?? []).map((employee) => [employee.id, employee])), [employeesQuery.data]);
+  const records = detailsQuery.data ?? [];
 
   async function exportPayslips() {
     setIsExporting(true);
@@ -58,7 +58,7 @@ export function SalaryMonthlyPayslipPage() {
                   <option value="">全部员工（{records.length} 人）</option>
                   {records.map((detail) => {
                     const employee = employeeMap.get(detail.employeeId);
-                    return <option key={detail.id} value={detail.employeeId}>{employee ? `${employee.name} / ${employee.id}` : `员工 ID：${detail.employeeId}`}</option>;
+                    return <option key={detail.id} value={detail.employeeId}>{employee ? employee.name : "员工记录已删除"}</option>;
                   })}
                 </SelectInput>
               </Field>

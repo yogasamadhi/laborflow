@@ -21,6 +21,8 @@ public final class SalaryWriteDTO {
         @Pattern(regexp = "earning|deduction", message = "工资项类型只能为 earning 或 deduction")
         private String type;
         private Integer isFixed;
+        @Pattern(regexp = "fixed_component|performance_base", message = "工资项计算角色不合法")
+        private String calculationRole;
         private Integer sortOrder;
         @Pattern(regexp = "active|inactive", message = "工资项状态不合法")
         private String status;

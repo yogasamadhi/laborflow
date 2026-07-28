@@ -57,14 +57,16 @@ public class SalaryMonthlyController {
     public Result<PageResult<SalaryMonthlyDO>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
-            @RequestParam(required = false, defaultValue = "0") Integer deleted) {
+            @RequestParam(required = false, defaultValue = "0") Integer deleted,
+            @RequestParam(required = false) String salaryMonth,
+            @RequestParam(required = false) String status) {
         int deletedFilter = deleted == null ? 0 : deleted;
         long currentPage = Math.max(page, 1);
         long size = Math.max(pageSize, 1);
         long offset = (currentPage - 1) * size;
         return Result.success(new PageResult<>(
-                monthlyMapper.selectPageIncludingDeleted(deletedFilter, size, offset),
-                monthlyMapper.countIncludingDeleted(deletedFilter),
+                monthlyMapper.selectPageIncludingDeleted(deletedFilter, salaryMonth, status, size, offset),
+                monthlyMapper.countIncludingDeleted(deletedFilter, salaryMonth, status),
                 currentPage,
                 size));
     }

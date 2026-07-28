@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   workDate: "",
   projectId: "",
   projectSectionId: "",
+  contractItemId: "",
   workProcessId: "",
   completedQuantity: "",
   unit: "",
@@ -27,6 +28,8 @@ Page({
     sectionNames: [],
     processes: [],
     processNames: [],
+    contractItems: [],
+    contractItemNames: [],
     teams: [],
     teamNames: [],
     sectionsLoading: false,
@@ -36,6 +39,7 @@ Page({
     projectText: "请选择项目",
     sectionText: "请选择施工段",
     processText: "请选择工序",
+    contractItemText: "自动匹配",
     teamText: "请选择班组",
     editId: "",
     pageTitle: "现场填报",
@@ -49,14 +53,16 @@ Page({
     draftRestored: false,
     draftCleared: false,
     draftScope: "anonymous"
+    ,
+    pricing: null,
+    pricingLoading: false,
+    pricingText: "填写业务数据后预览价格",
+    canSubmit: false
   },
 
   onLoad(query) {
     const editId = query && query.editId ? query.editId : "";
-    // Read the edit payload passed from the list page, then clear it so stale
-    // data does not linger if the user navigates away and back later.
-    const editRecord = editId ? wx.getStorageSync("laborflow_edit_report") : null;
-    if (editId && editRecord) wx.removeStorageSync("laborflow_edit_report");
+    const editRecord = null;
     const user = auth.getUser();
     if (!user || !user.userId) {
       wx.reLaunch({ url: "/pages/login/index" });
@@ -109,6 +115,8 @@ Page({
       });
       if (this.data.editRecord) {
         this.applyEditRecord(this.data.editRecord);
+      } else if (this.data.editId) {
+        await this.loadEditDetail();
       }
     } catch (error) {
       wx.showToast({ title: error.message, icon: "none" });
@@ -117,30 +125,57 @@ Page({
     }
   },
 
+  async loadEditDetail() {
+    const detail = await project.dailyReportDetail(this.data.editId);
+    const record = Object.assign({}, detail.report, {
+      projectName: detail.projectName,
+      sectionName: detail.sectionName,
+      workProcessName: detail.workProcessName,
+      teamName: detail.teamName
+    });
+    const uploadedFiles = (detail.files || []).filter((binding) => binding.file).map((binding) => binding.file);
+    await new Promise((resolve) => this.setData({
+      editRecord: record,
+      uploadedFiles,
+      attachedFileIds: uploadedFiles.map((item) => String(item.id)),
+      photoCount: uploadedFiles.length,
+      uploadText: uploadedFiles.length ? "已加载 " + uploadedFiles.length + " 个已有附件" : "尚未添加现场照片"
+    }, resolve));
+    this.applyEditRecord(record);
+  },
+
   applyEditRecord(record) {
     const projectItem = this.data.projects.find((item) => String(item.id) === String(record.projectId));
     const processItem = this.data.processes.find((item) => String(item.id) === String(record.workProcessId));
     const teamItem = this.data.teams.find((item) => String(item.id) === String(record.teamId));
     this.setData({
       form: Object.assign({}, EMPTY_FORM, record, { workDate: record.workDate || format.today() }),
-      projectText: projectItem ? projectItem.name : record.projectId ? "项目 #" + record.projectId : "请选择项目",
-      sectionText: record.projectSectionId ? "施工段 #" + record.projectSectionId : "请选择施工段",
-      processText: processItem ? processItem.name : record.workProcessId ? "工序 #" + record.workProcessId : "请选择工序",
-      teamText: teamItem ? teamItem.name : record.teamId ? "班组 #" + record.teamId : "请选择班组"
+      projectText: projectItem ? projectItem.name : (record.projectName || "项目不可用"),
+      sectionText: record.sectionName || (record.projectSectionId ? "施工段不可用" : "请选择施工段"),
+      processText: processItem ? processItem.name : (record.workProcessName || "工序不可用"),
+      teamText: teamItem ? teamItem.name : (record.teamName || (record.teamId ? "班组不可用" : "请选择班组"))
     });
     if (record.projectId) {
       this.loadSections(record.projectId);
+      this.loadContractItems(record.projectId);
     }
+    this.refreshPricing();
   },
 
   onInput(event) {
     const key = event.currentTarget.dataset.key;
     const value = event.detail && event.detail.value !== undefined ? event.detail.value : event.detail;
-    this.setData({ ["form." + key]: value, draftCleared: false }, () => this.persistLocalDraft());
+    this.setData({ ["form." + key]: value, draftCleared: false }, () => {
+      this.persistLocalDraft();
+      if (key === "completedQuantity" || key === "unit") this.refreshPricing();
+    });
   },
 
   onDateChange(event) {
-    this.setData({ "form.workDate": event.detail.value, draftCleared: false }, () => this.persistLocalDraft());
+    this.setData({ "form.workDate": event.detail.value, draftCleared: false }, () => {
+      this.persistLocalDraft();
+      this.refreshPricing();
+    });
   },
 
   onProjectChange(event) {
@@ -148,13 +183,33 @@ Page({
     this.setData({
       "form.projectId": item.id,
       "form.projectSectionId": "",
-      projectText: item.name || "项目 #" + item.id,
+      projectText: item.name || "项目名称缺失",
       sectionText: "请选择施工段",
       sections: [],
       sectionNames: [],
+      contractItems: [],
+      contractItemNames: [],
+      "form.contractItemId": "",
+      contractItemText: "自动匹配",
       draftCleared: false
     }, () => this.persistLocalDraft());
     this.loadSections(item.id);
+    this.loadContractItems(item.id);
+  },
+
+  async loadContractItems(projectId) {
+    try {
+      const result = await project.contractItems({ projectId });
+      const rows = format.pageRecords(result);
+      const selected = rows.find((item) => String(item.id) === String(this.data.form.contractItemId));
+      this.setData({
+        contractItems: rows,
+        contractItemNames: ["自动匹配"].concat(rows.map((item) => (item.itemCode ? item.itemCode + " / " : "") + item.itemName)),
+        contractItemText: selected ? ((selected.itemCode ? selected.itemCode + " / " : "") + selected.itemName) : "自动匹配"
+      });
+    } catch (error) {
+      wx.showToast({ title: error.message || "合同清单加载失败", icon: "none" });
+    }
   },
 
   async loadSections(projectId) {
@@ -177,7 +232,26 @@ Page({
 
   onSectionChange(event) {
     const item = this.data.sections[Number(event.detail.value)];
-    this.setData({ "form.projectSectionId": item.id, sectionText: item.name || "施工段 #" + item.id, draftCleared: false }, () => this.persistLocalDraft());
+    this.setData({ "form.projectSectionId": item.id, sectionText: item.name || "施工段名称缺失", draftCleared: false }, () => {
+      this.persistLocalDraft();
+      this.refreshPricing();
+    });
+  },
+
+  onContractItemChange(event) {
+    const index = Number(event.detail.value);
+    const item = index > 0 ? this.data.contractItems[index - 1] : null;
+    this.setData({
+      "form.contractItemId": item ? item.id : "",
+      contractItemText: item ? ((item.itemCode ? item.itemCode + " / " : "") + item.itemName) : "自动匹配",
+      "form.projectSectionId": item && item.projectSectionId ? item.projectSectionId : this.data.form.projectSectionId,
+      "form.workProcessId": item && item.workProcessId ? item.workProcessId : this.data.form.workProcessId,
+      "form.unit": item && item.unit ? item.unit : this.data.form.unit,
+      draftCleared: false
+    }, () => {
+      this.persistLocalDraft();
+      this.refreshPricing();
+    });
   },
 
   onProcessChange(event) {
@@ -185,14 +259,17 @@ Page({
     this.setData({
       "form.workProcessId": item.id,
       "form.unit": item.unit || this.data.form.unit,
-      processText: item.name || "工序 #" + item.id,
+      processText: item.name || "工序名称缺失",
       draftCleared: false
-    }, () => this.persistLocalDraft());
+    }, () => {
+      this.persistLocalDraft();
+      this.refreshPricing();
+    });
   },
 
   onTeamChange(event) {
     const item = this.data.teams[Number(event.detail.value)];
-    this.setData({ "form.teamId": item.id, teamText: item.name || "班组 #" + item.id, draftCleared: false }, () => this.persistLocalDraft());
+    this.setData({ "form.teamId": item.id, teamText: item.name || "班组名称缺失", draftCleared: false }, () => this.persistLocalDraft());
   },
 
   async uploadPhotos() {
@@ -231,21 +308,58 @@ Page({
     }
   },
 
-  removePhoto(event) {
+  async removePhoto(event) {
     if (this.isBusy()) return;
     const index = Number(event.currentTarget.dataset.index);
     const removed = this.data.uploadedFiles[index];
-    if (removed && this.data.attachedFileIds.some((fileId) => String(fileId) === String(removed.id))) {
-      wx.showToast({ title: "该照片已保存到服务器，不能在此页移除", icon: "none" });
-      return;
+    if (removed && this.data.editId && this.data.attachedFileIds.some((fileId) => String(fileId) === String(removed.id))) {
+      try {
+        await project.removeDailyReportFile(this.data.editId, removed.id);
+      } catch (error) {
+        wx.showToast({ title: error.message || "附件移除失败", icon: "none" });
+        return;
+      }
     }
     const uploadedFiles = this.data.uploadedFiles.filter((item, itemIndex) => itemIndex !== index);
     this.setData({
       uploadedFiles,
+      attachedFileIds: this.data.attachedFileIds.filter((fileId) => !removed || String(fileId) !== String(removed.id)),
       photoCount: uploadedFiles.length,
       uploadText: uploadedFiles.length ? "已保留 " + uploadedFiles.length + " 张照片" : "尚未添加现场照片",
       draftCleared: false
     }, () => this.persistLocalDraft());
+  },
+
+  async refreshPricing() {
+    const form = this.data.form;
+    if (!form.workDate || !form.projectId || !form.projectSectionId || !form.workProcessId || !form.unit || form.completedQuantity === "") {
+      this.setData({ pricing: null, pricingText: "填写日期、项目、施工段、工序、数量和单位后预览价格", canSubmit: false });
+      return null;
+    }
+    this.setData({ pricingLoading: true });
+    try {
+      const pricing = await project.previewDailyReportPricing({
+        workDate: form.workDate,
+        projectId: form.projectId,
+        projectSectionId: form.projectSectionId,
+        contractItemId: form.contractItemId || null,
+        workProcessId: form.workProcessId,
+        completedQuantity: Number(form.completedQuantity),
+        unit: String(form.unit).trim()
+      });
+      const pricingText = pricing.selectionRequired
+        ? "匹配到多个合同清单项，请明确选择"
+        : pricing.priced
+          ? (pricing.basis || "已定价") + "；单价 " + format.money(pricing.unitPrice) + "；预计产值 " + format.money(pricing.outputValue)
+          : "当前日期没有有效价格：可保存草稿，但不能提交";
+      this.setData({ pricing, pricingText, canSubmit: !!pricing.priced && !pricing.selectionRequired });
+      return pricing;
+    } catch (error) {
+      this.setData({ pricing: null, pricingText: error.message || "定价预览失败", canSubmit: false });
+      return null;
+    } finally {
+      this.setData({ pricingLoading: false });
+    }
   },
 
   validate() {
@@ -263,6 +377,7 @@ Page({
       workDate: form.workDate,
       projectId: form.projectId,
       projectSectionId: form.projectSectionId,
+      contractItemId: form.contractItemId || null,
       workProcessId: form.workProcessId,
       completedQuantity: Number(form.completedQuantity),
       unit: String(form.unit).trim(),
@@ -349,6 +464,10 @@ Page({
     }
     this.setData(action === "submit" ? { submitting: true } : { saving: true });
     try {
+      if (action === "submit") {
+        const pricing = await this.refreshPricing();
+        if (!pricing || !pricing.priced || pricing.selectionRequired) throw new Error("日报尚未完成有效定价，只能保存草稿");
+      }
       const saved = await this.saveRemoteDraft();
       const reportId = (saved && saved.id) || this.data.editId;
       await this.attachPendingFiles(reportId);

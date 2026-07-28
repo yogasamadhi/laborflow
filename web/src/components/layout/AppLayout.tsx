@@ -41,6 +41,7 @@ const groups = [
     title: "项目经营",
     links: [
       { to: "/projects", label: "项目台账", end: true, roles: projectRoles },
+      { to: "/projects/members", label: "项目成员", roles: projectRoles },
       { to: "/projects/sections", label: "施工段管理", roles: projectRoles },
       { to: "/projects/processes", label: "工序库", roles: projectRoles },
       { to: "/projects/contract-items", label: "合同清单", roles: projectRoles },
@@ -65,6 +66,7 @@ const groups = [
       { to: "/compensation/attendance", label: "考勤管理", roles: compensationRoles },
       { to: "/compensation/deductions", label: "工资扣款", roles: compensationRoles },
       { to: "/compensation/indicators", label: "绩效指标", roles: compensationRoles },
+      { to: "/compensation/plans", label: "绩效方案", roles: compensationRoles },
       { to: "/compensation/scores", label: "绩效评分", roles: compensationRoles },
       { to: "/compensation/bonus-pools", label: "项目奖金池", roles: compensationRoles },
       { to: "/compensation/bonus-allocations", label: "奖金分配", roles: compensationRoles },

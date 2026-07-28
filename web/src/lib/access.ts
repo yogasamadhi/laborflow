@@ -14,9 +14,11 @@ type RouteAccessRule = {
 
 const routeAccessRules: RouteAccessRule[] = [
   { pattern: /^\/dashboard$/, roles: [] },
+  { pattern: /^\/employees\/[^/]+\/salary-history$/, roles: roleGroups.salary },
+  { pattern: /^\/salary\/employees\/[^/]+\/history$/, roles: roleGroups.salary },
   { pattern: /^\/(?:employees(?:\/.*)?|departments|positions)$/, roles: roleGroups.org },
   { pattern: /^\/(?:salary\/(?:items|profiles|monthly)(?:\/.*)?|statistics\/salary(?:\/anomalies)?)$/, roles: roleGroups.salary },
-  { pattern: /^\/projects(?:\/(?:sections|processes|contract-items|daily-reports|work-confirmation|teams|team-prices|variations|machinery|materials|documents))?$/, roles: roleGroups.project },
+  { pattern: /^\/projects(?:\/(?:members|sections|processes|contract-items|daily-reports|work-confirmation|teams|team-prices|variations|machinery|materials|documents))?$/, roles: roleGroups.project },
   { pattern: /^\/projects\/(?:team-settlements|payments|costs|risks|dashboard)$/, roles: roleGroups.projectFinance },
   { pattern: /^\/compensation\/.+$/, roles: roleGroups.compensation },
   { pattern: /^\/system\/.+$/, roles: roleGroups.admin }

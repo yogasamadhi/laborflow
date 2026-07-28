@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, KeyRound, RefreshCw, Save, UserPlus } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { getData, PageResult, postData, putData } from "../../../lib/axios";
+import { getAllPages, postData, putData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
 import { Button } from "../../../components/ui/Button";
 import { Field, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
+import { usePagedQuery } from "../../../components/common/usePagedQuery";
+import { AsyncLookupSelect } from "../../../components/common/AsyncLookupSelect";
 
 type Role = {
   id: string;
@@ -18,6 +20,7 @@ type SystemUser = {
   id: string;
   username: string;
   employeeId?: string | null;
+  employeeName?: string | null;
   nickname?: string | null;
   phone?: string | null;
   status: string;
@@ -38,16 +41,14 @@ export function SystemUserPage() {
   const [phone, setPhone] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [roleIds, setRoleIds] = useState<string[]>([]);
-  const { data: usersData, isFetching, refetch } = useQuery({
-    queryKey: ["system/users"],
-    queryFn: () => getData<PageResult<SystemUser>>("/system/users", { page: 1, pageSize: 100 })
-  });
+  const userListing = usePagedQuery<SystemUser>(["system/users"], "/system/users");
+  const { data: usersData, isFetching, refetch } = userListing;
   const { data: rolesData } = useQuery({
     queryKey: ["system/roles", "options"],
-    queryFn: () => getData<PageResult<Role>>("/system/roles", { page: 1, pageSize: 100 })
+    queryFn: () => getAllPages<Role>("/system/roles", { status: "active" })
   });
   const users = usersData?.records ?? [];
-  const roles = (rolesData?.records ?? []).filter((role) => role.status === "active");
+  const roles = rolesData ?? [];
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["system/users"] });
 
   const saveMutation = useMutation({
@@ -57,7 +58,7 @@ export function SystemUserPage() {
         password: editing ? undefined : password,
         nickname,
         phone,
-        employeeId: employeeId ? Number(employeeId) : undefined,
+        employeeId: employeeId || undefined,
         roleIds: roleIds.map(Number),
         status: editing?.status ?? "active"
       };
@@ -124,8 +125,8 @@ export function SystemUserPage() {
         <Field label="手机号">
           <TextInput value={phone} onChange={(event) => setPhone(event.target.value)} />
         </Field>
-        <Field label="员工 ID">
-          <TextInput value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} />
+        <Field label="关联员工">
+          <AsyncLookupSelect endpoint="/reference/employees" value={employeeId} onChange={setEmployeeId} params={{ status: "active" }} emptyLabel="不关联员工" />
         </Field>
         <Field label="角色">
           <div className="checkbox-chips">
@@ -169,7 +170,7 @@ export function SystemUserPage() {
               <tr key={user.id}>
                 <td>{user.username}</td>
                 <td>{user.nickname ?? "-"}</td>
-                <td>{user.employeeId ?? "-"}</td>
+                <td>{user.employeeName ?? (user.employeeId ? "员工已删除" : "未关联")}</td>
                 <td>{user.roles?.join("、") || "-"}</td>
                 <td>
                   <span className={`badge ${user.status === "active" ? "badge-green" : "badge-red"}`}>{statusText(user.status)}</span>
@@ -193,6 +194,7 @@ export function SystemUserPage() {
           </tbody>
         </table>
       </div>
+      {userListing.pagination}
       <div className="toolbar">
         <Button type="button" variant="secondary" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw size={16} />

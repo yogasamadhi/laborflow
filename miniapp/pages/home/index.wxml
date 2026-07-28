@@ -50,7 +50,14 @@
     </van-grid>
   </view>
 
-  <view class="card salary-card" bindtap="goSalary">
+  <view class="card" bindtap="goSite">
+    <view class="row">
+      <view><text class="section-title">现场记录</text><text class="muted small">日报与签证的筛选、分页和详情</text></view>
+      <text class="status-banner-action">查看全部</text>
+    </view>
+  </view>
+
+  <view class="card salary-card" wx:if="{{user.employeeId}}" bindtap="goSalary">
     <view class="row">
       <text class="muted small">最近工资</text>
       <van-icon name="balance-list-o" size="38rpx" />
