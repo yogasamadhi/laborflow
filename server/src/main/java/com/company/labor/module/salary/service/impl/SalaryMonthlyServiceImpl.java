@@ -41,9 +41,13 @@ import com.company.labor.security.LoginUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -119,7 +123,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         if (!rules.hasAnyEnabled()) {
             throw new BusinessException("至少启用一项工资生成规则");
         }
-        List<SalaryProfileDO> activeProfiles = latestActiveProfiles();
+        List<SalaryProfileDO> activeProfiles = latestActiveProfiles(monthly.getSalaryMonth());
         if (activeProfiles.isEmpty()) {
             throw new BusinessException("没有启用的工资档案，无法生成工资明细");
         }
@@ -142,8 +146,8 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                 skippedReasons.add("员工 " + employee.getName() + " 已删除");
                 continue;
             }
-            if ("left".equals(employee.getStatus())) {
-                skippedReasons.add("员工 " + employee.getName() + " 已离职");
+            if (!"active".equals(employee.getStatus())) {
+                skippedReasons.add("员工 " + employee.getName() + " 非在职状态");
                 continue;
             }
             List<SalaryProfileItemDO> profileItems = rules.fixedSalary()
@@ -196,11 +200,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             payable = payable.add(performanceAmount);
 
             List<ProjectBonusAllocationDO> allocations = rules.projectBonus()
-                    ? bonusAllocationMapper.selectList(new LambdaQueryWrapper<ProjectBonusAllocationDO>()
-                            .eq(ProjectBonusAllocationDO::getDeleted, 0)
-                            .eq(ProjectBonusAllocationDO::getEmployeeId, employee.getId())
-                            .eq(ProjectBonusAllocationDO::getPaymentMonth, monthly.getSalaryMonth())
-                            .in(ProjectBonusAllocationDO::getStatus, List.of("allocated", "confirmed")))
+                    ? bonusAllocationMapper.selectConfirmedReleased(employee.getId(), monthly.getSalaryMonth())
                     : List.of();
             BigDecimal projectBonus = BigDecimal.ZERO;
             for (ProjectBonusAllocationDO allocation : allocations) {
@@ -215,7 +215,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             detail.setPositionId(employee.getPositionId());
             detail.setPayableAmount(payable);
             detail.setDeductionAmount(deduction);
-            detail.setActualAmount(payable.subtract(deduction));
+            detail.setActualAmount(calculateActual(payable, deduction));
             detail.setPaymentStatus("unpaid");
             detail.setPayslipStatus("unconfirmed");
             detail.setDeleted(0);
@@ -230,11 +230,13 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                 detailItem.setAmount(profileItem.getAmount());
                 detailItem.setRemark(profileItem.getRemark());
                 detailItemMapper.insert(detailItem);
-                source(monthlyId, detail.getId(), employee.getId(), "fixed_salary", profileItem.getSalaryItemId(), profileItem.getSalaryItemName(), profileItem.getAmount(), profileItem.getRemark());
+                source(monthlyId, detail.getId(), employee.getId(), "fixed_salary", profileItem.getSalaryItemId(), profileItem.getSalaryItemName(), profileItem.getAmount(),
+                        generationAuditRemark(employee, profile, profileItem.getRemark()));
             }
             if (attendanceDeduction.compareTo(BigDecimal.ZERO) != 0) {
                 detailItemMapper.insert(detailItem(detail.getId(), 2204L, "考勤扣款", "deduction", attendanceDeduction, "来自考勤记录"));
-                source(monthlyId, detail.getId(), employee.getId(), "attendance_deduction", attendance == null ? null : attendance.getId(), "考勤扣款", attendanceDeduction.negate(), "请假/缺勤扣款");
+                source(monthlyId, detail.getId(), employee.getId(), "attendance_deduction", attendance == null ? null : attendance.getId(), "考勤扣款", attendanceDeduction.negate(),
+                        generationAuditRemark(employee, profile, "请假/缺勤扣款"));
             }
             for (SalaryDeductionRecordDO salaryDeduction : salaryDeductions) {
                 BigDecimal amount = salaryDeduction.getAmount() == null ? BigDecimal.ZERO : salaryDeduction.getAmount();
@@ -248,18 +250,21 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
                         "deduction",
                         amount,
                         salaryDeductionRemark(salaryDeduction)));
-                source(monthlyId, detail.getId(), employee.getId(), "salary_deduction", salaryDeduction.getId(), salaryDeduction.getSalaryItemName(), amount.negate(), salaryDeductionRemark(salaryDeduction));
+                source(monthlyId, detail.getId(), employee.getId(), "salary_deduction", salaryDeduction.getId(), salaryDeduction.getSalaryItemName(), amount.negate(),
+                        generationAuditRemark(employee, profile, salaryDeductionRemark(salaryDeduction)));
             }
             if (performanceAmount.compareTo(BigDecimal.ZERO) != 0) {
                 detailItemMapper.insert(detailItem(detail.getId(), 2201L, "绩效奖金", "earning", performanceAmount, "来自绩效评分"));
                 for (PerformanceScoreDO score : scores) {
-                    source(monthlyId, detail.getId(), employee.getId(), "performance_salary", score.getId(), "绩效工资", score.getPerformanceAmount(), score.getAutoMetricSnapshot());
+                    source(monthlyId, detail.getId(), employee.getId(), "performance_salary", score.getId(), "绩效工资", score.getPerformanceAmount(),
+                            generationAuditRemark(employee, profile, score.getAutoMetricSnapshot()));
                 }
             }
             if (projectBonus.compareTo(BigDecimal.ZERO) != 0) {
                 detailItemMapper.insert(detailItem(detail.getId(), 2202L, "项目奖金", "earning", projectBonus, "来自项目奖金分配"));
                 for (ProjectBonusAllocationDO allocation : allocations) {
-                    source(monthlyId, detail.getId(), employee.getId(), "project_bonus", allocation.getId(), "项目奖金", allocation.getAllocationAmount(), allocation.getRoleName());
+                    source(monthlyId, detail.getId(), employee.getId(), "project_bonus", allocation.getId(), "项目奖金", allocation.getAllocationAmount(),
+                            generationAuditRemark(employee, profile, "奖金分配状态:confirmed;奖金池状态:released;岗位:" + valueOrDefault(allocation.getRoleName(), "-")));
                 }
             }
         }
@@ -279,6 +284,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         String statusBefore = monthly.getStatus();
         BusinessStateMachine.requireTransition(Flow.SALARY_MONTHLY, statusBefore, "pending_approval");
+        validateMonthlyForTransition(monthly);
         monthly.setStatus("pending_approval");
         updateById(monthly);
         log("submit_approval", monthlyId, "提交审核");
@@ -291,6 +297,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         String statusBefore = monthly.getStatus();
         BusinessStateMachine.requireTransition(Flow.SALARY_MONTHLY, statusBefore, "approved");
+        validateMonthlyForTransition(monthly);
         monthly.setStatus("approved");
         monthly.setApprovedBy(userId);
         monthly.setApprovedAt(LocalDateTime.now());
@@ -342,6 +349,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         detail.setId(detailId);
         detail.setSalaryMonthlyId(old.getSalaryMonthlyId());
         detail.setPaymentStatus(old.getPaymentStatus());
+        detail.setActualAmount(calculateActual(detail.getPayableAmount(), detail.getDeductionAmount()));
         detailMapper.updateById(detail);
         summarize(old.getSalaryMonthlyId());
         SalaryMonthlyDetailDO updated = detailMapper.selectById(detailId);
@@ -496,31 +504,38 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         audit(monthlyId, null, "restore_monthly", monthly.getStatus(), monthly.getStatus(), "恢复工资表：" + monthly.getSalaryMonth(), null);
     }
 
-    private SalaryProfileDO latestProfile(Long employeeId) {
-        return salaryProfileMapper.selectOne(new LambdaQueryWrapper<SalaryProfileDO>()
-                .eq(SalaryProfileDO::getEmployeeId, employeeId)
-                .eq(SalaryProfileDO::getStatus, "active")
-                .eq(SalaryProfileDO::getDeleted, 0)
-                .orderByDesc(SalaryProfileDO::getEffectiveDate)
-                .orderByDesc(SalaryProfileDO::getCreatedAt)
-                .last("LIMIT 1"));
-    }
-
-    private List<SalaryProfileDO> latestActiveProfiles() {
+    private List<SalaryProfileDO> latestActiveProfiles(String salaryMonth) {
+        LocalDate cutoff = YearMonth.parse(salaryMonth).atEndOfMonth();
         List<SalaryProfileDO> profiles = salaryProfileMapper.selectList(new LambdaQueryWrapper<SalaryProfileDO>()
                 .eq(SalaryProfileDO::getStatus, "active")
-                .eq(SalaryProfileDO::getDeleted, 0)
-                .orderByAsc(SalaryProfileDO::getEmployeeId)
-                .orderByDesc(SalaryProfileDO::getEffectiveDate)
-                .orderByDesc(SalaryProfileDO::getCreatedAt));
-        List<SalaryProfileDO> result = new ArrayList<>();
-        Set<Long> employeeIds = new HashSet<>();
+                .eq(SalaryProfileDO::getDeleted, 0));
+        Map<Long, SalaryProfileDO> latestByEmployee = new HashMap<>();
         for (SalaryProfileDO profile : profiles) {
-            if (profile.getEmployeeId() != null && employeeIds.add(profile.getEmployeeId())) {
-                result.add(profile);
+            if (profile.getEmployeeId() == null
+                    || profile.getEffectiveDate() != null && profile.getEffectiveDate().isAfter(cutoff)) {
+                continue;
             }
+            latestByEmployee.merge(profile.getEmployeeId(), profile,
+                    (current, candidate) -> isLaterProfile(candidate, current) ? candidate : current);
         }
-        return result;
+        return latestByEmployee.values().stream()
+                .sorted(Comparator.comparing(SalaryProfileDO::getEmployeeId))
+                .toList();
+    }
+
+    private boolean isLaterProfile(SalaryProfileDO candidate, SalaryProfileDO current) {
+        Comparator<SalaryProfileDO> comparator = Comparator
+                .comparing(SalaryProfileDO::getEffectiveDate, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(SalaryProfileDO::getCreatedAt, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(SalaryProfileDO::getId, Comparator.nullsFirst(Comparator.naturalOrder()));
+        return comparator.compare(candidate, current) > 0;
+    }
+
+    private String generationAuditRemark(EmployeeDO employee, SalaryProfileDO profile, String detail) {
+        String prefix = "员工状态:" + employee.getStatus()
+                + ";工资档案ID:" + profile.getId()
+                + ";档案生效日期:" + (profile.getEffectiveDate() == null ? "基础档案" : profile.getEffectiveDate());
+        return StringUtils.hasText(detail) ? prefix + ";" + detail : prefix;
     }
 
     private SalaryMonthlyDO requireMonthly(Long monthlyId) {
@@ -649,9 +664,13 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         BigDecimal deduction = BigDecimal.ZERO;
         BigDecimal actual = BigDecimal.ZERO;
         for (SalaryMonthlyDetailDO detail : details) {
-            payable = payable.add(detail.getPayableAmount() == null ? BigDecimal.ZERO : detail.getPayableAmount());
-            deduction = deduction.add(detail.getDeductionAmount() == null ? BigDecimal.ZERO : detail.getDeductionAmount());
-            actual = actual.add(detail.getActualAmount() == null ? BigDecimal.ZERO : detail.getActualAmount());
+            BigDecimal expectedActual = calculateActual(detail.getPayableAmount(), detail.getDeductionAmount());
+            if (!sameAmount(detail.getActualAmount(), expectedActual)) {
+                throw new BusinessException("工资明细实发金额不符合应发减扣款公式，明细ID：" + detail.getId());
+            }
+            payable = payable.add(detail.getPayableAmount());
+            deduction = deduction.add(detail.getDeductionAmount());
+            actual = actual.add(expectedActual);
         }
         SalaryMonthlyDO monthly = requireMonthly(monthlyId);
         monthly.setTotalEmployeeCount(details.size());
@@ -659,6 +678,51 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         monthly.setTotalDeductionAmount(deduction);
         monthly.setTotalActualAmount(actual);
         updateById(monthly);
+    }
+
+    private void validateMonthlyForTransition(SalaryMonthlyDO monthly) {
+        List<SalaryMonthlyDetailDO> details = detailMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDetailDO>()
+                .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthly.getId())
+                .eq(SalaryMonthlyDetailDO::getDeleted, 0));
+        if (details.isEmpty()) {
+            throw new BusinessException("工资表没有有效明细，不能提交或审核");
+        }
+        BigDecimal payable = BigDecimal.ZERO;
+        BigDecimal deduction = BigDecimal.ZERO;
+        BigDecimal actual = BigDecimal.ZERO;
+        for (SalaryMonthlyDetailDO detail : details) {
+            BigDecimal expectedActual = calculateActual(detail.getPayableAmount(), detail.getDeductionAmount());
+            if (!sameAmount(detail.getActualAmount(), expectedActual)) {
+                throw new BusinessException("工资明细实发金额不符合应发减扣款公式，明细ID：" + detail.getId());
+            }
+            payable = payable.add(detail.getPayableAmount());
+            deduction = deduction.add(detail.getDeductionAmount());
+            actual = actual.add(expectedActual);
+        }
+        if (monthly.getTotalEmployeeCount() == null
+                || monthly.getTotalEmployeeCount() != details.size()
+                || !sameAmount(monthly.getTotalPayableAmount(), payable)
+                || !sameAmount(monthly.getTotalDeductionAmount(), deduction)
+                || !sameAmount(monthly.getTotalActualAmount(), actual)) {
+            throw new BusinessException("工资表汇总与明细不一致，请重新生成或修正后再提交");
+        }
+    }
+
+    private BigDecimal calculateActual(BigDecimal payable, BigDecimal deduction) {
+        if (payable == null || deduction == null) {
+            throw new BusinessException("应发金额和扣款金额必填");
+        }
+        if (payable.compareTo(BigDecimal.ZERO) < 0 || deduction.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException("工资金额不能小于0");
+        }
+        if (deduction.compareTo(payable) > 0) {
+            throw new BusinessException("扣款金额不能大于应发金额");
+        }
+        return payable.subtract(deduction);
+    }
+
+    private boolean sameAmount(BigDecimal actual, BigDecimal expected) {
+        return actual != null && actual.compareTo(expected) == 0;
     }
 
     private void refreshPaidStatus(Long monthlyId) {

@@ -6,7 +6,13 @@ function normalizedText(value) {
 }
 
 function normalizedOptionalId(value) {
-  return Number.isSafeInteger(value) && value > 0 ? value : null;
+  if (Number.isSafeInteger(value) && value > 0) {
+    return String(value);
+  }
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!/^[1-9]\d*$/.test(normalized)) return null;
+  return normalized;
 }
 
 function normalizeUser(payload) {

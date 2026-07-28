@@ -101,6 +101,14 @@ class AccessControlIntegrationTest {
         assertError(getRaw("/api/salary/details/" + detailIds.get(employeeB), employeeAToken), HttpStatus.BAD_REQUEST, "无权查看该工资明细");
         assertError(getRaw("/api/system/users", employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
         assertError(getRaw("/api/salary/monthly/" + monthlyId + "/export", employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
+        List<String> projectManageReadPaths = List.of(
+                "/api/machinery-equipments?page=1&pageSize=20",
+                "/api/machinery-work-records?page=1&pageSize=20",
+                "/api/material-records?page=1&pageSize=20",
+                "/api/project-document-archives?page=1&pageSize=20");
+        for (String path : projectManageReadPaths) {
+            assertError(getRaw(path, employeeAToken), HttpStatus.FORBIDDEN, "无权操作");
+        }
 
         assertThat(post("/api/variation-orders", Map.of(
                 "projectId", projectId,
@@ -117,8 +125,22 @@ class AccessControlIntegrationTest {
 
         String financeToken = login("access_e2e_finance", "access-e2e-finance-password");
         assertError(postRaw("/api/salary/monthly/" + monthlyId + "/approve", "{}", financeToken), HttpStatus.FORBIDDEN, "无权操作");
+        for (String path : projectManageReadPaths) {
+            assertError(getRaw(path, financeToken), HttpStatus.FORBIDDEN, "无权操作");
+        }
         String managerToken = login("access_e2e_manager", "access-e2e-manager-password");
         assertError(getRaw("/api/salary/monthly", managerToken), HttpStatus.FORBIDDEN, "无权操作");
+        for (String path : projectManageReadPaths) {
+            get(path, managerToken);
+        }
+
+        put("/api/employees/" + employeeA + "/status", Map.of("status", "inactive"), adminToken);
+        assertError(getRaw("/api/salary/details/" + detailIds.get(employeeA), employeeAToken), HttpStatus.UNAUTHORIZED, "账号已停用");
+        assertError(postRaw("/api/auth/login", objectMapper.writeValueAsString(Map.of(
+                "username", "access_e2e_employee_a",
+                "password", "access-e2e-employee-a-password")), null), HttpStatus.UNAUTHORIZED, "用户已失效");
+        put("/api/employees/" + employeeA + "/status", Map.of("status", "active"), adminToken);
+        get("/api/salary/details/" + detailIds.get(employeeA), employeeAToken);
 
         JsonNode users = get("/api/system/users?page=1&pageSize=20", adminToken).path("data").path("records");
         assertThat(users).isNotEmpty();
@@ -188,6 +210,18 @@ class AccessControlIntegrationTest {
 
     private JsonNode post(String path, Object payload, String token) throws Exception {
         HttpResponse<String> response = postRaw(path, objectMapper.writeValueAsString(payload), token);
+        assertThat(response.statusCode()).as("response body: %s", response.body()).isEqualTo(HttpStatus.OK.value());
+        JsonNode body = objectMapper.readTree(response.body());
+        assertThat(body.path("code").asInt()).isZero();
+        return body;
+    }
+
+    private JsonNode put(String path, Object payload, String token) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(uri(path))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+        if (token != null) request.header("Authorization", "Bearer " + token);
+        HttpResponse<String> response = httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString());
         assertThat(response.statusCode()).as("response body: %s", response.body()).isEqualTo(HttpStatus.OK.value());
         JsonNode body = objectMapper.readTree(response.body());
         assertThat(body.path("code").asInt()).isZero();

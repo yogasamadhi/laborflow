@@ -284,6 +284,7 @@ public class CompensationServiceImpl implements CompensationService {
     @Override
     public void confirmBonusAllocation(Long id) {
         ProjectBonusAllocationDO allocation = requireBonusAllocation(id);
+        requireReleasedBonusPool(allocation.getBonusPoolId());
         String statusBefore = allocation.getStatus();
         BusinessStateMachine.requireTransition(Flow.PROJECT_BONUS_ALLOCATION, statusBefore, "confirmed");
         allocation.setStatus("confirmed");
@@ -317,9 +318,7 @@ public class CompensationServiceImpl implements CompensationService {
             if ("confirmed".equals(row.getStatus())) confirmedScoreCount++;
         }
         BigDecimal projectBonus = BigDecimal.ZERO;
-        for (ProjectBonusAllocationDO row : bonusAllocationMapper.selectList(new LambdaQueryWrapper<ProjectBonusAllocationDO>()
-                .eq(ProjectBonusAllocationDO::getDeleted, 0)
-                .eq(StringUtils.hasText(month), ProjectBonusAllocationDO::getPaymentMonth, month))) {
+        for (ProjectBonusAllocationDO row : bonusAllocationMapper.selectConfirmedReleased(null, month)) {
             projectBonus = projectBonus.add(nvl(row.getAllocationAmount()));
         }
         BigDecimal actualSalary = BigDecimal.ZERO;
@@ -399,7 +398,7 @@ public class CompensationServiceImpl implements CompensationService {
     }
 
     private void normalizeBonusAllocation(ProjectBonusAllocationDO allocation) {
-        ProjectBonusPoolDO pool = requireBonusPool(allocation.getBonusPoolId());
+        ProjectBonusPoolDO pool = requireReleasedBonusPool(allocation.getBonusPoolId());
         allocation.setProjectId(pool.getProjectId());
         if (allocation.getEmployeeId() == null) throw new BusinessException("员工必填");
         requireText(allocation.getPaymentMonth(), "发放月份必填");
@@ -407,6 +406,14 @@ public class CompensationServiceImpl implements CompensationService {
         if (allocation.getAllocationAmount() == null || allocation.getAllocationAmount().compareTo(BigDecimal.ZERO) == 0) {
             allocation.setAllocationAmount(nvl(pool.getBonusPoolAmount()).multiply(allocation.getAllocationRatio()));
         }
+    }
+
+    private ProjectBonusPoolDO requireReleasedBonusPool(Long id) {
+        ProjectBonusPoolDO pool = requireBonusPool(id);
+        if (!"released".equals(pool.getReleaseStatus())) {
+            throw new BusinessException("项目奖金池未发布");
+        }
+        return pool;
     }
 
     private AttendanceRecordDO requireAttendance(Long id) {

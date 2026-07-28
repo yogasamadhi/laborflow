@@ -73,6 +73,7 @@ class CoreApiContractIntegrationTest {
         JsonNode body = post(login.path("path").asText(), objectMapper.valueToTree(
                 java.util.Map.of("username", ADMIN_USERNAME, "password", ADMIN_PASSWORD)), null);
         assertContractResponse(body, contract, login);
+        assertThat(body.path("data").path("userId").isTextual()).isTrue();
         assertThat(body.path("data").path("roles")).extracting(JsonNode::asText).contains(login.path("requiredRole").asText());
         return body.path("data").path("token").asText();
     }

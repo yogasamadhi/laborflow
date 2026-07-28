@@ -94,8 +94,8 @@ function createPageInstance(definition) {
 function loginPayload(overrides) {
   return Object.assign({
     token: "token-123",
-    userId: 9,
-    employeeId: 18,
+    userId: "1900000000000000001",
+    employeeId: "1900000000000000002",
     username: "field-user",
     nickname: "现场人员",
     roles: ["EMPLOYEE"]
@@ -108,8 +108,8 @@ test("session cache accepts a complete login response and clears malformed cache
 
   const user = auth.setLogin(loginPayload({ roles: ["EMPLOYEE", "", 3] }));
   assert.deepEqual(user, {
-    userId: 9,
-    employeeId: 18,
+    userId: "1900000000000000001",
+    employeeId: "1900000000000000002",
     username: "field-user",
     nickname: "现场人员",
     roles: ["EMPLOYEE"]
@@ -121,7 +121,7 @@ test("session cache accepts a complete login response and clears malformed cache
 
   auth.setLogin(loginPayload());
   const refreshedUser = auth.refreshUser({
-    userId: 9,
+    userId: "1900000000000000001",
     employeeId: null,
     username: "field-user",
     nickname: "更新后的昵称",
@@ -130,10 +130,30 @@ test("session cache accepts a complete login response and clears malformed cache
   assert.equal(auth.getToken(), "token-123");
   assert.equal(refreshedUser.nickname, "更新后的昵称");
 
-  runtime.storage.set("laborflow_user", { userId: 9, username: "", roles: [] });
+  runtime.storage.set("laborflow_user", { userId: "1900000000000000001", username: "", roles: [] });
   assert.equal(auth.getSession(), null);
   assert.equal(runtime.storage.has("laborflow_token"), false);
   assert.equal(runtime.storage.has("laborflow_user"), false);
+});
+
+test("session IDs are normalized to decimal strings without losing snowflake precision", () => {
+  createRuntime();
+  const { auth } = loadModules();
+
+  const numericUser = auth.setLogin(loginPayload({ userId: 9, employeeId: 18 }));
+  assert.equal(numericUser.userId, "9");
+  assert.equal(numericUser.employeeId, "18");
+
+  const snowflakeUser = auth.setLogin(loginPayload({
+    userId: "9223372036854775807",
+    employeeId: "1900000000000000002"
+  }));
+  assert.equal(snowflakeUser.userId, "9223372036854775807");
+  assert.equal(snowflakeUser.employeeId, "1900000000000000002");
+
+  for (const userId of [0, -1, Number.MAX_SAFE_INTEGER + 1, "0", "-1", "9.5", "not-an-id"]) {
+    assert.throws(() => auth.setLogin(loginPayload({ userId })), /登录信息不完整/);
+  }
 });
 
 test("expired sessions clear cache and forbidden responses preserve it", async () => {

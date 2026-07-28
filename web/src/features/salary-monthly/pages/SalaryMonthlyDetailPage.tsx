@@ -91,6 +91,8 @@ type PendingWorkflowAction =
   | { action: "generate"; remark: string }
   | { action: "submit" | "approve" | "reject"; remark: string };
 
+type DetailUpdatePayload = Pick<Detail, "id" | "payableAmount" | "deductionAmount" | "remark">;
+
 const badgeClass: Record<string, string> = {
   draft: "badge-yellow",
   pending_approval: "badge-yellow",
@@ -230,7 +232,7 @@ export function SalaryMonthlyDetailPage() {
     }
   });
   const update = useMutation({
-    mutationFn: (detail: Detail) => putData<Detail>(`/salary/details/${detail.id}`, detail),
+    mutationFn: (detail: DetailUpdatePayload) => putData<Detail>(`/salary/details/${detail.id}`, detail),
     onSuccess: async () => {
       setError("");
       setSuccess("工资明细已保存。");
@@ -255,7 +257,14 @@ export function SalaryMonthlyDetailPage() {
 
   function submitEdit(event: FormEvent) {
     event.preventDefault();
-    if (editing) update.mutate(editing);
+    if (editing) {
+      update.mutate({
+        id: editing.id,
+        payableAmount: editing.payableAmount,
+        deductionAmount: editing.deductionAmount,
+        remark: editing.remark
+      });
+    }
   }
 
   function submitMonthlyRules(event: FormEvent) {
@@ -505,12 +514,15 @@ export function SalaryMonthlyDetailPage() {
                 <TextInput type="number" step="0.01" value={editing.deductionAmount} onChange={(event) => patchEditing({ deductionAmount: Number(event.target.value) })} />
               </Field>
               <Field label="实发金额">
-                <TextInput type="number" step="0.01" value={editing.actualAmount} onChange={(event) => patchEditing({ actualAmount: Number(event.target.value) })} />
+                <TextInput
+                  type="number"
+                  step="0.01"
+                  value={Number(editing.payableAmount ?? 0) - Number(editing.deductionAmount ?? 0)}
+                  readOnly
+                />
               </Field>
             </div>
-            <Button type="button" variant="secondary" onClick={() => patchEditing({ actualAmount: Number(editing.payableAmount ?? 0) - Number(editing.deductionAmount ?? 0) })}>
-              按应发减扣款重算
-            </Button>
+            <div className="muted">实发金额由系统按“应发金额 - 扣减金额”计算。</div>
             <Field label="备注">
               <TextArea value={editing.remark ?? ""} onChange={(event) => patchEditing({ remark: event.target.value })} />
             </Field>

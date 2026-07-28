@@ -61,7 +61,9 @@ class WechatBindingServiceTest {
         employee.setId(20L);
         employee.setDeleted(0);
         when(employeeMapper.selectById(20L)).thenReturn(employee);
-        return new WechatBindingService(bindingMapper, mock(SysUserMapper.class), employeeMapper, logService);
+        AccountEligibilityService eligibility = mock(AccountEligibilityService.class);
+        when(eligibility.isEmployeeActive(any())).thenReturn(true);
+        return new WechatBindingService(bindingMapper, mock(SysUserMapper.class), employeeMapper, eligibility, logService);
     }
 
     private WechatUserBindingDO binding(String status) {

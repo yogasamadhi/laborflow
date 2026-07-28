@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
 import lombok.Data;
@@ -49,12 +50,12 @@ public final class SalaryWriteDTO {
 
     @Data
     public static class SalaryMonthlyDetailRequest {
+        @NotNull(message = "应发金额必填")
         @DecimalMin(value = "0.00", message = "应发金额不能小于 0")
         private BigDecimal payableAmount;
+        @NotNull(message = "扣款金额必填")
         @DecimalMin(value = "0.00", message = "扣款金额不能小于 0")
         private BigDecimal deductionAmount;
-        @DecimalMin(value = "0.00", message = "实发金额不能小于 0")
-        private BigDecimal actualAmount;
         private String remark;
     }
 }

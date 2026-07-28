@@ -66,6 +66,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -659,9 +660,9 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         BigDecimal amount = BigDecimal.ZERO;
         List<TeamSettlementDetailDO> details = new ArrayList<>();
         for (DailyWorkReportDO report : reports) {
-            TeamUnitPriceDO price = latestTeamUnitPrice(report.getProjectId(), report.getTeamId(), report.getWorkProcessId());
+            TeamUnitPriceDO price = latestTeamUnitPrice(report.getProjectId(), report.getTeamId(), report.getWorkProcessId(), report.getWorkDate());
             if (price == null) {
-                throw new BusinessException("缺少班组单价，日报ID：" + report.getId());
+                throw new BusinessException("指定日期无有效班组单价，日报ID：" + report.getId());
             }
             WorkProcessDO process = requireWorkProcess(report.getWorkProcessId());
             BigDecimal lineQuantity = nvl(report.getCompletedQuantity());
@@ -743,13 +744,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     @Override
     public VariationOrderDO saveVariationOrder(VariationOrderDO order) {
-        requireProject(order.getProjectId());
-        requireText(order.getVariationType(), "签证类型必填");
-        if (order.getOccurrenceDate() == null) throw new BusinessException("发生日期必填");
-        order.setIncreasedQuantity(nvl(order.getIncreasedQuantity()));
-        order.setEstimatedAmount(nvl(order.getEstimatedAmount()));
+        normalizeVariationOrder(order);
         order.setConfirmedAmount(BigDecimal.ZERO);
-        order.setLaborCount(order.getLaborCount() == null ? 0 : order.getLaborCount());
         order.setStatus("draft");
         order.setDeleted(0);
         variationOrderMapper.insert(order);
@@ -762,8 +758,10 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         if (!"draft".equals(old.getStatus()) && !"rejected".equals(old.getStatus())) {
             throw new BusinessException("只有草稿或已驳回签证可以修改");
         }
+        normalizeVariationOrder(order);
         order.setId(id);
         order.setStatus(old.getStatus());
+        order.setConfirmedAmount(old.getConfirmedAmount());
         variationOrderMapper.updateById(order);
         return variationOrderMapper.selectById(id);
     }
@@ -1013,7 +1011,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Transactional
     public ProjectDocumentArchiveDO saveDocumentArchive(ProjectDocumentArchiveDO archive) {
         requireProject(archive.getProjectId());
-        if (archive.getProjectSectionId() != null) requireSection(archive.getProjectSectionId());
+        requireOptionalSectionBelongsToProject(archive.getProjectId(), archive.getProjectSectionId());
         if (archive.getWorkProcessId() != null) requireWorkProcess(archive.getWorkProcessId());
         if (archive.getArchiveDate() == null) archive.setArchiveDate(LocalDate.now());
         requireText(archive.getDocumentType(), "资料类型必填");
@@ -1032,6 +1030,8 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectDocumentArchiveDO old = requireDocumentArchive(id);
         archive.setId(id);
         archive.setProjectId(old.getProjectId());
+        requireOptionalSectionBelongsToProject(archive.getProjectId(), archive.getProjectSectionId());
+        if (archive.getWorkProcessId() != null) requireWorkProcess(archive.getWorkProcessId());
         if (archive.getFileId() == null) throw new BusinessException("附件必填");
         fileBindingGuard.requireProjectFileBindable(archive.getFileId(), archive.getProjectId());
         fileBindingGuard.requireFileNotBoundToOtherBusiness(archive.getFileId(), FileBindingGuard.PROJECT_DOCUMENT);
@@ -1277,10 +1277,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private void validateDailyReport(DailyWorkReportDO report) {
         if (report.getWorkDate() == null) throw new BusinessException("施工日期必填");
         requireProject(report.getProjectId());
-        ProjectSectionDO section = requireSection(report.getProjectSectionId());
-        if (!report.getProjectId().equals(section.getProjectId())) {
-            throw new BusinessException("施工段不属于所选项目");
-        }
+        requireSectionBelongsToProject(report.getProjectId(), report.getProjectSectionId());
         requireWorkProcess(report.getWorkProcessId());
         requireText(report.getUnit(), "单位必填");
         if (report.getTeamId() != null) requireTeam(report.getTeamId());
@@ -1288,12 +1285,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     private void normalizeContractItem(ProjectContractItemDO item) {
         requireProject(item.getProjectId());
-        if (item.getProjectSectionId() != null) {
-            ProjectSectionDO section = requireSection(item.getProjectSectionId());
-            if (!item.getProjectId().equals(section.getProjectId())) {
-                throw new BusinessException("合同清单施工段不属于所选项目");
-            }
-        }
+        requireOptionalSectionBelongsToProject(item.getProjectId(), item.getProjectSectionId());
         requireWorkProcess(item.getWorkProcessId());
         requireText(item.getItemName(), "清单名称必填");
         requireText(item.getUnit(), "单位必填");
@@ -1301,6 +1293,16 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         item.setUnitPrice(nvl(item.getUnitPrice()));
         item.setContractAmount(item.getContractQuantity().multiply(item.getUnitPrice()).setScale(2, RoundingMode.HALF_UP));
         item.setStatus(defaultText(item.getStatus(), "active"));
+    }
+
+    private void normalizeVariationOrder(VariationOrderDO order) {
+        requireProject(order.getProjectId());
+        requireOptionalSectionBelongsToProject(order.getProjectId(), order.getProjectSectionId());
+        requireText(order.getVariationType(), "签证类型必填");
+        if (order.getOccurrenceDate() == null) throw new BusinessException("发生日期必填");
+        order.setIncreasedQuantity(nvl(order.getIncreasedQuantity()));
+        order.setEstimatedAmount(nvl(order.getEstimatedAmount()));
+        order.setLaborCount(order.getLaborCount() == null ? 0 : order.getLaborCount());
     }
 
     private void applyDailyReportPricing(DailyWorkReportDO report) {
@@ -1328,7 +1330,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
             requireContractItemMatchesReport(report, item);
             return contractItemPricing(item);
         }
-        ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId());
+        ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId(), report.getWorkDate());
         if (price != null) {
             return new DailyReportPricing(null, nvl(price.getUnitPrice()), "项目工序产值单价ID:" + price.getId()
                     + ";单位:" + price.getUnit()
@@ -1364,7 +1366,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         if (StringUtils.hasText(report.getPricingBasis())) {
             return nvl(report.getOutputValue());
         }
-        ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId());
+        ProjectProcessPriceDO price = latestProjectProcessPrice(report.getProjectId(), report.getWorkProcessId(), report.getWorkDate());
         return nvl(report.getCompletedQuantity()).multiply(price == null ? BigDecimal.ZERO : nvl(price.getUnitPrice()))
                 .setScale(2, RoundingMode.HALF_UP);
     }
@@ -1386,27 +1388,39 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         return contractItemMapper.selectOne(wrapper);
     }
 
-    private TeamUnitPriceDO latestTeamUnitPrice(Long projectId, Long teamId, Long processId) {
-        return teamUnitPriceMapper.selectOne(new LambdaQueryWrapper<TeamUnitPriceDO>()
+    private TeamUnitPriceDO latestTeamUnitPrice(Long projectId, Long teamId, Long processId, LocalDate effectiveOn) {
+        return teamUnitPriceMapper.selectList(new LambdaQueryWrapper<TeamUnitPriceDO>()
                 .eq(TeamUnitPriceDO::getDeleted, 0)
                 .eq(TeamUnitPriceDO::getStatus, "active")
                 .eq(TeamUnitPriceDO::getProjectId, projectId)
                 .eq(TeamUnitPriceDO::getTeamId, teamId)
                 .eq(TeamUnitPriceDO::getWorkProcessId, processId)
-                .orderByDesc(TeamUnitPriceDO::getEffectiveDate)
-                .orderByDesc(TeamUnitPriceDO::getCreatedAt)
-                .last("LIMIT 1"));
+                .and(wrapper -> wrapper.isNull(TeamUnitPriceDO::getEffectiveDate)
+                        .or()
+                        .le(TeamUnitPriceDO::getEffectiveDate, effectiveOn)))
+                .stream()
+                .max(Comparator
+                        .comparing(TeamUnitPriceDO::getEffectiveDate, Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(TeamUnitPriceDO::getCreatedAt, Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(TeamUnitPriceDO::getId, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .orElse(null);
     }
 
-    private ProjectProcessPriceDO latestProjectProcessPrice(Long projectId, Long processId) {
-        return projectProcessPriceMapper.selectOne(new LambdaQueryWrapper<ProjectProcessPriceDO>()
+    private ProjectProcessPriceDO latestProjectProcessPrice(Long projectId, Long processId, LocalDate effectiveOn) {
+        return projectProcessPriceMapper.selectList(new LambdaQueryWrapper<ProjectProcessPriceDO>()
                 .eq(ProjectProcessPriceDO::getDeleted, 0)
                 .eq(ProjectProcessPriceDO::getStatus, "active")
                 .eq(ProjectProcessPriceDO::getProjectId, projectId)
                 .eq(ProjectProcessPriceDO::getWorkProcessId, processId)
-                .orderByDesc(ProjectProcessPriceDO::getEffectiveDate)
-                .orderByDesc(ProjectProcessPriceDO::getCreatedAt)
-                .last("LIMIT 1"));
+                .and(wrapper -> wrapper.isNull(ProjectProcessPriceDO::getEffectiveDate)
+                        .or()
+                        .le(ProjectProcessPriceDO::getEffectiveDate, effectiveOn)))
+                .stream()
+                .max(Comparator
+                        .comparing(ProjectProcessPriceDO::getEffectiveDate, Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(ProjectProcessPriceDO::getCreatedAt, Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(ProjectProcessPriceDO::getId, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .orElse(null);
     }
 
     private String settlementSourceSnapshot(DailyWorkReportDO report, WorkProcessDO process, TeamUnitPriceDO price, BigDecimal quantity, BigDecimal amount) {
@@ -1518,7 +1532,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     private void normalizeMachineryWorkRecord(MachineryWorkRecordDO record) {
         requireProject(record.getProjectId());
-        if (record.getProjectSectionId() != null) requireSection(record.getProjectSectionId());
+        requireOptionalSectionBelongsToProject(record.getProjectId(), record.getProjectSectionId());
         MachineryEquipmentDO equipment = requireMachineryEquipment(record.getMachineryEquipmentId());
         if (record.getWorkDate() == null) record.setWorkDate(LocalDate.now());
         record.setShiftCount(nvl(record.getShiftCount()));
@@ -1530,7 +1544,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
 
     private void normalizeMaterialRecord(MaterialRecordDO record) {
         requireProject(record.getProjectId());
-        if (record.getProjectSectionId() != null) requireSection(record.getProjectSectionId());
+        requireOptionalSectionBelongsToProject(record.getProjectId(), record.getProjectSectionId());
         requireText(record.getMaterialName(), "材料名称必填");
         requireText(record.getRecordType(), "材料记录类型必填");
         if (record.getRecordDate() == null) record.setRecordDate(LocalDate.now());
@@ -1564,6 +1578,20 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectSectionDO row = sectionMapper.selectById(id);
         if (row == null || row.getDeleted() != null && row.getDeleted() == 1) throw new BusinessException("施工段不存在");
         return row;
+    }
+
+    private ProjectSectionDO requireSectionBelongsToProject(Long projectId, Long sectionId) {
+        ProjectSectionDO section = requireSection(sectionId);
+        if (!projectId.equals(section.getProjectId())) {
+            throw new BusinessException("施工段不属于所选项目");
+        }
+        return section;
+    }
+
+    private void requireOptionalSectionBelongsToProject(Long projectId, Long sectionId) {
+        if (sectionId != null) {
+            requireSectionBelongsToProject(projectId, sectionId);
+        }
     }
 
     private WorkProcessDO requireWorkProcess(Long id) {

@@ -517,6 +517,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/machinery-equipments")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<PageResult<MachineryEquipmentDO>> machineryEquipments(@RequestParam(defaultValue = "1") long page,
                                                                         @RequestParam(defaultValue = "20") long pageSize,
                                                                         @RequestParam(required = false) String keyword,
@@ -537,6 +538,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/machinery-work-records")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<PageResult<MachineryWorkRecordDO>> machineryWorkRecords(@RequestParam(defaultValue = "1") long page,
                                                                           @RequestParam(defaultValue = "20") long pageSize,
                                                                           @RequestParam(required = false) Long projectId,
@@ -557,6 +559,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/material-records")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<PageResult<MaterialRecordDO>> materialRecords(@RequestParam(defaultValue = "1") long page,
                                                                 @RequestParam(defaultValue = "20") long pageSize,
                                                                 @RequestParam(required = false) Long projectId,
@@ -577,6 +580,7 @@ public class ProjectManagementController {
     }
 
     @GetMapping("/api/project-document-archives")
+    @PreAuthorize(RoleExpressions.PROJECT_MANAGE)
     public Result<PageResult<ProjectDocumentArchiveDO>> documentArchives(@RequestParam(defaultValue = "1") long page,
                                                                          @RequestParam(defaultValue = "20") long pageSize,
                                                                          @RequestParam(required = false) Long projectId,

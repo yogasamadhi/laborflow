@@ -33,6 +33,7 @@ public class WechatBindingService {
     private final WechatUserBindingMapper bindingMapper;
     private final SysUserMapper userMapper;
     private final EmployeeMapper employeeMapper;
+    private final AccountEligibilityService accountEligibilityService;
     private final OperationLogService operationLogService;
 
     public Page<WechatUserBindingDO> page(long page, long pageSize, String status, String keyword) {
@@ -131,6 +132,9 @@ public class WechatBindingService {
         EmployeeDO employee = employeeMapper.selectById(employeeId);
         if (employee == null || deleted(employee.getDeleted())) {
             throw new BusinessException("绑定员工不存在");
+        }
+        if (!accountEligibilityService.isEmployeeActive(employeeId)) {
+            throw new BusinessException("绑定员工已停用或离职");
         }
     }
 

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.mapper.SysRoleMapper;
 import com.company.labor.module.system.mapper.SysUserMapper;
+import com.company.labor.module.system.service.AccountEligibilityService;
 import com.company.labor.module.system.service.SysUserService;
 import com.company.labor.security.LoginUser;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUserDO> implements SysUserService, UserDetailsService {
     private final SysRoleMapper roleMapper;
+    private final AccountEligibilityService accountEligibilityService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -39,7 +41,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUserDO> im
 
     private LoginUser toLoginUser(SysUserDO user) {
         List<String> roles = roleMapper.selectRoleCodesByUserId(user.getId());
-        return new LoginUser(user, roles);
+        return new LoginUser(user, roles, accountEligibilityService.isUserEligible(user));
     }
 }
-

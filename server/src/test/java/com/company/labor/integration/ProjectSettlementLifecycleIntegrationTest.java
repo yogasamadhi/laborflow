@@ -82,6 +82,14 @@ class ProjectSettlementLifecycleIntegrationTest {
                 "unitPrice", new BigDecimal("120.00"),
                 "effectiveDate", "2031-09-01",
                 "status", "active"), token);
+        post("/api/team-unit-prices", Map.of(
+                "projectId", projectId,
+                "teamId", teamId,
+                "workProcessId", processId,
+                "unit", "m",
+                "unitPrice", new BigDecimal("999.00"),
+                "effectiveDate", "2031-10-01",
+                "status", "active"), token);
         long contractItemId = id(post("/api/project-contract-items", Map.of(
                 "projectId", projectId,
                 "projectSectionId", sectionId,
@@ -108,6 +116,36 @@ class ProjectSettlementLifecycleIntegrationTest {
         assertThat(report.path("status").asText()).isEqualTo("draft");
         assertThat(report.path("outputValue").asDouble()).isEqualTo(2000.0);
         assertThat(report.path("pricingBasis").asText()).contains("合同清单ID:" + contractItemId);
+
+        long fallbackProcessId = id(post("/api/work-processes", Map.of(
+                "name", "E2E Backfill",
+                "unit", "m",
+                "sortOrder", 1000,
+                "status", "active"), token));
+        post("/api/project-process-prices", Map.of(
+                "projectId", projectId,
+                "workProcessId", fallbackProcessId,
+                "unit", "m",
+                "unitPrice", new BigDecimal("10.00"),
+                "effectiveDate", "2031-09-01",
+                "status", "active"), token);
+        post("/api/project-process-prices", Map.of(
+                "projectId", projectId,
+                "workProcessId", fallbackProcessId,
+                "unit", "m",
+                "unitPrice", new BigDecimal("99.00"),
+                "effectiveDate", "2031-10-01",
+                "status", "active"), token);
+        JsonNode fallbackReport = post("/api/daily-work-reports", Map.of(
+                "workDate", "2031-09-10",
+                "projectId", projectId,
+                "projectSectionId", sectionId,
+                "workProcessId", fallbackProcessId,
+                "completedQuantity", new BigDecimal("1.00"),
+                "unit", "m",
+                "workerCount", 1,
+                "reporterName", "E2E Reporter"), token).path("data");
+        assertThat(fallbackReport.path("outputValue").asDouble()).isEqualTo(10.0);
 
         post("/api/daily-work-reports/" + reportId + "/submit", null, token);
         post("/api/daily-work-reports/" + reportId + "/pm-confirm", Map.of("remark", "E2E PM confirmation"), token);

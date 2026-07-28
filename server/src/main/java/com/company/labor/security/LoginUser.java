@@ -12,10 +12,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class LoginUser implements UserDetails {
     private final SysUserDO user;
     private final List<String> roles;
+    private final boolean accountEligible;
 
     public LoginUser(SysUserDO user, List<String> roles) {
+        this(user, roles, true);
+    }
+
+    public LoginUser(SysUserDO user, List<String> roles, boolean accountEligible) {
         this.user = user;
         this.roles = roles;
+        this.accountEligible = accountEligible;
     }
 
     @Override
@@ -35,7 +41,6 @@ public class LoginUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "active".equals(user.getStatus());
+        return accountEligible && "active".equals(user.getStatus());
     }
 }
-

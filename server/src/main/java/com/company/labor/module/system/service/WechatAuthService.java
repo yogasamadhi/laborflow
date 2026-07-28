@@ -2,7 +2,9 @@ package com.company.labor.module.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.company.labor.module.system.domain.entity.WechatUserBindingDO;
+import com.company.labor.module.system.domain.entity.SysUserDO;
 import com.company.labor.module.system.domain.vo.WechatSessionVO;
+import com.company.labor.module.system.mapper.SysUserMapper;
 import com.company.labor.module.system.mapper.WechatUserBindingMapper;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,8 @@ public class WechatAuthService {
 
     private final WechatMiniappClient miniappClient;
     private final WechatUserBindingMapper bindingMapper;
+    private final SysUserMapper userMapper;
+    private final AccountEligibilityService accountEligibilityService;
 
     public WechatSessionVO exchangeSession(String code) {
         WechatMiniappClient.WechatCodeSession session = miniappClient.exchangeSession(code);
@@ -31,7 +35,7 @@ public class WechatAuthService {
             updateSession(binding, session, now);
             bindingMapper.updateById(binding);
         }
-        boolean bound = binding.getUserId() != null && "active".equals(binding.getStatus());
+        boolean bound = isEligibleBinding(binding);
         return new WechatSessionVO(
                 binding.getOpenid(),
                 binding.getUnionid(),
@@ -40,6 +44,15 @@ public class WechatAuthService {
                 binding.getUserId(),
                 binding.getEmployeeId(),
                 binding.getNickname());
+    }
+
+    private boolean isEligibleBinding(WechatUserBindingDO binding) {
+        if (binding.getUserId() == null || !"active".equals(binding.getStatus())) {
+            return false;
+        }
+        SysUserDO user = userMapper.selectById(binding.getUserId());
+        return accountEligibilityService.isUserEligible(user)
+                && accountEligibilityService.isEmployeeActive(binding.getEmployeeId());
     }
 
     private WechatUserBindingDO createPendingBinding(WechatMiniappClient.WechatCodeSession session, LocalDateTime now) {

@@ -1,8 +1,11 @@
 package com.company.labor.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -35,7 +38,7 @@ class FlywayLegacyUpgradeIntegrationTest {
             .withPassword("laborflow_upgrade_it");
 
     @Test
-    void upgradesAnonymousV12FixtureWithoutLosingCoreBusinessData() throws SQLException {
+    void upgradesAnonymousV12FixtureWithoutLosingCoreBusinessData() throws Exception {
         migrateTo("12");
         insertLegacyFixture();
         migrateTo(null);
@@ -46,7 +49,7 @@ class FlywayLegacyUpgradeIntegrationTest {
                 WHERE success = true
                 ORDER BY installed_rank DESC
                 LIMIT 1
-                """)).isEqualTo("22");
+                """)).isEqualTo("23");
         assertThat(count("SELECT COUNT(*) FROM sys_user WHERE id = " + USER_ID + " AND username = 'legacy_upgrade_user'"))
                 .isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM employee WHERE id = " + EMPLOYEE_ID + " AND name = '历史迁移员工'"))
@@ -86,6 +89,35 @@ class FlywayLegacyUpgradeIntegrationTest {
                   AND employee_id = 9100003
                   AND status = 'active'
                 """)).isEqualTo(1);
+        assertThat(count("""
+                SELECT COUNT(*)
+                FROM salary_monthly_detail
+                WHERE id = 9100014
+                  AND payable_amount = 1000.00
+                  AND deduction_amount = 100.00
+                  AND actual_amount = 1000.00
+                """)).isEqualTo(1);
+        assertThat(count("""
+                SELECT COUNT(*)
+                FROM material_record
+                WHERE id = 9100020
+                  AND project_id = 9100006
+                  AND project_section_id = 9100019
+                """)).isEqualTo(1);
+        assertThatThrownBy(() -> executeUpdate("""
+                INSERT INTO salary_monthly_detail (
+                  id, salary_monthly_id, employee_id, payable_amount, deduction_amount,
+                  actual_amount, payment_status, deleted)
+                VALUES (9100090, 9100013, 9100003, 1000.00, 100.00, 1000.00, 'unpaid', 0)
+                """)).isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> executeUpdate("""
+                INSERT INTO material_record (
+                  id, project_id, project_section_id, material_name, record_type,
+                  record_date, quantity, unit_price, amount, deleted)
+                VALUES (9100091, 9100006, 9100019, '新跨项目材料', 'arrival',
+                  DATE '2025-02-01', 1.00, 1.00, 1.00, 0)
+                """)).isInstanceOf(SQLException.class);
+        executeScript(Path.of("../scripts/ops/audit-functional-integrity.sql"));
     }
 
     private void migrateTo(String target) {
@@ -123,6 +155,14 @@ class FlywayLegacyUpgradeIntegrationTest {
                     VALUES (9100007, 9100006, '历史区段', 100.00, 0, 9100004)
                     """);
             statement.executeUpdate("""
+                    INSERT INTO project (id, name, contract_amount, status, deleted, created_by)
+                    VALUES (9100018, '历史迁移第二项目', 20000.00, 'in_progress', 0, 9100004)
+                    """);
+            statement.executeUpdate("""
+                    INSERT INTO project_section (id, project_id, name, length, deleted, created_by)
+                    VALUES (9100019, 9100018, '历史第二项目区段', 200.00, 0, 9100004)
+                    """);
+            statement.executeUpdate("""
                     INSERT INTO team (id, name, settlement_method, status, deleted, created_by)
                     VALUES (9100008, '历史班组', 'quantity', 'active', 0, 9100004)
                     """);
@@ -152,14 +192,14 @@ class FlywayLegacyUpgradeIntegrationTest {
                     INSERT INTO salary_monthly (
                       id, salary_month, title, total_employee_count, total_payable_amount,
                       total_deduction_amount, total_actual_amount, status, deleted, created_by)
-                    VALUES (9100013, '2025-01', '历史工资表', 1, 1000.00, 0.00, 1000.00, 'paid', 0, 9100004)
+                    VALUES (9100013, '2025-01', '历史工资表', 1, 1000.00, 100.00, 1000.00, 'paid', 0, 9100004)
                     """);
             statement.executeUpdate("""
                     INSERT INTO salary_monthly_detail (
                       id, salary_monthly_id, employee_id, project_id, payable_amount, deduction_amount,
                       actual_amount, payment_status, payment_date, payment_method, payment_proof_url,
                       deleted, created_by)
-                    VALUES (9100014, 9100013, 9100003, 9100006, 1000.00, 0.00,
+                    VALUES (9100014, 9100013, 9100003, 9100006, 1000.00, 100.00,
                       1000.00, 'paid', DATE '2025-01-31', 'bank_transfer', '/api/files/9100005/download', 0, 9100004)
                     """);
             statement.executeUpdate("""
@@ -174,6 +214,27 @@ class FlywayLegacyUpgradeIntegrationTest {
                     INSERT INTO project_member (id, project_id, user_id, employee_id, role_name, status, deleted, created_by)
                     VALUES (9100017, 9100006, 9100004, 9100003, '现场人员', 'active', 0, 9100004)
                     """);
+            statement.executeUpdate("""
+                    INSERT INTO material_record (
+                      id, project_id, project_section_id, material_name, record_type,
+                      record_date, quantity, unit_price, amount, deleted, created_by)
+                    VALUES (9100020, 9100006, 9100019, '历史跨项目材料', 'arrival',
+                      DATE '2025-01-20', 1.00, 10.00, 10.00, 0, 9100004)
+                    """);
+        }
+    }
+
+    private int executeUpdate(String sql) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement statement = connection.createStatement()) {
+            return statement.executeUpdate(sql);
+        }
+    }
+
+    private void executeScript(Path path) throws Exception {
+        try (Connection connection = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement statement = connection.createStatement()) {
+            statement.execute(Files.readString(path));
         }
     }
 
