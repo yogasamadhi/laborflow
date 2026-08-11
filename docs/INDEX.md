@@ -22,7 +22,7 @@
 
 ## 用户指南
 
-- [`USER_GUIDE_WEB.md`](USER_GUIDE_WEB.md) — Web 管理端角色路径
+- [`USER_GUIDE_DESKTOP.md`](USER_GUIDE_DESKTOP.md) — 桌面管理端角色路径
 - [`USER_GUIDE_MINIAPP.md`](USER_GUIDE_MINIAPP.md) — 小程序现场端角色路径
 
 ## 发布验收（Launch Gate）
@@ -37,12 +37,12 @@
 ## CI 与质量门
 
 - [`CI_BACKEND_GATE.md`](CI_BACKEND_GATE.md) — 后端测试 + JaCoCo 报告门
-- [`CI_WEB_GATE.md`](CI_WEB_GATE.md) — Web lint/typecheck/test/build 门
+- [`CI_DESKTOP_GATE.md`](CI_DESKTOP_GATE.md) — 桌面端渲染层质量门与平台构建要求
 - [`CI_MINIAPP_GATE.md`](CI_MINIAPP_GATE.md) — 小程序 syntax + lint 门
 - [`CI_DOCS_GATE.md`](CI_DOCS_GATE.md) — 文档链接 + 迁移命名 + .env 同步门
 - [`REGRESSION_EVIDENCE_POLICY.md`](REGRESSION_EVIDENCE_POLICY.md) — PR 回归证据与评审规则
 - [`REGRESSION_EVIDENCE_RECORD_TEMPLATE.md`](REGRESSION_EVIDENCE_RECORD_TEMPLATE.md) — 证据记录模板
-- [`FUNCTIONAL_CLOSURE_REGRESSION.md`](FUNCTIONAL_CLOSURE_REGRESSION.md) — Web/小程序全功能闭环回归记录
+- [`FUNCTIONAL_CLOSURE_REGRESSION.md`](FUNCTIONAL_CLOSURE_REGRESSION.md) — Desktop/小程序全功能闭环回归记录
 
 ## E2E 回归规格（英文，技术契约）
 
@@ -56,7 +56,7 @@
 
 ## QA 视觉与冒烟清单
 
-- [`WEB_VISUAL_QA_CHECKLIST.md`](WEB_VISUAL_QA_CHECKLIST.md) — Web 视觉 QA
+- [`DESKTOP_VISUAL_QA_CHECKLIST.md`](DESKTOP_VISUAL_QA_CHECKLIST.md) — 桌面端视觉 QA
 - [`MINIAPP_VISUAL_QA_CHECKLIST.md`](MINIAPP_VISUAL_QA_CHECKLIST.md) — 小程序视觉 QA
 - [`MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md) — 小程序身份/会话契约
 - [`MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md) — 小程序冒烟证据模板

@@ -54,11 +54,16 @@ hs_err_pid*
 replay_pid*
 
 # WeChat mini program local/build files
-miniapp/project.private.config.json
-miniapp/miniprogram_npm/
-miniapp/*.wxapkg
+legacy/miniapp/project.private.config.json
+legacy/miniapp/miniprogram_npm/
+legacy/miniapp/*.wxapkg
 # Machine/release-specific miniapp env override (see config/env.local.example.js)
-miniapp/config/env.local.js
+legacy/miniapp/config/env.local.js
+
+# New Taro miniapp (clients/miniapp) local/build files
+clients/miniapp/project.private.config.json
+clients/miniapp/.taro-cache/
+clients/miniapp/.swc/
 
 # Runtime data
 uploads/

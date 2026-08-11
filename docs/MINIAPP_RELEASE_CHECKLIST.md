@@ -5,7 +5,7 @@
 
 ## 1. API 地址
 
-- [ ] 复制 `miniapp/config/env.local.example.js` 为 `miniapp/config/env.local.js`（该文件被 gitignore，不会进库）。
+- [ ] 复制 `legacy/miniapp/config/env.local.example.js` 为 `legacy/miniapp/config/env.local.js`（该文件被 gitignore，不会进库）。
 - [ ] 将 `baseURL` 与 `uploadURL` 改为生产 **https** 地址，例如
       `https://api.laborflow.example.com/api`。
       - 生产环境**禁止**使用 `http://` 或 `localhost`。
@@ -23,7 +23,7 @@
 
 ## 3. urlCheck
 
-- [ ] `miniapp/project.config.json` 的 `setting.urlCheck` 在**发布前必须为 `true`**。
+- [ ] `legacy/miniapp/project.config.json` 的 `setting.urlCheck` 在**发布前必须为 `true`**。
       开发期间为 `false` 以便指向 localhost；发布构建必须改回 `true`，
       否则真机不会校验合法域名，可能与平台审核冲突。
 - [ ] 改回 `true` 后，在开发者工具里用生产配置跑一遍核心流程（登录、
@@ -31,7 +31,7 @@
 
 ## 4. AppID 与基础库
 
-- [ ] `miniapp/project.config.json` 的 `appid` 为正式小程序的 AppID（当前为
+- [ ] `legacy/miniapp/project.config.json` 的 `appid` 为正式小程序的 AppID（当前为
       `wxcd370211e94d496c`，确认是否为发布目标）。
 - [ ] `libVersion` 升级到当前稳定基础库版本（当前 `3.8.12` 偏旧；
       `project.private.config.json` 里漂移到 `3.15.2`，两者需统一）。建议在

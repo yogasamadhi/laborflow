@@ -3,7 +3,7 @@
 ## 1. 用途与判定原则
 
 本矩阵冻结当前正式上线范围内的角色、菜单、接口能力和数据范围。服务端鉴权是最终
-判定依据；Web 与小程序只负责隐藏不适用的入口和降低误操作，不能替代接口校验。
+判定依据；桌面端与小程序只负责隐藏不适用的入口和降低误操作，不能替代接口校验。
 
 默认角色来自 `V2__seed_data.sql`：`ADMIN`、`BOSS`、`FINANCE`、`MANAGER`、
 `EMPLOYEE`。代码中不存在独立的 `PROJECT_MANAGER`、`PM` 或“项目人员”角色。
@@ -46,7 +46,7 @@
 机械设备、机械台班、材料记录和项目资料归档的读取接口同样属于项目业务管理，
 `EMPLOYEE` 与 `FINANCE` 直接调用时必须返回 403；菜单隐藏不能替代该接口鉴权。
 
-## 4. Web 管理端菜单
+## 4. 桌面管理端菜单
 
 | 菜单组 | 可见角色 | 说明 |
 | --- | --- | --- |
@@ -58,7 +58,7 @@
 | 薪酬与绩效 | ADMIN/BOSS/MANAGER/FINANCE | 薪酬输入、绩效方案、绩效评分和奖金入口 |
 | 系统管理 | ADMIN | 用户、角色、操作日志和微信绑定 |
 
-Web 路由按同一角色矩阵拦截隐藏页面的直接访问，并显示可返回工作台的拒绝状态；服务端
+桌面端路由按同一角色矩阵拦截隐藏页面的直接访问，并显示可返回工作台的拒绝状态；服务端
 仍是最终拒绝依据。`L2-22-01` 同时覆盖路由直达、401 登录失效和 403 操作反馈。
 
 ## 5. 微信小程序现场端
@@ -75,8 +75,8 @@ Web 路由按同一角色矩阵拦截隐藏页面的直接访问，并显示可�
 - 服务端角色表达式：`server/src/main/java/com/company/labor/security/RoleExpressions.java`。
 - 项目数据范围：`ProjectAccessServiceImpl` 的角色范围与项目成员关系。
 - 工资本人访问：`SalaryMonthlyController` 与 `StatisticsController` 的员工绑定校验。
-- 菜单显示：`web/src/components/layout/AppLayout.tsx`。
-- 小程序待办筛选：`miniapp/services/todo.js` 与 `miniapp/utils/auth.js`。
+- 菜单显示：`clients/desktop/src/components/layout/AppLayout.tsx`。
+- 小程序待办筛选：`legacy/miniapp/services/todo.js` 与 `legacy/miniapp/utils/auth.js`。
 
 本文件是验收口径，不替代自动化验证。`L2-22-01` 至少应覆盖匿名 401、越权 403、
 授权 200、项目范围拒绝、工资本人访问、敏感字段脱敏，以及隐藏菜单后的直接路由访问体验。

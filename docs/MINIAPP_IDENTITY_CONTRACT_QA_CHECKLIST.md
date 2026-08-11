@@ -9,7 +9,7 @@ project pricing, or the backend API surface.
 Run the automated checks before DevTools verification:
 
 ```bash
-npm --prefix miniapp run check
+npm --prefix legacy/miniapp run check
 JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -B -ntp -f server/pom.xml test
 ```
 

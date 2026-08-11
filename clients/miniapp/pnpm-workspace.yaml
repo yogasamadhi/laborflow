@@ -1,0 +1,13 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+minimumReleaseAgeExclude:
+  - vite-plugin-taro-plugin-framework-react@0.5.13
+  - vite-plugin-taro-react@0.5.13
+  - vite-plugin-taro@0.5.13
+  - weapp-tailwindcss@5.2.14
+peerDependencyRules:
+  allowedVersions:
+    '@types/react': '19'
+    react: '19'

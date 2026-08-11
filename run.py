@@ -3,8 +3,9 @@
 LaborFlow local launcher.
 
 Usage:
-  python3 run.py              # start PostgreSQL, server, and web
+  python3 run.py              # start PostgreSQL, server, desktop, and miniapp watch
   python3 run.py --no-docker  # skip docker compose
+  python3 run.py --no-miniapp # skip the Taro miniapp watch build
   python3 run.py --skip-install
   python3 run.py --stop       # stop docker compose services
 """
@@ -26,7 +27,8 @@ from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parent
-WEB_DIR = ROOT / "web"
+DESKTOP_DIR = ROOT / "clients" / "desktop"
+MINIAPP_DIR = ROOT / "clients" / "miniapp"
 SERVER_DIR = ROOT / "server"
 ENV_FILE = ROOT / ".env"
 ENV_EXAMPLE = ROOT / ".env.example"
@@ -454,10 +456,20 @@ def find_maven(env: dict[str, str]) -> str:
     raise AssertionError("unreachable")
 
 
-def ensure_web_dependencies(env: dict[str, str]) -> None:
+def ensure_desktop_dependencies(env: dict[str, str]) -> None:
     if not command_exists("pnpm"):
-        fail("pnpm is required for the web project")
-    run_checked(["pnpm", "install"], WEB_DIR, env)
+        fail("pnpm is required for the desktop project")
+    if not command_exists("cargo"):
+        fail("Rust and Cargo are required for the Tauri desktop project")
+    run_checked(["pnpm", "install"], DESKTOP_DIR, env)
+
+
+def ensure_miniapp_dependencies(env: dict[str, str]) -> None:
+    if not MINIAPP_DIR.exists():
+        return
+    if not command_exists("pnpm"):
+        fail("pnpm is required for the miniapp project")
+    run_checked(["pnpm", "install"], MINIAPP_DIR, env)
 
 
 def start_server(env: dict[str, str]) -> subprocess.Popen[str]:
@@ -478,16 +490,23 @@ def start_server(env: dict[str, str]) -> subprocess.Popen[str]:
     )
 
 
-def start_web(env: dict[str, str]) -> subprocess.Popen[str]:
-    return popen_stream("web", ["pnpm", "dev"], WEB_DIR, env)
+def start_desktop(env: dict[str, str]) -> subprocess.Popen[str]:
+    desktop_env = env.copy()
+    desktop_env.setdefault("VITE_API_BASE_URL", f"http://localhost:{env.get('SERVER_PORT', '8089')}/api")
+    return popen_stream("desktop", ["pnpm", "dev"], DESKTOP_DIR, desktop_env)
 
 
-def wait_forever() -> None:
+def start_miniapp(env: dict[str, str]) -> subprocess.Popen[str]:
+    return popen_stream("miniapp", ["pnpm", "dev"], MINIAPP_DIR, env)
+
+
+def wait_forever(miniapp_enabled: bool) -> None:
     env = merged_env()
-    web_port = env.get("WEB_PORT", "5175")
     server_port = env.get("SERVER_PORT", "8089")
-    log(f"started. Web: http://localhost:{web_port}  API: http://localhost:{server_port}")
-    log("press Ctrl+C to stop server and web processes")
+    log(f"started. Desktop renderer: http://localhost:5175  API: http://localhost:{server_port}")
+    if miniapp_enabled:
+        log("miniapp watch build output: clients/miniapp/dist/ (open it in WeChat DevTools)")
+    log("press Ctrl+C to stop server, desktop, and miniapp processes")
     while True:
         for proc in processes:
             code = proc.poll()
@@ -499,6 +518,7 @@ def wait_forever() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Start LaborFlow local development services.")
     parser.add_argument("--no-docker", action="store_true", help="skip docker compose startup")
+    parser.add_argument("--no-miniapp", action="store_true", help="skip the Taro miniapp watch build")
     parser.add_argument("--skip-install", action="store_true", help="skip pnpm install")
     parser.add_argument("--stop", action="store_true", help="stop docker compose services and exit")
     args = parser.parse_args()
@@ -517,19 +537,23 @@ def main() -> None:
     wait_for_port("PostgreSQL", host, port)
 
     server_port = parse_port(env, "SERVER_PORT", 8089)
-    web_port = parse_port(env, "WEB_PORT", 5175)
-    managed_ports.update({server_port, web_port})
+    desktop_port = 5175
+    managed_ports.update({server_port, desktop_port})
     ensure_port_available("API", "localhost", server_port, "SERVER_PORT")
-    ensure_port_available("Web", "localhost", web_port, "WEB_PORT")
+    ensure_port_available("Desktop renderer", "localhost", desktop_port, "desktop Vite port")
 
     if not args.skip_install:
-        ensure_web_dependencies(env)
+        ensure_desktop_dependencies(env)
+        if not args.no_miniapp:
+            ensure_miniapp_dependencies(env)
 
     start_server(env)
-    start_web(env)
+    start_desktop(env)
+    if not args.no_miniapp:
+        start_miniapp(env)
     wait_for_port("API", "localhost", server_port)
-    wait_for_port("Web", "localhost", web_port)
-    wait_forever()
+    wait_for_port("Desktop renderer", "localhost", desktop_port)
+    wait_forever(not args.no_miniapp)
 
 
 def shutdown(_sig: int, _frame: object) -> None:

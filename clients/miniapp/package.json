@@ -1,0 +1,41 @@
+{
+  "name": "laborflow-miniapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0",
+    "pnpm": ">=11.2.0"
+  },
+  "scripts": {
+    "dev": "pnpm dev:weapp",
+    "dev:weapp": "cross-env NODE_ENV=development VITE_PLUGIN_TARO_TARGET=wx vite",
+    "dev:h5": "cross-env NODE_ENV=development VITE_PLUGIN_TARO_TARGET=h5 vite",
+    "typecheck": "tsc -b",
+    "build": "pnpm build:weapp",
+    "build:weapp": "cross-env NODE_ENV=production VITE_PLUGIN_TARO_TARGET=wx vite build",
+    "build:h5": "cross-env NODE_ENV=production VITE_PLUGIN_TARO_TARGET=h5 vite build",
+    "preview:h5": "cross-env NODE_ENV=production VITE_PLUGIN_TARO_TARGET=h5 vite preview --outDir dist/h5",
+    "check": "pnpm typecheck && pnpm build:weapp"
+  },
+  "dependencies": {
+    "@taroify/core": "^1.0.5",
+    "@taroify/icons": "1.0.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "cross-env": "^10.1.0",
+    "rolldown": "1.2.3",
+    "sass": "^1.102.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "8.2.1",
+    "vite-plugin-taro": "^0.5.13",
+    "weapp-tailwindcss": "^5.2.14"
+  }
+}

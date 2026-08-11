@@ -49,7 +49,7 @@ regression and is recorded in the pull request using
 Run the Web build before recording a passing smoke result:
 
 ```bash
-pnpm --dir web build
+pnpm --dir clients/desktop build:renderer
 ```
 
 The smoke record must not contain real salary figures, credentials, personal

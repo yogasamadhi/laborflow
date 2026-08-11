@@ -15,10 +15,10 @@ URLs, tokens, or browser storage in evidence.
 Run the automated checks before the manual path:
 
 ```bash
-pnpm --dir web typecheck
-pnpm --dir web test
-pnpm --dir web build
-pnpm --dir web exec vite --host 127.0.0.1 --port 5175
+pnpm --dir clients/desktop typecheck
+pnpm --dir clients/desktop test
+pnpm --dir clients/desktop build:renderer
+pnpm --dir clients/desktop dev
 ```
 
 ## Payroll Workflow

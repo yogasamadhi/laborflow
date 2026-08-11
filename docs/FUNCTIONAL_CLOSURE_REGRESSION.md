@@ -1,4 +1,4 @@
-# LaborFlow Web / 小程序全功能闭环回归记录
+# LaborFlow Desktop / 小程序全功能闭环回归记录
 
 ## 1. 基线与范围
 
@@ -10,17 +10,17 @@
 
 ## 2. 缺陷—实现—证据追踪
 
-| 领域 | 服务端/迁移 | Web/小程序 | 自动化证据 |
+| 领域 | 服务端/迁移 | Desktop/小程序 | 自动化证据 |
 | --- | --- | --- | --- |
 | 项目成员 | `employeeId` 唯一身份、专用 VO、重复校验、V24 清理旧身份 | 成员查询、异步员工选择、职责/启停/删除、项目切换清空员工 | `AccessControlIntegrationTest`、`FlywayLegacyUpgradeIntegrationTest` |
 | 绩效计薪 | 方案/成绩状态机、指标和证据快照、自动评分、基数/金额公式、工资唯一成绩 Gate | 绩效方案和评分工作台，金额只读 | `PerformanceScoringRulesTest`、`SalarySourcesLifecycleIntegrationTest` |
-| 日报定价 | 定价预览、单清单自动选择、多清单强制选择、无价草稿、提交快照 | Web/小程序合同清单、定价警告和提交阻断 | `ProjectSettlementLifecycleIntegrationTest` |
+| 日报定价 | 定价预览、单清单自动选择、多清单强制选择、无价草稿、提交快照 | Desktop/小程序合同清单、定价警告和提交阻断 | `ProjectSettlementLifecycleIntegrationTest` |
 | 待办与审批 | 角色化 `/api/todos`、专用详情、签证确认 DTO、状态重验 | 小程序统一待办、完整详情、加载锁与成功刷新 | `AccessControlIntegrationTest`、签证/结算生命周期回归 |
-| 综合仪表盘 | 单接口能力区域和敏感区隔离 | Web 角色化综合工作台 | `AccessControlIntegrationTest` |
-| Reference/分页 | 最小 Reference VO、服务端筛选和统一页结果 | 异步搜索选择、统一分页；移除固定 100/200/500/1000 请求 | Web typecheck、Lint、Vitest、build 与静态搜索 |
+| 综合仪表盘 | 单接口能力区域和敏感区隔离 | Desktop 角色化综合工作台 | `AccessControlIntegrationTest` |
+| Reference/分页 | 最小 Reference VO、服务端筛选和统一页结果 | 异步搜索选择、统一分页；移除固定 100/200/500/1000 请求 | Desktop typecheck、Lint、Vitest、build 与静态搜索 |
 | 附件 | `FileMetadataVO`、授权预览/下载、草稿/驳回删除 | 通用附件预览组件、日报/签证/回款/资料接入 | `FileAccessBoundaryIntegrationTest` |
 | 操作日志 | ADMIN 安全 VO、组合筛选、时间校验、倒序 | 日志查询、分页、失败重试 | `AuditLogLifecycleIntegrationTest` |
-| 小程序现场 | 详情名称、分页、筛选、草稿编辑、工资条反馈 | 第五页签“现场”，删除旧日报/签证空壳列表 | `npm --prefix miniapp run check` |
+| 小程序现场 | 详情名称、分页、筛选、草稿编辑、工资条反馈 | 第五页签“现场”，删除旧日报/签证空壳列表 | `npm --prefix legacy/miniapp run check` |
 
 ## 3. 自动化结果
 
@@ -30,11 +30,11 @@
 | --- | --- | --- |
 | 服务端 | `mvn -B -ntp -f server/pom.xml clean test` | pass：130 tests，0 failures，0 errors，0 skipped；Docker/Testcontainers PostgreSQL 18 可用 |
 | JaCoCo | 检查 `server/target/site/jacoco/index.html` | pass：报告已生成，85 个服务端类完成分析 |
-| Web 类型 | `npm --prefix web run typecheck` | pass |
-| Web Lint | `npm --prefix web run lint` | pass：0 warnings |
-| Web 测试 | `npm --prefix web test -- --run` | pass：7 files / 21 tests |
-| Web 构建 | `npm --prefix web run build` | pass：Vite production build |
-| 小程序 | `npm --prefix miniapp run check` | pass：语法、ESLint、19 tests |
+| Desktop 类型 | `pnpm --dir clients/desktop typecheck` | pass |
+| Desktop Lint | `pnpm --dir clients/desktop lint` | pass：0 warnings |
+| Desktop 测试 | `pnpm --dir clients/desktop test` | pass：7 files / 21 tests |
+| Desktop 渲染层构建 | `pnpm --dir clients/desktop build:renderer` | pass：Vite production build |
+| 小程序 | `npm --prefix legacy/miniapp run check` | pass：语法、ESLint、19 tests |
 | 文档/迁移 | `node scripts/ci/check-docs.mjs` | pass：44 Markdown、24 migrations、`.env.example` 同步 |
 
 自动化 `pass` 只证明工程 Gate，不替代

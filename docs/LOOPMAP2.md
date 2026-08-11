@@ -33,8 +33,8 @@
 目标端：
 
 - 后端：`server`
-- Web 管理端：`web`
-- 微信小程序现场端：`miniapp`
+- 桌面管理端：`clients/desktop`
+- 微信小程序现场端：`clients/miniapp`
 - 产品、验收和上线准备文档：`docs` 与根目录项目说明
 
 明确不覆盖：
@@ -198,7 +198,7 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-20-01 | product/docs | done | 冻结正式上线功能范围 | `docs/PROJECT_BRIEF.md`、`docs/ROADMAP.md`、上线范围文档 | 核对真实能力；列出延期/不做；写 Gate 入口 | 低风险；回滚为整份范围文档 | 范围、延期和不做事项与三端能力一致 | `git diff --check` |
-| L2-20-02 | product/backend/web | done | 建立角色与权限矩阵 | 权限表达式、Web 菜单、`ROLE_PERMISSION_MATRIX.md` | 汇总角色；映射接口/菜单/数据范围；校验来源代码 | 认证与数据范围；回滚为整次矩阵/接线变更 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员能力清晰成表 | `rg -n "PreAuthorize\|roles" server/src/main/java web/src`; `git diff --check` |
+| L2-20-02 | product/backend/web | done | 建立角色与权限矩阵 | 权限表达式、Web 菜单、`ROLE_PERMISSION_MATRIX.md` | 汇总角色；映射接口/菜单/数据范围；校验来源代码 | 认证与数据范围；回滚为整次矩阵/接线变更 | ADMIN/BOSS/MANAGER/FINANCE/普通员工/项目人员能力清晰成表 | `rg -n "PreAuthorize\|roles" server/src/main/java clients/desktop/src`; `git diff --check` |
 | L2-20-03 | product/docs | done | 编写业务验收清单 | `docs/UAT_CHECKLIST.md` | 准备角色夹具；关键正向流；越权和异常证据 | 低风险；回滚为清单文档 | 各业务角色均有端到端验收用例 | `git diff --check` |
 | L2-20-04 | product/docs | done | 编写初始化验收清单 | `README.md`、`INITIALIZATION_CHECKLIST.md` | 管理员；角色/工资项/工序；测试账号/微信准备 | 初始化与凭据；回滚为文档和 bootstrap 接线整体 | 初始化、测试账号和微信准备步骤清晰 | `git diff --check` |
 
@@ -207,8 +207,8 @@
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-21-01 | qa/backend/web | done | 建立工资主流程 E2E 回归 | 员工、工资档案、月度工资、审批、发放、工资条 | HTTP 夹具；角色分工；本人读取/确认；Web/小程序 smoke 手册 | 工资状态与金额；回滚为工资自助接口、确认 UI 和测试整体 | 入职到工资条确认可重复验证 | `mvn test`; `pnpm build`; 回归记录 |
-| L2-21-02 | qa/backend/web/miniapp | done | 建立项目日报到班组结算 E2E 回归 | 项目、合同清单、日报、确认、班组结算、支付 | 计价夹具；日报确认；结算支付；看板金额断言；smoke 手册 | 项目金额和结算状态；回滚为整条结算回归能力 | 项目创建到班组支付可重复验证 | `mvn test`; `pnpm build`; `npm --prefix miniapp run check` |
-| L2-21-03 | qa/backend/web/miniapp | done | 建立签证变更收入 E2E 回归 | 签证、附件、确认金额、项目看板 | 创建/绑定附件；提交；确认金额；看板收入断言；三端 smoke | 收入与附件归属；回滚为签证确认/收入接线整体 | 小程序或管理端提交签证后，确认金额和看板收入可验证 | `mvn test`; `pnpm build`; `npm --prefix miniapp run check` |
+| L2-21-02 | qa/backend/web/miniapp | done | 建立项目日报到班组结算 E2E 回归 | 项目、合同清单、日报、确认、班组结算、支付 | 计价夹具；日报确认；结算支付；看板金额断言；smoke 手册 | 项目金额和结算状态；回滚为整条结算回归能力 | 项目创建到班组支付可重复验证 | `mvn test`; `pnpm build`; `npm --prefix legacy/miniapp run check` |
+| L2-21-03 | qa/backend/web/miniapp | done | 建立签证变更收入 E2E 回归 | 签证、附件、确认金额、项目看板 | 创建/绑定附件；提交；确认金额；看板收入断言；三端 smoke | 收入与附件归属；回滚为签证确认/收入接线整体 | 小程序或管理端提交签证后，确认金额和看板收入可验证 | `mvn test`; `pnpm build`; `npm --prefix legacy/miniapp run check` |
 | L2-21-04 | qa/backend/web | done | 建立薪酬来源进入工资 E2E 回归 | 考勤、法定扣款、绩效、项目奖金、工资来源 | 构造四类来源；生成工资；明细/来源断言；管理端 smoke | 工资金额和来源快照；回滚为薪酬汇总链路整体 | 各来源可进入工资明细并可追溯 | `mvn test`; `pnpm build` |
 | L2-21-05 | qa/docs | done | 复用统一回归结果证据模板 | `PULL_REQUEST_TEMPLATE.md`、回归证据规则和模板 | 统一 PR 分类；详细记录模板；豁免规则；数据脱敏 | 低风险；由 L2-26-05 已闭环产物整体回滚 | 每次回归可记录环境、步骤、结果和证据，不再重复建设模板 | PR 模板检查；`node scripts/ci/check-docs.mjs` |
 
@@ -234,16 +234,16 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-24-01 | design/web/qa | done | 建立 Web 正式版公共体验、视觉与性能基线 | 登录、AppLayout、通用状态、styles/components、响应式、router、`WEB_VISUAL_QA_CHECKLIST.md` | 登录/token 状态；设计 token 与组件层级；loading/empty/error；多视口交互；路由懒加载/chunk；截图基线 | Web 共享基础和加载策略；回滚为壳层、通用组件、样式、路由加载和视觉基线整体 | 登录与访问反馈一致，页面层级可扫描，多视口不溢出，主 chunk 明显下降且关键页面有截图基线 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; chunk 对比；1366/1440/窄屏 smoke/截图 |
-| L2-24-02 | web/qa | done | 完成工资工作台关键操作与视觉体验 | 月度工资、明细、发放、导出、异常及对应视觉状态 | 生成/重算；提交/审核；批量发放；导出；确认/结果/失败；正常/空/异常截图 | 工资状态和金额操作；回滚为工资工作台及对应视觉基线整体 | 关键工资动作均有确认、结果和失败提示，金额与状态清晰可扫描且可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 工资 smoke/截图 |
-| L2-24-03 | web/qa | done | 完成项目工作台、大列表与视觉体验 | 日报、确认、签证、结算、看板、项目列表及对应视觉状态 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈；大表格响应式；正常/空/异常截图 | 项目状态和大列表交互；回滚为项目工作台及对应视觉基线整体 | 项目核心表格可扫描，关键操作可安全完成，多视口和异常状态可重复视觉验收 | `pnpm --dir web typecheck`; `pnpm --dir web test`; `pnpm --dir web build`; 项目 smoke/截图 |
+| L2-24-01 | design/web/qa | done | 建立 Web 正式版公共体验、视觉与性能基线 | 登录、AppLayout、通用状态、styles/components、响应式、router、`DESKTOP_VISUAL_QA_CHECKLIST.md` | 登录/token 状态；设计 token 与组件层级；loading/empty/error；多视口交互；路由懒加载/chunk；截图基线 | Web 共享基础和加载策略；回滚为壳层、通用组件、样式、路由加载和视觉基线整体 | 登录与访问反馈一致，页面层级可扫描，多视口不溢出，主 chunk 明显下降且关键页面有截图基线 | `pnpm --dir clients/desktop typecheck`; `pnpm --dir clients/desktop test`; `pnpm --dir clients/desktop build:renderer`; chunk 对比；1366/1440/窄屏 smoke/截图 |
+| L2-24-02 | web/qa | done | 完成工资工作台关键操作与视觉体验 | 月度工资、明细、发放、导出、异常及对应视觉状态 | 生成/重算；提交/审核；批量发放；导出；确认/结果/失败；正常/空/异常截图 | 工资状态和金额操作；回滚为工资工作台及对应视觉基线整体 | 关键工资动作均有确认、结果和失败提示，金额与状态清晰可扫描且可重复视觉验收 | `pnpm --dir clients/desktop typecheck`; `pnpm --dir clients/desktop test`; `pnpm --dir clients/desktop build:renderer`; 工资 smoke/截图 |
+| L2-24-03 | web/qa | done | 完成项目工作台、大列表与视觉体验 | 日报、确认、签证、结算、看板、项目列表及对应视觉状态 | 筛选/分页；批量操作；审批/驳回/支付确认；结果反馈；大表格响应式；正常/空/异常截图 | 项目状态和大列表交互；回滚为项目工作台及对应视觉基线整体 | 项目核心表格可扫描，关键操作可安全完成，多视口和异常状态可重复视觉验收 | `pnpm --dir clients/desktop typecheck`; `pnpm --dir clients/desktop test`; `pnpm --dir clients/desktop build:renderer`; 项目 smoke/截图 |
 
 ### P25：小程序现场端正式版体验
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 内部 checklist | 风险 / 回滚 | 验收 | 验证 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| L2-25-01 | miniapp/backend/qa | done | 建立小程序身份、会话与接口契约可靠性基线 | 登录、微信绑定、token、退出、缓存、`miniapp/services`、后端 DTO/状态流 | 登录/绑定正反向；token 失效；缓存清理；字段/状态清单；contract/HTTP 回归；弱网 smoke | 身份、会话和移动端公共协议；回滚为认证、契约 fixture 和服务接线整体 | 身份流程可安全恢复，字段或状态破坏性变化会被自动化或 smoke 捕获 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录/绑定/弱网 smoke |
-| L2-25-02 | design/miniapp/qa | done | 完成小程序现场工作台的可靠交互与视觉基线 | app theme、日报、签证、上传/草稿、待办审批、工资条、`MINIAPP_VISUAL_QA_CHECKLIST.md` | 填报选择/校验；上传重试/草稿恢复；提交锁定；待办防误触；工资金额/确认；空/异常/提交中状态；把真实登录、弱网和录屏证据移交 L2-27-02 | 现场写入、审批和工资确认；回滚为现场工作台页面、服务接线和视觉基线整体 | 工程实现、自动化回归和未登录模拟器基线通过；真实账号下的弱网、上传、审批、工资确认和录屏不是本项通过结论，必须在 L2-27-02 Gate 完成或取得正式延期批准 | `mvn test`; `npm --prefix miniapp run check`; 微信开发者工具登录页、空表单和启动期失败恢复检查；L2-27-02 真实账号全流程、弱网和截图/录屏 Gate |
+| L2-25-01 | miniapp/backend/qa | done | 建立小程序身份、会话与接口契约可靠性基线 | 登录、微信绑定、token、退出、缓存、`legacy/miniapp/services`、后端 DTO/状态流 | 登录/绑定正反向；token 失效；缓存清理；字段/状态清单；contract/HTTP 回归；弱网 smoke | 身份、会话和移动端公共协议；回滚为认证、契约 fixture 和服务接线整体 | 身份流程可安全恢复，字段或状态破坏性变化会被自动化或 smoke 捕获 | `mvn test`; `npm --prefix legacy/miniapp run check`; 微信开发者工具登录/绑定/弱网 smoke |
+| L2-25-02 | design/miniapp/qa | done | 完成小程序现场工作台的可靠交互与视觉基线 | app theme、日报、签证、上传/草稿、待办审批、工资条、`MINIAPP_VISUAL_QA_CHECKLIST.md` | 填报选择/校验；上传重试/草稿恢复；提交锁定；待办防误触；工资金额/确认；空/异常/提交中状态；把真实登录、弱网和录屏证据移交 L2-27-02 | 现场写入、审批和工资确认；回滚为现场工作台页面、服务接线和视觉基线整体 | 工程实现、自动化回归和未登录模拟器基线通过；真实账号下的弱网、上传、审批、工资确认和录屏不是本项通过结论，必须在 L2-27-02 Gate 完成或取得正式延期批准 | `mvn test`; `npm --prefix legacy/miniapp run check`; 微信开发者工具登录页、空表单和启动期失败恢复检查；L2-27-02 真实账号全流程、弱网和截图/录屏 Gate |
 
 延期人工证据说明：依据用户在 2026-07-13 的明确指示，L2-25-02 不再等待真实小程序
 登录问题处理，也不声称日报、签证、上传、待办、工资确认或弱网录屏已经通过。上述
@@ -256,7 +256,7 @@ Gate 不能给出通过结论。
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L2-26-01 | ci/backend | done | 建立后端测试门禁 | Gitee Go、`server` | workflow；Java/Docker；Testcontainers；保护说明 | 质量 Gate；回滚为 workflow 文档整体 | PR 可运行后端完整测试 | CI dry run；本地 Maven 等价命令 |
 | L2-26-02 | ci/web | done | 建立 Web 构建与测试门禁 | Gitee Go、`web` | frozen install；typecheck；Vitest；build；保护说明 | 质量 Gate；回滚为 workflow/脚本整体 | PR 可运行 Web typecheck/test/build | CI dry run；本地 pnpm 等价命令 |
-| L2-26-03 | ci/miniapp | done | 建立小程序语法与 smoke 门禁 | Gitee Go、`miniapp`、smoke 模板 | first-party JS；workflow；人工证据模板 | 质量 Gate；回滚为检查/模板整体 | PR 可运行小程序语法检查并提交 smoke 证据 | CI dry run；`npm --prefix miniapp run check` |
+| L2-26-03 | ci/miniapp | done | 建立小程序语法与 smoke 门禁 | Gitee Go、`legacy/miniapp`、smoke 模板 | first-party JS；workflow；人工证据模板 | 质量 Gate；回滚为检查/模板整体 | PR 可运行小程序语法检查并提交 smoke 证据 | CI dry run；`npm --prefix legacy/miniapp run check` |
 | L2-26-04 | ci/docs | done | 建立文档与 diff 检查门禁 | Gitee Go、Markdown、迁移文件 | whitespace；链接；migration 命名/版本；workflow | 质量 Gate；回滚为检查脚本/workflow整体 | PR 可发现 diff、链接和迁移完整性问题 | CI dry run；`node scripts/ci/check-docs.mjs` |
 | L2-26-05 | ci/qa | done | 建立回归证据归档规则 | PR 模板、回归记录模板、评审规则 | 风险分类；记录模板；豁免；数据脱敏；审核 Gate | 证据治理；回滚为模板/规则整体 | 工资/项目/权限/迁移 PR 必须附证据或可接受豁免 | PR 模板检查 |
 
@@ -290,10 +290,10 @@ Gate 不能给出通过结论。
 | 文档-only | `git diff --check`；人工检查路径、命令、角色名称是否真实存在；审查 `git diff` |
 | 后端 Java 代码 | `JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -B -ntp -f server/pom.xml test` |
 | 后端集成测试/迁移 | 同上，并记录 Testcontainers PostgreSQL、迁移起点和最终版本 |
-| Web 代码 | `pnpm --dir web typecheck`、`pnpm --dir web test`、`pnpm --dir web build` |
-| Web 性能 | `pnpm --dir web build`，记录主 chunk 和 gzip 体积变化 |
-| Web 视觉/交互 | `pnpm --dir web build`，关键页面桌面/窄屏截图，记录 hover/focus/loading/error 状态 |
-| 小程序 JS | `npm --prefix miniapp run check` |
+| Web 代码 | `pnpm --dir clients/desktop typecheck`、`pnpm --dir clients/desktop test`、`pnpm --dir clients/desktop build:renderer` |
+| Web 性能 | `pnpm --dir clients/desktop build:renderer`，记录主 chunk 和 gzip 体积变化 |
+| Web 视觉/交互 | `pnpm --dir clients/desktop build:renderer`，关键页面桌面/窄屏截图，记录 hover/focus/loading/error 状态 |
+| 小程序 JS | `npm --prefix legacy/miniapp run check` |
 | 小程序体验 | 微信开发者工具 smoke，记录机型、网络、账号、步骤和截图 |
 | 小程序视觉/交互 | 真机或开发者工具截图/录屏，覆盖触控态、上传中、提交中、弱网、空状态 |
 | 权限/安全 | 至少验证匿名 401、越权 403、授权 200、敏感字段脱敏 |
@@ -513,7 +513,7 @@ Target branch: master
 Loop branch: loop/L2-26-02-web-ci-gate
 Commit: 9689311 loop: add web quality gate
 Merge commit: 97e9ac0 merge: complete L2-26-02 web CI gate
-Verification: Ruby YAML parsing passed for .workflow/PRWebPipeline.yml; pnpm typecheck passed; Vitest passed (2 tests); pnpm build passed; git diff --check passed. The build reports an existing 1.60 MB main chunk warning, which remains scheduled for L2-24-06 route-level code splitting.
+Verification: Ruby YAML parsing passed for .workflow/PRDesktopPipeline.yml; pnpm typecheck passed; Vitest passed (2 tests); pnpm build passed; git diff --check passed. The build reports an existing 1.60 MB main chunk warning, which remains scheduled for L2-24-06 route-level code splitting.
 Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -528,7 +528,7 @@ Target branch: master
 Loop branch: loop/L2-26-03-miniapp-ci-gate
 Commit: 40f093d loop: add miniapp syntax gate
 Merge commit: b20b047 merge: complete L2-26-03 miniapp CI gate
-Verification: Ruby YAML parsing passed for .workflow/PRMiniappPipeline.yml; npm --prefix miniapp run check passed and ran node --check for every first-party miniapp JavaScript file; git diff --check passed
+Verification: Ruby YAML parsing passed for .workflow/PRMiniappPipeline.yml; npm --prefix legacy/miniapp run check passed and ran node --check for every first-party miniapp JavaScript file; git diff --check passed
 Diff review: passed; reviewed final name-status and diff stat against origin/master after merge
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -573,7 +573,7 @@ Target branch: master
 Loop branch: loop/L2-21-01-payroll-e2e
 Commit: 113d616 loop: add payroll lifecycle regression
 Merge commit: 09412db merge: complete L2-21-01 payroll E2E
-Verification: SalaryLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering ADMIN employee/profile/monthly creation and generation, BOSS approval, FINANCE payment, and the bound EMPLOYEE's own history/detail/items/payslip confirmation; full server Maven suite passed with 98 tests; pnpm typecheck, pnpm test (2 tests), and pnpm build passed; npm --prefix miniapp run check passed; node scripts/ci/check-docs.mjs passed for 21 repository-maintained Markdown files and 21 Flyway migrations; git diff --check passed. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
+Verification: SalaryLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering ADMIN employee/profile/monthly creation and generation, BOSS approval, FINANCE payment, and the bound EMPLOYEE's own history/detail/items/payslip confirmation; full server Maven suite passed with 98 tests; pnpm typecheck, pnpm test (2 tests), and pnpm build passed; npm --prefix legacy/miniapp run check passed; node scripts/ci/check-docs.mjs passed for 21 repository-maintained Markdown files and 21 Flyway migrations; git diff --check passed. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
 Diff review: passed; reviewed final name-status, full source/test/runbook content, and diff stat against origin/master after merge
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -588,7 +588,7 @@ Target branch: master
 Loop branch: loop/L2-21-02-report-settlement-e2e
 Commit(s): 35db16a loop: add project settlement lifecycle regression
 Merge commit: 52d36f7 merge: complete L2-21-02 project settlement E2E
-Verification: ProjectSettlementLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering project, section, work process, team, team unit price, active contract item, priced daily report, submit, project-manager confirmation, final confirmation, generated/confirmed/paid team settlement, and project-dashboard quantity/value/payable/paid totals; full server Maven suite passed with 99 tests; pnpm typecheck, pnpm test (2 tests), and pnpm build passed; npm --prefix miniapp run check passed; node scripts/ci/check-docs.mjs passed for 22 repository-maintained Markdown files and 21 Flyway migrations; git diff --check and git diff --check origin/master...HEAD passed. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
+Verification: ProjectSettlementLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering project, section, work process, team, team unit price, active contract item, priced daily report, submit, project-manager confirmation, final confirmation, generated/confirmed/paid team settlement, and project-dashboard quantity/value/payable/paid totals; full server Maven suite passed with 99 tests; pnpm typecheck, pnpm test (2 tests), and pnpm build passed; npm --prefix legacy/miniapp run check passed; node scripts/ci/check-docs.mjs passed for 22 repository-maintained Markdown files and 21 Flyway migrations; git diff --check and git diff --check origin/master...HEAD passed. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
 Diff review: passed; reviewed final name-status, complete source/test/runbook content, and accumulated diff stat against origin/master after merge
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -618,7 +618,7 @@ Target branch: master
 Loop branch: loop/L2-21-03-variation-income-e2e
 Commit: e1c35f0 loop: add variation income regression
 Merge commit: e1f3894 merge: complete L2-21-03 variation income E2E
-Verification: VariationIncomeLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering project/section setup, real multipart file upload, private file metadata, attachment binding, submission, pending variation income, commercial confirmation, confirmation history, confirmed amount, revenue breakdown, and contract-derived receivable. FileRecordStorageSwitchTest passed after fixing file-record creation so its required private download path is persisted in the initial insert. The full server Maven suite passed with 100 tests before and after merge; pnpm typecheck and pnpm test (2 tests) passed before merge; pnpm build passed before and after merge; npm --prefix miniapp run check passed; node scripts/ci/check-docs.mjs passed for 23 repository-maintained Markdown files and 21 Flyway migrations. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
+Verification: VariationIncomeLifecycleIntegrationTest passed before and after merge against Testcontainers PostgreSQL 18, covering project/section setup, real multipart file upload, private file metadata, attachment binding, submission, pending variation income, commercial confirmation, confirmation history, confirmed amount, revenue breakdown, and contract-derived receivable. FileRecordStorageSwitchTest passed after fixing file-record creation so its required private download path is persisted in the initial insert. The full server Maven suite passed with 100 tests before and after merge; pnpm typecheck and pnpm test (2 tests) passed before merge; pnpm build passed before and after merge; npm --prefix legacy/miniapp run check passed; node scripts/ci/check-docs.mjs passed for 23 repository-maintained Markdown files and 21 Flyway migrations. The existing 1.60 MB Web main-chunk warning remains scheduled for L2-24-06.
 Diff review: passed; reviewed final name-status, complete source/test/runbook content, and accumulated diff stat against origin/master after merge
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -663,7 +663,7 @@ Target branch: master
 Loop branch: loop/L2-22-01-access-sensitive-e2e
 Commit(s): 8df8b0b loop: add access control regression
 Merge commit: c53be3c merge: complete L2-22-01 access control
-Verification: AccessControlIntegrationTest passed against Testcontainers PostgreSQL 18; the post-merge full server Maven suite passed with 102 tests; pnpm --dir web typecheck passed; pnpm --dir web test passed with 6 tests; pnpm --dir web build passed with a 1,605.36 kB main chunk (the existing code-splitting warning remains scheduled for L2-24-01); node scripts/ci/check-docs.mjs passed for 25 repository-maintained Markdown files and 21 Flyway migrations; local Vite service returned the Web application. The manual Web smoke steps are recorded in ACCESS_CONTROL_E2E_REGRESSION.md; browser-control tooling was unavailable in this environment, so no screenshot evidence is claimed.
+Verification: AccessControlIntegrationTest passed against Testcontainers PostgreSQL 18; the post-merge full server Maven suite passed with 102 tests; pnpm --dir clients/desktop typecheck passed; pnpm --dir clients/desktop test passed with 6 tests; pnpm --dir clients/desktop build:renderer passed with a 1,605.36 kB main chunk (the existing code-splitting warning remains scheduled for L2-24-01); node scripts/ci/check-docs.mjs passed for 25 repository-maintained Markdown files and 21 Flyway migrations; local Vite service returned the Web application. The manual Web smoke steps are recorded in ACCESS_CONTROL_E2E_REGRESSION.md; browser-control tooling was unavailable in this environment, so no screenshot evidence is claimed.
 Diff review: passed; reviewed the full functional diff before commit and the merged diff against origin/master; git diff --check and git diff --check origin/master...HEAD passed
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -708,7 +708,7 @@ Target branch: master
 Loop branch: loop/L2-24-01-web-foundation
 Commit(s): 0bb900a loop: improve web experience foundation
 Merge commit: 33f321d merge: complete L2-24-01 web experience foundation
-Verification: Post-merge pnpm --dir web typecheck passed; pnpm --dir web test passed with 3 files and 6 tests; pnpm --dir web build passed. The initial index chunk is 396.80 kB / 127.43 kB gzip, down from the prior 1,605.36 kB / 505.39 kB gzip baseline; ProjectPages is 60.25 kB / 9.83 kB gzip and CompensationPages is 19.26 kB / 3.71 kB gzip. The existing ECharts salary-statistics code is isolated as a 1,036.92 kB / 343.96 kB gzip lazy chunk. node scripts/ci/check-docs.mjs passed for 28 repository-maintained Markdown files and 21 Flyway migrations. The in-app browser rendered login at 1366 x 768 and 390 x 844, and the register mode exposed all expected fields without overlap; authenticated-shell, route-loading, and request-feedback UAT remain explicit non-production-account checkpoints in WEB_VISUAL_QA_CHECKLIST.md.
+Verification: Post-merge pnpm --dir clients/desktop typecheck passed; pnpm --dir clients/desktop test passed with 3 files and 6 tests; pnpm --dir clients/desktop build:renderer passed. The initial index chunk is 396.80 kB / 127.43 kB gzip, down from the prior 1,605.36 kB / 505.39 kB gzip baseline; ProjectPages is 60.25 kB / 9.83 kB gzip and CompensationPages is 19.26 kB / 3.71 kB gzip. The existing ECharts salary-statistics code is isolated as a 1,036.92 kB / 343.96 kB gzip lazy chunk. node scripts/ci/check-docs.mjs passed for 28 repository-maintained Markdown files and 21 Flyway migrations. The in-app browser rendered login at 1366 x 768 and 390 x 844, and the register mode exposed all expected fields without overlap; authenticated-shell, route-loading, and request-feedback UAT remain explicit non-production-account checkpoints in DESKTOP_VISUAL_QA_CHECKLIST.md.
 Diff review: passed; reviewed the complete functional diff before commit and merged diff against origin/master; git diff --check and git diff --check origin/master...HEAD passed
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -723,7 +723,7 @@ Target branch: master
 Loop branch: loop/L2-24-02-payroll-workspace
 Commit(s): bf03353 loop: improve payroll workspace experience
 Merge commit: e3f611f merge: complete L2-24-02 payroll workspace experience
-Verification: Post-merge pnpm --dir web typecheck passed; pnpm --dir web test passed with 4 files and 8 tests, including salaryWorkflow.test.ts for valid monthly state actions and safeguard copy; pnpm --dir web build passed with a 396.98 kB / 127.52 kB gzip initial index chunk. node scripts/ci/check-docs.mjs passed for 29 repository-maintained Markdown files and 21 Flyway migrations. The payroll and salary-anomaly feature directories contain no remaining window.confirm or window.prompt calls. PAYROLL_WORKSPACE_QA_CHECKLIST.md defines non-production authenticated smoke and screenshot checkpoints; no live approval, payment, export, or authenticated screenshot is claimed because a permitted test account was not available in this loop.
+Verification: Post-merge pnpm --dir clients/desktop typecheck passed; pnpm --dir clients/desktop test passed with 4 files and 8 tests, including salaryWorkflow.test.ts for valid monthly state actions and safeguard copy; pnpm --dir clients/desktop build:renderer passed with a 396.98 kB / 127.52 kB gzip initial index chunk. node scripts/ci/check-docs.mjs passed for 29 repository-maintained Markdown files and 21 Flyway migrations. The payroll and salary-anomaly feature directories contain no remaining window.confirm or window.prompt calls. PAYROLL_WORKSPACE_QA_CHECKLIST.md defines non-production authenticated smoke and screenshot checkpoints; no live approval, payment, export, or authenticated screenshot is claimed because a permitted test account was not available in this loop.
 Diff review: passed; reviewed the complete functional diff before commit and merged diff against origin/master; git diff --check and git diff --check origin/master...HEAD passed
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -738,7 +738,7 @@ Target branch: master
 Loop branch: loop/L2-24-03-project-workspace
 Commit(s): e7d4c34 loop: improve project workspace experience
 Merge commit: f4131d0 merge: complete L2-24-03 project workspace experience
-Verification: Post-merge pnpm --dir web typecheck passed; pnpm --dir web test passed with 4 files and 8 tests; pnpm --dir web build passed with a 397.03 kB / 127.52 kB gzip initial index chunk and a 66.46 kB / 11.57 kB gzip ProjectPages lazy chunk. node scripts/ci/check-docs.mjs passed for 30 repository-maintained Markdown files and 21 Flyway migrations. The project workspace has no remaining window.confirm/window.prompt calls or direct confirm/reject/mark-paid mutations in ProjectPages.tsx. PROJECT_WORKSPACE_QA_CHECKLIST.md defines non-production authenticated state-action, mobile, failure, and screenshot checkpoints; no live project action or authenticated screenshot is claimed because a permitted fixture account was not available in this loop.
+Verification: Post-merge pnpm --dir clients/desktop typecheck passed; pnpm --dir clients/desktop test passed with 4 files and 8 tests; pnpm --dir clients/desktop build:renderer passed with a 397.03 kB / 127.52 kB gzip initial index chunk and a 66.46 kB / 11.57 kB gzip ProjectPages lazy chunk. node scripts/ci/check-docs.mjs passed for 30 repository-maintained Markdown files and 21 Flyway migrations. The project workspace has no remaining window.confirm/window.prompt calls or direct confirm/reject/mark-paid mutations in ProjectPages.tsx. PROJECT_WORKSPACE_QA_CHECKLIST.md defines non-production authenticated state-action, mobile, failure, and screenshot checkpoints; no live project action or authenticated screenshot is claimed because a permitted fixture account was not available in this loop.
 Diff review: passed; reviewed the complete functional diff before commit and merged diff against origin/master; git diff --check and git diff --check origin/master...HEAD passed
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -753,7 +753,7 @@ Target branch: master
 Loop branch: loop/L2-25-01-miniapp-identity-contract
 Commit(s): 0c8d083 loop: harden miniapp identity contracts
 Merge commit: 89b2a84 merge: complete L2-25-01 miniapp identity contracts
-Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18. npm --prefix miniapp run check passed and ran first-party JavaScript syntax checks plus 5 mocked identity/service-contract tests covering complete and malformed cache handling, profile refresh, 401/403 behavior, login payload/header isolation, attachment types, and upload session expiry. node scripts/ci/check-docs.mjs passed for 31 repository-maintained Markdown files and 21 Flyway migrations. git diff --check and git diff --check origin/master...HEAD passed. MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md defines the local/test DevTools binding, expiry, logout, upload, and weak-network smoke path; no live DevTools, test account, binding, upload, or weak-network run is claimed in this loop.
+Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18. npm --prefix legacy/miniapp run check passed and ran first-party JavaScript syntax checks plus 5 mocked identity/service-contract tests covering complete and malformed cache handling, profile refresh, 401/403 behavior, login payload/header isolation, attachment types, and upload session expiry. node scripts/ci/check-docs.mjs passed for 31 repository-maintained Markdown files and 21 Flyway migrations. git diff --check and git diff --check origin/master...HEAD passed. MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md defines the local/test DevTools binding, expiry, logout, upload, and weak-network smoke path; no live DevTools, test account, binding, upload, or weak-network run is claimed in this loop.
 Diff review: passed; reviewed the complete functional diff before commit and the merged diff against origin/master
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin as part of this loop completion
@@ -768,7 +768,7 @@ Target branch: master
 Loop branch: loop/L2-25-02-miniapp-field-workspace
 Commit(s): f3d4132 loop: improve miniapp field workspace; 1a045c1 loop: recover from login session initialization failure; 21b3d78 loop: lock section pickers during lookup
 Merge commit: bdc8cb8 merge: complete L2-25-02 miniapp field workspace
-Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18. npm --prefix miniapp run check passed with first-party syntax checks and 8 Node tests covering session/cache contracts, attachment types, upload partial recovery, local draft scope, and login initialization failure recovery. node scripts/ci/check-docs.mjs passed for 32 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check; git diff --check and git diff --check origin/master...HEAD passed. WeChat DevTools Stable 2.01.2510290 rendered the login page in the iPhone 12/13 simulator and showed empty-account validation without a runtime crash; the local API startup check confirmed session-request failure is caught by the page. No real-account field workflow, weak-network run, screenshot archive, or recording is claimed.
+Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18. npm --prefix legacy/miniapp run check passed with first-party syntax checks and 8 Node tests covering session/cache contracts, attachment types, upload partial recovery, local draft scope, and login initialization failure recovery. node scripts/ci/check-docs.mjs passed for 32 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check; git diff --check and git diff --check origin/master...HEAD passed. WeChat DevTools Stable 2.01.2510290 rendered the login page in the iPhone 12/13 simulator and showed empty-account validation without a runtime crash; the local API startup check confirmed session-request failure is caught by the page. No real-account field workflow, weak-network run, screenshot archive, or recording is claimed.
 Diff review: passed; reviewed the complete functional diff before merge and the merged diff against origin/master, including draft recovery, upload, approval, salary, and login initialization changes
 Remote sync: fetched origin and fast-forward check passed before branch creation and before merge
 Push: master is pushed to origin with the merge and this completion record
@@ -783,7 +783,7 @@ Target branch: master
 Loop branch: loop/L2-27-01-product-docs
 Commit(s): 6d766b4 loop: add formal release documentation
 Merge commit: 186dcfe merge: complete L2-27-01 formal release documentation
-Verification: Post-merge git diff --check and git diff --check origin/master...HEAD passed. node scripts/ci/check-docs.mjs passed for 35 repository-maintained Markdown files and 21 Flyway migrations. All Loop table rows passed the escaped-pipe-aware column-count check. A role walkthrough traced Web menus and route roles to web/src/components/layout/AppLayout.tsx and web/src/lib/access.ts, and traced the miniapp guide paths to the home, report, variation, todo, salary, and profile page actions. No live UAT, real-account miniapp flow, weak-network run, screenshot archive, or recording is claimed by this documentation loop.
+Verification: Post-merge git diff --check and git diff --check origin/master...HEAD passed. node scripts/ci/check-docs.mjs passed for 35 repository-maintained Markdown files and 21 Flyway migrations. All Loop table rows passed the escaped-pipe-aware column-count check. A role walkthrough traced Web menus and route roles to clients/desktop/src/components/layout/AppLayout.tsx and clients/desktop/src/lib/access.ts, and traced the miniapp guide paths to the home, report, variation, todo, salary, and profile page actions. No live UAT, real-account miniapp flow, weak-network run, screenshot archive, or recording is claimed by this documentation loop.
 Diff review: passed; reviewed the complete documentation diff, including all local links, scope language, role restrictions, defect levels, and the L2-25-02 deferred-evidence wording
 Remote sync: fetched origin and fast-forward check passed before branch creation and again before the no-ff merge
 Push: master is pushed to origin with this merge and completion record
@@ -798,7 +798,7 @@ Target branch: master
 Loop branch: loop/L2-27-02-release-gate
 Commit(s): dcdad1f loop: record final launch gate decision
 Merge commit: c3cab8d merge: complete L2-27-02 final launch gate
-Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18 and 21 Flyway migrations. pnpm --dir web typecheck passed; pnpm --dir web test passed with 4 files and 8 tests; pnpm --dir web build passed with a 397.03 kB initial index chunk and a 1,036.92 kB SalaryStatisticsPage lazy-chunk warning recorded as OBS-001. npm --prefix miniapp run check passed with first-party syntax checks and 8 Node tests. node scripts/ci/check-docs.mjs passed for 38 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check. git diff --check and git diff --check origin/master...HEAD passed. UAT-01 through UAT-03, five-role signoff, authenticated miniapp/weak-network evidence, and Gitee Go remote workflow/protection evidence were recorded as blocked, not passed.
+Verification: Post-merge full server Maven suite passed with 104 tests against Testcontainers PostgreSQL 18 and 21 Flyway migrations. pnpm --dir clients/desktop typecheck passed; pnpm --dir clients/desktop test passed with 4 files and 8 tests; pnpm --dir clients/desktop build:renderer passed with a 397.03 kB initial index chunk and a 1,036.92 kB SalaryStatisticsPage lazy-chunk warning recorded as OBS-001. npm --prefix legacy/miniapp run check passed with first-party syntax checks and 8 Node tests. node scripts/ci/check-docs.mjs passed for 38 repository-maintained Markdown files and 21 Flyway migrations; all Loop table rows passed the escaped-pipe-aware column-count check. git diff --check and git diff --check origin/master...HEAD passed. UAT-01 through UAT-03, five-role signoff, authenticated miniapp/weak-network evidence, and Gitee Go remote workflow/protection evidence were recorded as blocked, not passed.
 Diff review: passed; reviewed the complete Gate-documentation diff and merged diff against origin/master, including all scope links, automated counts, blocked evidence, approval language, issue ownership, and re-review conditions
 Remote sync: fetched origin and fast-forward check passed before branch creation and before the no-ff merge
 Push: master is pushed to origin with this merge and completion record

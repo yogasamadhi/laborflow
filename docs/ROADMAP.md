@@ -23,7 +23,7 @@ v3.0：微信小程序现场端，已进入当前代码范围
 [`LOOPMAP2.md`](LOOPMAP2.md) 为准。
 
 面向当前版本的操作路径与上线治理分别见
-[`USER_GUIDE_WEB.md`](USER_GUIDE_WEB.md)、[`USER_GUIDE_MINIAPP.md`](USER_GUIDE_MINIAPP.md)
+[`USER_GUIDE_DESKTOP.md`](USER_GUIDE_DESKTOP.md)、[`USER_GUIDE_MINIAPP.md`](USER_GUIDE_MINIAPP.md)
 和 [`LAUNCH_DEFECT_POLICY.md`](LAUNCH_DEFECT_POLICY.md)。历史版本规划不构成额外功能
 承诺，也不能替代 UAT 结果或最终 Gate 决策。
 
@@ -1067,7 +1067,7 @@ Vant Weapp
 4. 项目人员可以上传现场照片。
 5. 项目人员可以上报签证。
 6. 管理人员可以查看审批待办。
-7. 小程序权限与 Web 端角色保持一致。
+7. 小程序权限与桌面端角色保持一致。
 ```
 
 ---

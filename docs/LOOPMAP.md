@@ -40,7 +40,7 @@
 | --- | --- | --- | --- | --- | --- |
 | L0-01 | backend | done | 建立生产环境配置校验 | `server/src/main/resources/application.yml`、后端配置类、`.env.example` | 生产 profile 下缺少强 JWT 密钥、数据库连接、上传目录等关键配置时应用启动失败；默认弱密钥不能用于生产 |
 | L0-02 | backend | done | 收紧 OpenAPI 与静态上传访问 | `SecurityConfig`、`OpenApiConfig`、`WebMvcConfig` | 生产环境 Swagger/OpenAPI 默认关闭或仅管理员可见；上传文件不能无鉴权公开读取 |
-| L0-03 | backend/web | done | 补齐接口级 RBAC 权限 | `server/src/main/java/com/company/labor/module/**/controller`、`web/src/components/layout/AppLayout.tsx` | 工资、系统、项目利润、审批、发放等敏感接口有角色限制；无权限菜单不展示；无权限请求返回 403 |
+| L0-03 | backend/web | done | 补齐接口级 RBAC 权限 | `server/src/main/java/com/company/labor/module/**/controller`、`clients/desktop/src/components/layout/AppLayout.tsx` | 工资、系统、项目利润、审批、发放等敏感接口有角色限制；无权限菜单不展示；无权限请求返回 403 |
 | L0-04 | backend | done | 增加数据范围权限 | 员工、工资、项目、日报、签证、统计相关 service/controller | 普通员工只能看本人数据；项目人员只能看授权项目；财务/老板/管理员按角色看到对应范围 |
 | L0-05 | backend/web | done | 移除演示账号和弱默认行为 | `README.md`、`PROJECT_BRIEF.md`、`LoginPage.tsx`、seed migration | 登录页不再默认填充 `admin/admin123456`；文档标注初始化后必须改密；生产 seed 不保留弱口令 |
 
@@ -50,7 +50,7 @@
 | --- | --- | --- | --- | --- | --- |
 | L1-01 | backend | done | 完善 JWT 生命周期 | `JwtTokenProvider`、`JwtAuthenticationFilter`、auth service | 支持 token 过期策略、刷新策略或重新登录策略；无效 token 有明确错误；停用用户 token 不可继续访问 |
 | L1-02 | backend | done | 增加登录安全控制 | auth controller/service、用户表迁移 | 登录失败计数、临时锁定、最后登录时间/IP、密码修改时间可记录；锁定账号不能登录 |
-| L1-03 | backend/miniapp | done | 实现微信 code 换 session | 小程序登录接口、微信配置、用户绑定表迁移、`miniapp/services/auth.js` | 小程序可用 `wx.login` code 换取 openid/session；失败有明确提示；不把微信密钥提交到仓库 |
+| L1-03 | backend/miniapp | done | 实现微信 code 换 session | 小程序登录接口、微信配置、用户绑定表迁移、`legacy/miniapp/services/auth.js` | 小程序可用 `wx.login` code 换取 openid/session；失败有明确提示；不把微信密钥提交到仓库 |
 | L1-04 | backend/miniapp/web | done | 实现账号与员工、openid 绑定闭环 | `sys_user`、员工模块、小程序 profile/login 页面、Web 用户管理 | 小程序登录后能绑定平台账号和员工；员工解绑、换绑、停用流程可审计 |
 | L1-05 | backend/web | done | 补全用户和角色管理 | `SystemController`、system service、Web 系统页面 | 管理员可创建/停用用户、分配角色、重置密码；非管理员不可访问系统管理 |
 
@@ -109,7 +109,7 @@
 | --- | --- | --- | --- | --- | --- |
 | L7-01 | backend | done | 建立后端单元测试基线 | `server/src/test`、工资、项目、权限核心 service | `mvn test` 有真实用例；工资生成、状态机、权限至少覆盖核心路径；已通过 `git diff --check`、`AccessControlSupportTest`、`SalaryGenerationRulesTest`、`BusinessStateMachineTest`、`mvn test` |
 | L7-02 | backend | todo | 建立后端集成测试基线 | Testcontainers 或测试数据库、Flyway、Controller 测试 | 数据库迁移可在测试中执行；核心 API 有集成测试；认证和权限可验证 |
-| L7-03 | web | todo | 建立前端类型与组件测试 | `web/package.json`、测试框架、关键页面 | 有 `typecheck/test` 脚本；登录、工资、项目关键页面有基础测试 |
+| L7-03 | web | todo | 建立前端类型与组件测试 | `clients/desktop/package.json`、测试框架、关键页面 | 有 `typecheck/test` 脚本；登录、工资、项目关键页面有基础测试 |
 | L7-04 | miniapp | todo | 建立小程序核心流程验证 | 小程序服务封装、登录、日报、签证、工资历史 | 至少有接口封装测试或可执行 smoke checklist；小程序接口与后端契约一致 |
 | L7-05 | ci | todo | 建立 CI 门禁 | GitHub Actions 或等价 CI、后端/前端/小程序检查 | PR 自动运行后端测试、前端构建、diff check；失败不能合入 |
 
@@ -128,7 +128,7 @@
 
 | Loop | Owner | 状态 | 目标 | 主要范围 | 验收 |
 | --- | --- | --- | --- | --- | --- |
-| L9-01 | web | todo | 路由级懒加载与代码分割 | `web/src/app/router.tsx`、页面 import、Vite 配置 | 生产构建主 chunk 明显下降；路由页面按需加载 |
+| L9-01 | web | todo | 路由级懒加载与代码分割 | `clients/desktop/src/app/router.tsx`、页面 import、Vite 配置 | 生产构建主 chunk 明显下降；路由页面按需加载 |
 | L9-02 | web | todo | 统一错误、加载、空状态 | 通用组件、axios 拦截器、关键页面 | 请求失败、空数据、加载中、无权限都有清晰 UI；不会静默失败 |
 | L9-03 | web | todo | 表格筛选、分页和批量操作体验 | 员工、工资、项目、绩效列表页 | 大列表可分页筛选；批量操作有确认和结果反馈 |
 | L9-04 | web | todo | 敏感信息脱敏展示 | 员工、工资、系统用户、导出页面 | 身份证、银行卡、手机号按权限脱敏；有权限角色可查看完整信息 |
@@ -242,7 +242,7 @@ Loop: L0-05
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: rg -n "admin123456|admin /" README.md PROJECT_BRIEF.md ROADMAP.md server/src/main/resources/db/migration web/src miniapp; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build
+验证命令: rg -n "admin123456|admin /" README.md PROJECT_BRIEF.md ROADMAP.md server/src/main/resources/db/migration clients/desktop/src legacy/miniapp; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build
 结果: passed
 备注: Removed Web login defaults, removed documented weak default credentials, and added a migration that disables the unchanged weak default admin account.
 ```
@@ -272,7 +272,7 @@ Loop: L1-03
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; node --check miniapp/services/auth.js; node --check miniapp/pages/login/index.js
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; node --check legacy/miniapp/services/auth.js; node --check legacy/miniapp/pages/login/index.js
 结果: passed
 备注: Added WeChat miniapp code2Session configuration/client, pending openid binding persistence, a public auth session endpoint, and miniapp wx.login exchange handling without committing app secrets.
 ```
@@ -282,7 +282,7 @@ Loop: L1-04
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in web/)
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in clients/desktop/)
 结果: passed
 备注: Bound miniapp openid sessions to platform users/employees after login, added admin bind/unbind/disable APIs with operation logs, and added a Web system page for WeChat binding management.
 ```
@@ -292,7 +292,7 @@ Loop: L1-05
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in web/)
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in clients/desktop/)
 结果: passed
 备注: Added admin user create/update/disable, role assignment, password reset APIs, audit logging, and a Web system user management page. System routes remain protected by ADMIN method security.
 ```
@@ -322,7 +322,7 @@ Loop: L2-03
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in web/)
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test; pnpm build (in clients/desktop/)
 结果: passed
 备注: Added salary_audit_record evidence records, captured operators and status/proof context for salary creation, generation, edits, approval, rejection and payments, exposed audit records to Web/miniapp clients, and kept salary export operator logging through operation_log.
 ```
@@ -332,7 +332,7 @@ Loop: L2-04
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; node --check miniapp/services/project.js; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+验证命令: git diff --check; node --check legacy/miniapp/services/project.js; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
 结果: passed
 备注: Added project approval evidence records for daily reports and variation orders, captured server-side operators and before/after statuses, exposed confirm/file evidence endpoints, added Web evidence-chain viewing, and added miniapp service accessors.
 ```
@@ -342,7 +342,7 @@ Loop: L2-05
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+验证命令: git diff --check; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
 结果: passed
 备注: Preserved generated business snapshots for team settlements and bonus pools, kept salary source snapshots through salary_source_record, displayed snapshot names/summaries in Web tables, and added a compensation snapshot unit test.
 ```
@@ -362,7 +362,7 @@ Loop: L4-03
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; mvn -q -Dtest=FileBindingGuardTest,ProjectAttachmentBindingValidationTest,ProjectApprovalEvidenceTest,SalaryMonthlyAuditRecordTest test (in server/); mvn test (in server/); pnpm build (in web/)
+验证命令: git diff --check; mvn -q -Dtest=FileBindingGuardTest,ProjectAttachmentBindingValidationTest,ProjectApprovalEvidenceTest,SalaryMonthlyAuditRecordTest test (in server/); mvn test (in server/); pnpm build (in clients/desktop/)
 结果: passed
 备注: Added a shared file binding guard, validated project attachment ownership/authorization, rejected duplicate attachment use, and moved salary payment proof entry to private file upload/download paths.
 ```
@@ -382,7 +382,7 @@ Loop: L5-01
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in web/); mvn test (in server/)
+验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in clients/desktop/); mvn test (in server/)
 结果: passed
 备注: Added configurable salary generation rules for fixed salary, attendance deductions, performance salary, and project bonus sources, exposed source-record explanations, and showed rule/source context in the Web salary monthly flow.
 ```
@@ -392,7 +392,7 @@ Loop: L5-02
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest test (in server/); pnpm build (in web/); mvn test (in server/)
+验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest test (in server/); pnpm build (in clients/desktop/); mvn test (in server/)
 结果: passed
 备注: Enforced draft-only salary monthly edits, recalculation, detail changes, and deletion with lock-aware errors, and updated the Web monthly list/detail pages to show lock status and disable locked destructive actions.
 ```
@@ -402,7 +402,7 @@ Loop: L5-03
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; mvn -q -Dtest=SalaryDeductionRecordServiceTest,CompensationSnapshotTest,SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in web/); mvn test (in server/)
+验证命令: git diff --check; mvn -q -Dtest=SalaryDeductionRecordServiceTest,CompensationSnapshotTest,SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in clients/desktop/); mvn test (in server/)
 结果: passed
 备注: Added monthly salary deduction records for social security, housing fund, individual tax, advances, and other deductions; included active deductions in salary generation/source records; exposed Web maintenance and compensation dashboard totals; and added deduction details to salary exports.
 ```
@@ -412,7 +412,7 @@ Loop: L5-04
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in web/); mvn test (in server/)
+验证命令: git diff --check; mvn -q -Dtest=SalaryGenerationRulesTest,SalaryMonthlyAuditRecordTest test (in server/); pnpm build (in clients/desktop/); mvn test (in server/)
 结果: passed
 备注: Added a bank-payment export, persisted payslip confirmation/exception feedback on salary details, exposed employee-accessible payslip confirm/feedback APIs, and added Web employee salary history actions for payslip confirmation and anomaly feedback.
 ```
@@ -422,7 +422,7 @@ Loop: L5-05
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; mvn -q -Dtest=SalaryAnomalyHandlingTest,SalaryGenerationRulesTest test (in server/); pnpm build (in web/); mvn test (in server/)
+验证命令: git diff --check; mvn -q -Dtest=SalaryAnomalyHandlingTest,SalaryGenerationRulesTest test (in server/); pnpm build (in clients/desktop/); mvn test (in server/)
 结果: passed
 备注: Added auditable salary anomaly handling records, merged handling status into anomaly statistics, exposed a handle API for processed/ignored/adjustment outcomes, and added Web actions to process salary anomalies.
 ```
@@ -432,7 +432,7 @@ Loop: L6-01
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectContractItemPricingTest,ProjectApprovalEvidenceTest,ProjectAttachmentBindingValidationTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectContractItemPricingTest,ProjectApprovalEvidenceTest,ProjectAttachmentBindingValidationTest test; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Added project contract item maintenance, stored daily report output value and pricing basis snapshots, made dashboard output value use the stored snapshot, and exposed a Web contract-item page plus daily report pricing display.
 ```
@@ -442,7 +442,7 @@ Loop: L6-02
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; node --check miniapp/services/project.js; node --check miniapp/services/todo.js; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=TeamSettlementReviewFlowTest,BusinessStateMachineTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+验证命令: git diff --check; node --check legacy/miniapp/services/project.js; node --check legacy/miniapp/services/todo.js; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=TeamSettlementReviewFlowTest,BusinessStateMachineTest test; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Added team settlement review rejection, reviewer/payment audit fields, duplicate same-month settlement guard, Web reject/payment action states, and miniapp settlement approval/rejection todo actions.
 ```
@@ -452,7 +452,7 @@ Loop: L6-03
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; node --check miniapp/services/project.js; node --check miniapp/services/todo.js; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=VariationOrderIncomeFlowTest,ProjectApprovalEvidenceTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+验证命令: git diff --check; node --check legacy/miniapp/services/project.js; node --check legacy/miniapp/services/todo.js; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=VariationOrderIncomeFlowTest,ProjectApprovalEvidenceTest test; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Added confirmed variation amount/operator fields, made variation confirmation persist confirmed income, included confirmed variation income in project dashboard receivable and gross profit defaults, and exposed confirmed amount in the Web variation/dashboard views.
 ```
@@ -462,7 +462,7 @@ Loop: L6-04
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Extended project payment records for invoices and retention, added dashboard sums for invoiced amount, received amount, receivables, retention balance, and payment progress, and exposed invoice/retention entry in the Web project payment page.
 ```
@@ -472,7 +472,7 @@ Loop: L6-05
 Commit: this loop commit
 Branch: codex/production-loopmap-execution
 Pushed: yes after loop push
-验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectProfitDashboardTest,ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in web/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
+验证命令: git diff --check; JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml -Dtest=ProjectProfitDashboardTest,ProjectPaymentDashboardTest,VariationOrderIncomeFlowTest test; pnpm build (in clients/desktop/); JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -f server/pom.xml test
 结果: passed
 备注: Added project revenue, cost-rate, profit-rate, paid-team, salary-allocation, cash-flow, and source-breakdown metrics to the dashboard; added risks for high cost rate, negative profit/cashflow, cost without revenue, and high retention balance; and exposed traceable income/cost/cash-flow tables in the Web project dashboard.
 ```

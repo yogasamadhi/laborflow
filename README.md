@@ -4,8 +4,8 @@
 
 ## 技术栈
 
-- Web：React 19、React Router、TypeScript、Vite、TanStack Query、ECharts、Axios、lucide-react
-- Miniapp：微信原生小程序、Vant Weapp 依赖预置
+- Desktop：Tauri 2、Rust、React 19、React Router、TypeScript、Vite、TanStack Query、ECharts、Axios
+- Miniapp：Taro 4 API、React 19、Tailwind CSS 4、weapp-tailwindcss、Taroify、TypeScript
 - Server：Spring Boot 4、Java 21、MyBatis Plus、Spring Security、JWT、Flyway、PostgreSQL 18、OpenAPI
 
 ## 前置依赖
@@ -14,8 +14,10 @@
 |---|---|---|
 | JDK | 21 | 后端编译与运行；通过 `JAVA_HOME` 或 PATH 提供 |
 | Maven | 3.6.3+ | 后端构建；通过 `MAVEN_BIN` 或 PATH 提供 |
-| Node.js | 20.18+ | Web 与小程序 CI；小程序本地仅需 Node 做语法/测试 |
-| pnpm | 11.2+（Web `packageManager` 锁定） | Web 依赖管理，`corepack enable` 即可 |
+| Node.js | 22.18.x 或 24.11+ | 桌面端渲染层、小程序构建与 CI；版本范围由 React 19 小程序工具链要求 |
+| pnpm | 11.2+（客户端 `packageManager` 锁定） | 桌面端与小程序依赖管理，`corepack enable` 即可 |
+| Rust | stable | Tauri 2 桌面端编译；通过 rustup 安装 |
+| 平台构建工具 | 当前操作系统对应版本 | macOS 使用 Xcode Command Line Tools；Windows 使用 C++ Build Tools 与 WebView2；Linux 使用 WebKitGTK 相关开发包 |
 | Docker | 任意现代版本 | 本地 PostgreSQL（`deploy/docker-laborflow`）；后端集成测试用 Testcontainers |
 | 微信开发者工具 | 稳定版 | 仅小程序本地开发/真机调试需要 |
 
@@ -26,7 +28,7 @@
 ```mermaid
 flowchart LR
   subgraph Clients
-    WEB[Web 管理端\nReact + Vite]
+    DESKTOP[桌面管理端\nTauri 2 + React + Vite]
     MA[微信小程序\n现场端]
   end
   subgraph Server
@@ -34,14 +36,14 @@ flowchart LR
     DB[(PostgreSQL 18\nFlyway 迁移)]
     FS[本地/对象存储\n文件附件]
   end
-  WEB -- HTTPS /api --> API
+  DESKTOP -- HTTPS /api --> API
   MA -- HTTPS /api --> API
   API --> DB
   API --> FS
 ```
 
 - 三端共享同一套 Spring Boot API 与 JWT；角色决定可见范围。
-- Web 与小程序都是 API 的纯客户端，无独立后端。
+- 桌面端与小程序都是 API 的纯客户端，无独立业务后端；Tauri 仅提供桌面壳层和受限原生能力。
 - 数据库结构由 Flyway 管理（`server/src/main/resources/db/migration`），新表/新列时间列一律 `TIMESTAMP WITH TIME ZONE`（见 [`docs/TIMEZONE_POLICY.md`](docs/TIMEZONE_POLICY.md)）。
 
 ## 本地启动
@@ -53,7 +55,13 @@ docker compose up -d
 
 PostgreSQL 默认映射到宿主机 `5434` 端口，后端默认连接 `jdbc:postgresql://localhost:5434/laborflow`。
 
-默认服务端口：前端 `5175`，后端 `8089`。
+默认服务端口：桌面渲染层开发端口 `5175`，后端 `8089`。
+
+一键启动本地 PostgreSQL、后端、桌面端和小程序 watch：
+
+```bash
+python3 run.py
+```
 
 后端需要 Java 21 和 Maven（通过 `JAVA_HOME` 或 PATH 提供）：
 
@@ -62,19 +70,33 @@ cd server
 mvn spring-boot:run
 ```
 
-前端：
+桌面端：
 
 ```bash
-cd web
-pnpm install
-pnpm dev
+pnpm --dir clients/desktop install --frozen-lockfile
+pnpm --dir clients/desktop dev
 ```
+
+平台安装包使用构建时 API 地址生成：
+
+```bash
+VITE_API_BASE_URL=https://api.example.com/api pnpm --dir clients/desktop build
+```
+
+构建产物位于 `clients/desktop/src-tauri/target/release/bundle/`。Windows、macOS、Linux
+安装包应在对应操作系统的构建机上生成并完成代码签名。
 
 小程序：
 
 ```bash
-微信开发者工具导入 miniapp/
+pnpm --dir clients/miniapp install --frozen-lockfile
+pnpm --dir clients/miniapp dev
+# 微信开发者工具导入 clients/miniapp/dist/
 ```
+
+需要正式微信 App ID 时，先将 `clients/miniapp/.env.example` 复制为不会提交的
+`.env.local` 并填写；未配置时使用 `touristappid`。原生版本保留在
+`legacy/miniapp/`，仅用于迁移期间对照。
 
 生产环境不提供可直接登录的默认账号。首次管理员必须通过下方受控的启动期初始化流程
 创建，不应通过自助注册、公开接口或手工修改前端来绕过权限边界。
@@ -85,7 +107,7 @@ pnpm dev
 [`docs/LAUNCH_SCOPE.md`](docs/LAUNCH_SCOPE.md)。实际执行进度与完成记录见
 [`docs/LOOPMAP2.md`](docs/LOOPMAP2.md)，它不应被代码存在与自动化通过所替代。
 
-- Web 管理端角色路径见 [`docs/USER_GUIDE_WEB.md`](docs/USER_GUIDE_WEB.md)。
+- 桌面管理端角色路径见 [`docs/USER_GUIDE_DESKTOP.md`](docs/USER_GUIDE_DESKTOP.md)。
 - 小程序现场端角色路径见 [`docs/USER_GUIDE_MINIAPP.md`](docs/USER_GUIDE_MINIAPP.md)。
 - 缺陷分级、阻断与延期批准要求见
   [`docs/LAUNCH_DEFECT_POLICY.md`](docs/LAUNCH_DEFECT_POLICY.md)。
@@ -129,8 +151,8 @@ mvn test
 
 Gitee pull-request gate configuration and its Docker/Testcontainers runner
 requirement are documented in [`docs/CI_BACKEND_GATE.md`](docs/CI_BACKEND_GATE.md).
-The Web typecheck, test, and build gate is documented in
-[`docs/CI_WEB_GATE.md`](docs/CI_WEB_GATE.md).
+The desktop renderer typecheck, test, and build gate is documented in
+[`docs/CI_DESKTOP_GATE.md`](docs/CI_DESKTOP_GATE.md).
 The miniapp syntax gate and manual smoke evidence template are documented in
 [`docs/CI_MINIAPP_GATE.md`](docs/CI_MINIAPP_GATE.md).
 The documentation, Flyway migration, and whitespace gate is documented in
@@ -138,7 +160,7 @@ The documentation, Flyway migration, and whitespace gate is documented in
 The required pull-request regression evidence and review rule for payroll,
 projects, permissions, and migrations is documented in
 [`docs/REGRESSION_EVIDENCE_POLICY.md`](docs/REGRESSION_EVIDENCE_POLICY.md).
-The automated payroll lifecycle regression and accompanying Web smoke record
+The automated payroll lifecycle regression and accompanying desktop smoke record
 are documented in [`docs/PAYROLL_E2E_REGRESSION.md`](docs/PAYROLL_E2E_REGRESSION.md).
 The project daily-report, team-settlement, payment, and dashboard regression is
 documented in [`docs/PROJECT_SETTLEMENT_E2E_REGRESSION.md`](docs/PROJECT_SETTLEMENT_E2E_REGRESSION.md).
@@ -148,7 +170,7 @@ regression is documented in
 The attendance, statutory-deduction, performance, and project-bonus payroll
 source regression is documented in
 [`docs/SALARY_SOURCES_E2E_REGRESSION.md`](docs/SALARY_SOURCES_E2E_REGRESSION.md).
-The authorization, salary-scope, project-scope, sensitive-user-field, and Web
+The authorization, salary-scope, project-scope, sensitive-user-field, and desktop
 no-permission regression is documented in
 [`docs/ACCESS_CONTROL_E2E_REGRESSION.md`](docs/ACCESS_CONTROL_E2E_REGRESSION.md).
 The cross-module operation-log regression and administrator smoke record are
@@ -160,9 +182,10 @@ documented in [`docs/FILE_ACCESS_E2E_REGRESSION.md`](docs/FILE_ACCESS_E2E_REGRES
 ## 目录
 
 ```text
-web/      React 管理后台
+clients/desktop/  Tauri 2 + React 桌面管理端
+clients/miniapp/  Taro + React 19 微信小程序端
 server/   Spring Boot API 服务
-miniapp/  微信小程序端
+legacy/miniapp/  原生微信小程序端（legacy，迁移对照）
 deploy/   docker-compose（本地 PostgreSQL）
 scripts/  CI 与构建辅助脚本
 docs/     产品、工程、CI、回归、验收文档（索引见 docs/INDEX.md）

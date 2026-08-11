@@ -25,8 +25,8 @@
 | 编号 | 检查 | 实际结果 | 状态 | 证据 |
 | --- | --- | --- | --- | --- |
 | AUTO-01 | `mvn -B -ntp -f server/pom.xml clean test` | 130 tests，0 failures，0 errors，0 skipped；Docker/Testcontainers PostgreSQL 18 验证空库、V12→V24 升级、废弃开发数据清理及财务历史保留；JaCoCo 报告已生成 | pass | 2026-07-28 本地回归输出 |
-| AUTO-02 | `npm --prefix web run typecheck && npm --prefix web run lint && npm --prefix web test -- --run && npm --prefix web run build` | typecheck、ESLint、Vitest 21 tests 和生产构建通过 | pass | 2026-07-28 本地回归输出；构建体积观察项见 OBS-001 |
-| AUTO-03 | `npm --prefix miniapp run check` | first-party JS 语法、ESLint 和 Node tests 19/19 通过 | pass | 2026-07-28 本地回归输出 |
+| AUTO-02 | `pnpm --dir clients/desktop typecheck && pnpm --dir clients/desktop lint && pnpm --dir clients/desktop test && pnpm --dir clients/desktop build:renderer` | typecheck、ESLint、Vitest 21 tests 和渲染层生产构建通过 | pass | 2026-07-28 本地回归输出；构建体积观察项见 OBS-001 |
+| AUTO-03 | `npm --prefix legacy/miniapp run check` | first-party JS 语法、ESLint 和 Node tests 19/19 通过 | pass | 2026-07-28 本地回归输出 |
 | AUTO-04 | `node scripts/ci/check-docs.mjs` | 44 个 Markdown 文件、24 个 Flyway 迁移及 `.env.example` 同步检查通过 | pass | 2026-07-28 本地回归输出 |
 | AUTO-05 | Gitee Go PR workflow 与 required-status 分支保护 | workflow 文件存在；未取得远端导入、首次运行或保护规则已启用的证据 | blocked | GATE-003 |
 

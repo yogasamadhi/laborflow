@@ -43,8 +43,8 @@ Use local or test fixtures only. Record the result in the pull request using
 Run these local quality checks before recording a passing smoke result:
 
 ```bash
-pnpm --dir web build
-npm --prefix miniapp run check
+pnpm --dir clients/desktop build:renderer
+npm --prefix legacy/miniapp run check
 ```
 
 Do not attach production project data, location details, phone numbers, or

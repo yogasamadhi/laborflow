@@ -9,8 +9,8 @@
 [`LAUNCH_SCOPE.md`](LAUNCH_SCOPE.md) 为准，执行进度以
 [`LOOPMAP2.md`](LOOPMAP2.md) 为准。
 
-正式版操作与治理资料不写在本历史基线中：Web 管理端路径见
-[`USER_GUIDE_WEB.md`](USER_GUIDE_WEB.md)，小程序现场端路径见
+正式版操作与治理资料不写在本历史基线中：桌面管理端路径见
+[`USER_GUIDE_DESKTOP.md`](USER_GUIDE_DESKTOP.md)，小程序现场端路径见
 [`USER_GUIDE_MINIAPP.md`](USER_GUIDE_MINIAPP.md)，缺陷阻断与延期口径见
 [`LAUNCH_DEFECT_POLICY.md`](LAUNCH_DEFECT_POLICY.md)。这些文档的结论以实际 UAT 和
 Gate 记录为准，不因功能已进入代码范围而自动成立。
@@ -385,7 +385,7 @@ v0.1 至少实现：
 ## 6. Web 目录结构
 
 ```text
-web/
+clients/desktop/
 ├── src/
 │   ├── app/
 │   │   ├── router.tsx
