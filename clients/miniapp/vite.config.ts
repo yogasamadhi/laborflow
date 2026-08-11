@@ -38,23 +38,23 @@ export default defineConfig(({ mode }) => {
           },
           {
             path: 'pages/home/index',
-            config: { navigationStyle: 'custom' }
+            config: { navigationStyle: 'custom', enablePullDownRefresh: true, backgroundTextStyle: 'dark' }
           },
           {
             path: 'pages/salary/index',
-            config: { navigationStyle: 'custom' }
+            config: { navigationStyle: 'custom', enablePullDownRefresh: true, backgroundTextStyle: 'dark' }
           },
           {
             path: 'pages/site/index',
-            config: { navigationStyle: 'custom' }
+            config: { navigationStyle: 'custom', enablePullDownRefresh: true, backgroundTextStyle: 'dark' }
           },
           {
             path: 'pages/todo/index',
-            config: { navigationStyle: 'custom' }
+            config: { navigationStyle: 'custom', enablePullDownRefresh: true, backgroundTextStyle: 'dark' }
           },
           {
             path: 'pages/profile/index',
-            config: { navigationStyle: 'custom' }
+            config: { navigationStyle: 'custom', enablePullDownRefresh: true, backgroundTextStyle: 'dark' }
           },
           {
             path: 'pages/salary/detail',

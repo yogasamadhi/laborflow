@@ -4,13 +4,17 @@
 
 @source "./";
 
+.van-icon {
+  font-family: "laborflow-icon" !important;
+}
+
 @theme {
   --color-labor-50: #edf8f3;
   --color-labor-100: #dcefe6;
   --color-labor-600: #3aa487;
   --color-labor-900: #255d4d;
-  --text-xs: 26rpx;
-  --text-sm: 30rpx;
+  --text-xs: 28rpx;
+  --text-sm: 32rpx;
   --text-base: 34rpx;
   --text-lg: 38rpx;
   --text-xl: 44rpx;

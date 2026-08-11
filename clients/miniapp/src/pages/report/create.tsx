@@ -70,7 +70,10 @@ export default function ReportCreatePage() {
   const [files, setFiles] = useState<UploadedFile[]>(initialDraft?.uploadedFiles || [])
   const [attachedIds, setAttachedIds] = useState<string[]>(initialDraft?.attachedFileIds || [])
   const [lookupLoading, setLookupLoading] = useState(true)
+  const [lookupError, setLookupError] = useState('')
+  const [lookupReloadKey, setLookupReloadKey] = useState(0)
   const [uploading, setUploading] = useState(false)
+  const [removingFileId, setRemovingFileId] = useState('')
   const [uploadText, setUploadText] = useState(`可拍摄或从相册选择，最多 ${maxPhotoCount} 张`)
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -79,6 +82,9 @@ export default function ReportCreatePage() {
   const [pricingText, setPricingText] = useState('填写业务数据后预览价格')
   const latest = useRef({ form, files, attachedIds, editId })
   const autoPhotoStarted = useRef(false)
+  const skipAutoSave = useRef(false)
+  const operationRef = useRef(false)
+  const removingRef = useRef(false)
   latest.current = { form, files, attachedIds, editId }
 
   const persistLocal = useCallback((snapshot = latest.current) => {
@@ -86,7 +92,9 @@ export default function ReportCreatePage() {
     if (hasContent) saveDraft('daily-report', scope, { editId: snapshot.editId, form: snapshot.form, uploadedFiles: snapshot.files, attachedFileIds: snapshot.attachedIds })
   }, [scope])
 
-  useEffect(() => () => persistLocal(), [persistLocal])
+  useEffect(() => () => {
+    if (!skipAutoSave.current) persistLocal()
+  }, [persistLocal])
 
   const loadSections = useCallback(async (projectId: string) => {
     if (!projectId) {
@@ -163,6 +171,8 @@ export default function ReportCreatePage() {
       return
     }
     const load = async () => {
+      setLookupLoading(true)
+      setLookupError('')
       try {
         const [nextProjects, nextProcesses, nextTeams] = await Promise.all([project.projects(), project.workProcesses(), project.teams()])
         setProjects(nextProjects)
@@ -175,13 +185,15 @@ export default function ReportCreatePage() {
           void refreshPricing(initialDraft.form)
         }
       } catch (error) {
-        Taro.showToast({ title: error instanceof Error ? error.message : '基础数据加载失败', icon: 'none' })
+        const message = error instanceof Error ? error.message : '基础数据加载失败'
+        setLookupError(message)
+        Taro.showToast({ title: message, icon: 'none' })
       } finally {
         setLookupLoading(false)
       }
     }
     void load()
-  }, [initialDraft?.form.projectId, loadContractItems, loadEdit, loadSections, refreshPricing, routeEditId, user])
+  }, [initialDraft?.form.projectId, loadContractItems, loadEdit, loadSections, lookupReloadKey, refreshPricing, routeEditId, user])
 
   useEffect(() => {
     if (router.params.autoPhoto === '1' && !autoPhotoStarted.current) {
@@ -221,12 +233,13 @@ export default function ReportCreatePage() {
   }
 
   const uploadPhotos = async () => {
-    if (uploading || saving || submitting) return
+    if (operationRef.current || removingRef.current) return
     const remaining = maxPhotoCount - latest.current.files.length
     if (remaining <= 0) {
       Taro.showToast({ title: `最多可添加 ${maxPhotoCount} 张现场照片`, icon: 'none' })
       return
     }
+    operationRef.current = true
     setUploading(true)
     setUploadText('正在选择现场照片…')
     try {
@@ -242,20 +255,28 @@ export default function ReportCreatePage() {
       persistLocal({ ...latest.current, files: nextFiles })
       Taro.showToast({ title: error instanceof Error ? error.message : '上传未完成，可稍后重试', icon: 'none' })
     } finally {
+      operationRef.current = false
       setUploading(false)
     }
   }
 
   const removePhoto = async (index: number) => {
-    if (uploading || saving || submitting) return
+    if (operationRef.current || removingRef.current) return
     const file = latest.current.files[index]
     if (!file) return
     if (latest.current.editId && latest.current.attachedIds.includes(String(file.id))) {
+      removingRef.current = true
       try {
+        const result = await Taro.showModal({ title: '移除已关联照片', content: '这张照片将从当前日报中移除。', confirmText: '确认移除', confirmColor: '#c65a4c' })
+        if (!result.confirm) return
+        setRemovingFileId(String(file.id))
         await project.removeDailyReportFile(latest.current.editId, file.id)
       } catch (error) {
         Taro.showToast({ title: error instanceof Error ? error.message : '附件移除失败', icon: 'none' })
         return
+      } finally {
+        removingRef.current = false
+        setRemovingFileId('')
       }
     }
     const nextFiles = latest.current.files.filter((_, itemIndex) => itemIndex !== index)
@@ -300,12 +321,13 @@ export default function ReportCreatePage() {
     }
   }
   const persist = async (action: 'draft' | 'submit') => {
-    if (saving || submitting || uploading) return
+    if (operationRef.current || removingRef.current) return
     const message = validate()
     if (message) {
       Taro.showToast({ title: message, icon: 'none' })
       return
     }
+    operationRef.current = true
     action === 'submit' ? setSubmitting(true) : setSaving(true)
     try {
       if (action === 'submit') {
@@ -315,6 +337,7 @@ export default function ReportCreatePage() {
       const id = await saveRemote()
       await attachPending(id)
       if (action === 'submit') await project.submitDailyReport(id)
+      skipAutoSave.current = true
       clearDraft('daily-report', scope)
       Taro.showToast({ title: action === 'submit' ? '日报已提交' : '日报草稿已保存', icon: 'success' })
       await Taro.navigateBack()
@@ -322,13 +345,26 @@ export default function ReportCreatePage() {
       persistLocal()
       Taro.showToast({ title: error instanceof Error ? error.message : '保存失败，已保留本机草稿', icon: 'none' })
     } finally {
+      operationRef.current = false
       setSaving(false)
       setSubmitting(false)
     }
   }
-  const discardLocal = () => {
-    clearDraft('daily-report', scope)
-    void Taro.reLaunch({ url: '/pages/report/create' })
+  const discardLocal = async () => {
+    if (operationRef.current || removingRef.current) return
+    operationRef.current = true
+    try {
+      const result = await Taro.showModal({ title: '清空本机草稿', content: '当前未保存到服务端的修改将无法恢复。', confirmText: '确认清空', confirmColor: '#d96759' })
+      if (!result.confirm) return
+      skipAutoSave.current = true
+      clearDraft('daily-report', scope)
+      const currentEditId = latest.current.editId
+      await Taro.redirectTo({ url: currentEditId ? `/pages/report/create?editId=${currentEditId}` : '/pages/report/create' })
+    } catch (error) {
+      Taro.showToast({ title: error instanceof Error ? error.message : '清空失败，请重试', icon: 'none' })
+    } finally {
+      operationRef.current = false
+    }
   }
 
   if (!user) return <Screen><PageBody><StateView text="正在校验登录状态" /></PageBody></Screen>
@@ -343,12 +379,12 @@ export default function ReportCreatePage() {
       <PageBody>
         <PageTitle title={editId ? '编辑日报' : '现场填报'} subtitle="记录当天工程量，完成定价后提交确认" />
         {draftRestored ? <Notice tone="warning">已恢复本机草稿。</Notice> : null}
-        {lookupLoading ? <StateView text="正在加载项目与工序…" /> : <>
+        {lookupError ? <StateView text={lookupError} actionText="重新加载" onAction={() => setLookupReloadKey((current) => current + 1)} /> : lookupLoading ? <StateView text="正在加载项目与工序…" /> : <>
           <Card><DateField label="工作日期" value={form.workDate} required onChange={(value) => updateForm({ workDate: value }, true)} /><SelectField label="项目" value={form.projectId} range={projectOptions} required onChange={selectProject} /><SelectField label="施工段" value={form.projectSectionId} range={sectionOptions} required disabled={!form.projectId} onChange={(value) => updateForm({ projectSectionId: value }, true)} /><SelectField label="合同清单" value={form.contractItemId} range={contractOptions} onChange={selectContractItem} /><SelectField label="工序" value={form.workProcessId} range={processOptions} required onChange={selectProcess} /><TextField label="完成工程量" value={form.completedQuantity} required type="digit" placeholder="请输入大于 0 的数量" onChange={(value) => updateForm({ completedQuantity: value }, true)} /><TextField label="工程量单位" value={form.unit} required placeholder="如：m³、㎡、吨" onChange={(value) => updateForm({ unit: value }, true)} /><SelectField label="施工班组" value={form.teamId} range={teamOptions} onChange={(value) => updateForm({ teamId: value })} /><TextField label="施工人数" value={form.workerCount} required type="number" placeholder="请输入人数" onChange={(value) => updateForm({ workerCount: value })} /><TextField label="机械使用" value={form.machineryUsage} placeholder="选填" onChange={(value) => updateForm({ machineryUsage: value })} /><TextField label="填报人" value={form.reporterName} placeholder="选填" onChange={(value) => updateForm({ reporterName: value })} /><TextAreaField label="异常说明" value={form.exceptionNote} placeholder="选填" onChange={(value) => updateForm({ exceptionNote: value })} /></Card>
           <Card className="mint-soft shadow-none"><Text className="mb-2 block text-lg font-bold">价格预览</Text><Text className="block text-sm leading-6 text-[#607069]">{pricingLoading ? '正在预览…' : pricingText}</Text>{pricing ? <Text className="mt-2 block text-xs text-[#8a9690]">{pricing.priced && !pricing.selectionRequired ? '提交时将再次校验定价。' : '草稿可以保存，未完成有效定价时不能提交。'}</Text> : null}</Card>
-          <Card><PhotoUploader files={files} uploading={uploading} text={uploadText} onUpload={() => void uploadPhotos()} onRemove={(index) => void removePhoto(index)} /></Card>
-          <View className="mb-4 grid grid-cols-3 gap-2"><SecondaryButton disabled={saving || submitting || uploading} onClick={() => { persistLocal(); Taro.showToast({ title: '已暂存到本机', icon: 'success' }) }}>本机暂存</SecondaryButton><SecondaryButton disabled={saving || submitting || uploading} onClick={discardLocal}>丢弃草稿</SecondaryButton><PrimaryButton loading={saving} disabled={submitting || uploading} onClick={() => void persist('draft')}>保存草稿</PrimaryButton></View>
-          <PrimaryButton loading={submitting} disabled={saving || uploading} onClick={() => void persist('submit')}>提交日报</PrimaryButton>
+          <Card><PhotoUploader files={files} uploading={uploading} removingId={removingFileId} attachedIds={attachedIds} text={uploadText} onUpload={() => void uploadPhotos()} onRemove={(index) => void removePhoto(index)} /></Card>
+          <View className="mb-3 grid grid-cols-2 gap-3"><SecondaryButton disabled={saving || submitting || uploading || Boolean(removingFileId)} onClick={() => { persistLocal(); Taro.showToast({ title: '已暂存到本机', icon: 'success' }) }}>本机暂存</SecondaryButton><SecondaryButton tone="danger" disabled={saving || submitting || uploading || Boolean(removingFileId)} onClick={() => void discardLocal()}>清空本页</SecondaryButton></View>
+          <View className="grid grid-cols-2 gap-3"><SecondaryButton loading={saving} disabled={submitting || uploading || Boolean(removingFileId)} onClick={() => void persist('draft')}>保存草稿</SecondaryButton><PrimaryButton loading={submitting} disabled={saving || uploading || Boolean(removingFileId)} onClick={() => void persist('submit')}>提交日报</PrimaryButton></View>
         </>}
       </PageBody>
     </Screen>

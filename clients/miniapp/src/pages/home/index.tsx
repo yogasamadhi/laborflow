@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import Taro, { useDidShow } from 'virtual:taro/api'
+import { useCallback, useRef, useState } from 'react'
+import Taro, { useDidShow, usePullDownRefresh } from 'virtual:taro/api'
 import { ScrollView, Text, View } from 'virtual:taro/components'
 import { BarChartOutlined, CalendarOutlined, CashOutlined, Edit, NotesOutlined, TodoListOutlined } from '@taroify/icons'
 import { BottomTabBar, Card, FloatingAction, GradientHeader, Metric, Notice, PageBody, RoundIcon, Screen, SectionTitle, StateView, StatusTag } from '../../components/ui'
@@ -42,13 +42,17 @@ export default function HomePage() {
   const [state, setState] = useState<HomeState>(initialState)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const loadingRef = useRef(false)
 
   const load = useCallback(async () => {
+    if (loadingRef.current) return
     const user = getUser()
     if (!user) {
       await Taro.reLaunch({ url: '/pages/login/index' })
       return
     }
+    loadingRef.current = true
+    setState((current) => ({ ...current, user }))
     setLoading(true)
     setLoadError('')
     const failed: string[] = []
@@ -58,6 +62,7 @@ export default function HomePage() {
     }
     try {
       const manager = hasTodoRole()
+      const requestCount = 3 + (user.employeeId ? 1 : 0) + (manager ? 1 : 0)
       const [history, projects, todos, reports, variations] = await Promise.all([
         user.employeeId ? salary.myHistory().catch(fallback('salary', null)) : Promise.resolve(null),
         project.projects({ status: 'in_progress' }).catch(fallback('projects', [])),
@@ -84,9 +89,10 @@ export default function HomePage() {
         rejectedCount: reportRows.filter((item) => textOf(item, 'status') === 'rejected').length + variationRows.filter((item) => textOf(item, 'status') === 'rejected').length,
         variationCount: variationRows.length
       })
-      if (failed.length === 5) setLoadError('数据加载失败，请检查网络后重试。')
+      if (failed.length === requestCount) setLoadError('数据加载失败，请检查网络后重试。')
       else if (failed.length > 0) Taro.showToast({ title: '部分数据加载失败', icon: 'none' })
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
   }, [])
@@ -95,9 +101,13 @@ export default function HomePage() {
     void load()
   })
 
+  usePullDownRefresh(() => {
+    void load().finally(() => Taro.stopPullDownRefresh())
+  })
+
   const navigate = (url: string) => void Taro.navigateTo({ url })
 
-  if (!state.user && !loading) return <Screen><StateView text="正在校验登录状态" /><BottomTabBar active="home" /></Screen>
+  if (!state.user) return <Screen><StateView text="正在校验登录状态…" /></Screen>
 
   const now = new Date()
   const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()]
@@ -106,20 +116,20 @@ export default function HomePage() {
     { label: '工资', icon: <CashOutlined size={28} />, action: () => void Taro.switchTab({ url: '/pages/salary/index' }) },
     { label: '填日报', icon: <NotesOutlined size={28} />, action: () => navigate('/pages/report/create') },
     { label: '报签证', icon: <Edit size={28} />, action: () => navigate('/pages/variation/create') },
-    { label: '办审批', icon: <TodoListOutlined size={28} />, action: () => void Taro.switchTab({ url: '/pages/todo/index' }) }
+    ...(hasTodoRole() ? [{ label: '办审批', icon: <TodoListOutlined size={28} />, action: () => void Taro.switchTab({ url: '/pages/todo/index' }) }] : [])
   ]
 
   return (
     <Screen>
       <GradientHeader title={`你好，${state.user?.nickname || state.user?.username || ''}`} eyebrow="LABORFLOW · 现场工作台" subtitle={`${roleText(state.user?.roles || [])}  ·  ${state.user?.employeeId ? '员工档案已绑定' : '员工档案未绑定'}`}>
-        <View className="mt-8 grid grid-cols-4 gap-3">
+        <View className={`mt-8 grid gap-3 ${shortcuts.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
           {shortcuts.map((item) => <View key={item.label} className="flex flex-col items-center gap-2" onClick={item.action}><View className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/18 text-white shadow-sm">{item.icon}</View><Text className="text-xs font-medium text-white">{item.label}</Text></View>)}
         </View>
       </GradientHeader>
       <PageBody lifted>
-        {loadError ? <Notice tone="danger">{loadError}</Notice> : null}
+        {loadError ? <View onClick={() => void load()}><Notice tone="danger">{loadError} 点击重试。</Notice></View> : null}
         <SectionTitle title="今日现场" subtitle="每天记录一点，项目进度更清楚" action={<Text className="text-sm text-[#39987d]" onClick={() => void Taro.switchTab({ url: '/pages/site/index' })}>全部记录  ›</Text>} />
-        <View className="mb-6 flex items-baseline gap-2"><Text className="yellow-underline text-[42px] font-bold leading-none tracking-tight">{monthDate}</Text><Text className="text-lg font-semibold">{weekday}</Text></View>
+        <View className="mb-6 flex items-baseline gap-2"><Text className="yellow-underline text-2xl font-bold leading-none tracking-tight">{monthDate}</Text><Text className="text-lg font-semibold">{weekday}</Text></View>
         <Card className="mint-soft flex items-center gap-4 p-4" onClick={() => state.todayReport ? void Taro.switchTab({ url: '/pages/site/index' }) : navigate('/pages/report/create')}>
           <RoundIcon className="bg-white text-[#39987d]"><CalendarOutlined size={26} /></RoundIcon>
           <View className="min-w-0 flex-1"><Text className="block text-base font-bold">{state.todayReport ? '今日日报已记录' : '今天还没有日报'}</Text><Text className="mt-1 block truncate text-sm text-[#7e8c85]">{state.todayReport ? `${textOf(state.todayReport, 'completedQuantity', '0')}${textOf(state.todayReport, 'unit')} · 点击查看现场记录` : '拍照并记录今日完成的工程量'}</Text></View>
@@ -131,7 +141,7 @@ export default function HomePage() {
           <Metric value={state.variationCount} label="我的签证" />
         </View>
         <Card className="overflow-hidden bg-[#263c35] text-white">
-          <View className="flex items-end justify-between gap-4"><View><Text className="block text-xs text-white/55">累计实发工资</Text><Text className="mt-1 block text-[30px] font-bold">{state.totalActual}</Text></View><View className="text-right"><CashOutlined size={26} color="#f3da74" /><Text className="mt-2 block text-xs text-white/65">{state.latestMonth} · {state.latestStatus}</Text></View></View>
+          <View className="flex items-end justify-between gap-4"><View><Text className="block text-xs text-white/55">累计实发工资</Text><Text className="mt-1 block text-xl font-bold">{state.totalActual}</Text></View><View className="text-right"><CashOutlined size={26} color="#f3da74" /><Text className="mt-2 block text-xs text-white/65">{state.latestMonth} · {state.latestStatus}</Text></View></View>
         </Card>
         <SectionTitle title="进行中的项目" subtitle="最近活跃项目" />
         {state.projects.length ? <ScrollView scrollX enhanced showScrollbar={false} className="mb-7 w-full whitespace-nowrap"><View className="flex gap-3">{state.projects.map((item, index) => <View key={textOf(item, 'id')} className={`inline-block w-64 shrink-0 rounded-[22px] p-5 ${index % 2 ? 'bg-[#fff4d9]' : 'bg-[#e9f5ec]'}`}><View className="mb-8 flex items-start justify-between"><BarChartOutlined size={25} color={index % 2 ? '#a98530' : '#388d72'} /><Text className="text-xs text-[#8c958f]">进行中</Text></View><Text className="block truncate text-lg font-bold">{textOf(item, 'name', '未命名项目')}</Text><Text className="mt-2 block text-sm text-[#818983]">负责人 · {textOf(item, 'projectManager', '待设置')}</Text></View>)}</View></ScrollView> : <StateView text="暂无进行中的项目" />}
