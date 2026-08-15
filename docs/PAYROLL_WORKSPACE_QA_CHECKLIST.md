@@ -2,8 +2,8 @@
 
 ## Scope
 
-This checklist covers the Web payroll workspace delivered in `L2-24-02`:
-monthly payroll creation and state transitions, detail review, payment
+This checklist covers the Web payroll workspace: monthly payroll creation and state
+transitions, detail review, payment
 registration, exports, payslips, and salary anomaly handling. It does not
 change payroll calculation rules, approval permissions, payment APIs, or export
 formats.

@@ -2,10 +2,10 @@
 
 ## Baseline Scope
 
-This checklist is the desktop renderer experience baseline for `L2-24-01`. It covers
-the shared login flow, application shell, responsive navigation, route loading,
-and global request feedback. Payroll and project workspaces keep their business
-action screenshots in their own capability loops.
+This checklist is the desktop renderer experience baseline. It covers the shared
+login flow, application shell, responsive navigation, route loading, and global
+request feedback. Payroll and project workspaces keep their business action
+screenshots in their own QA checklists.
 
 Run these commands before recording visual evidence:
 
@@ -31,14 +31,14 @@ numbers, salary amounts, private file URLs, tokens, or browser storage.
 | Route loading | 1366 x 768 and 390 x 844 | Navigate between distinct route modules | Skeleton state preserves page rhythm while the next module loads; it does not shift the shell or overflow | |
 | Request feedback | 1366 x 768 | Trigger a permitted validation/API failure and a forbidden operation | Readable in-context notice appears; close control works and the underlying page remains usable | |
 
-The login default and narrow checkpoints were rendered locally in this loop with
+The login default and narrow checkpoints were rendered locally for this baseline with
 the application browser at the stated viewports. Capture authenticated-shell,
 loading, and request-feedback evidence with a non-production account whenever a
 shared-shell or API change is reviewed.
 
 ## Build Baseline
 
-| Build item | Before `L2-24-01` | Current baseline | Result |
+| Build item | Previous baseline | Current baseline | Result |
 | --- | --- | --- | --- |
 | Initial `index` JavaScript | 1,605.36 kB / 505.39 kB gzip | 396.80 kB / 127.43 kB gzip | Route-level lazy loading removes feature pages from the initial route |
 | Project feature chunk | Included in initial bundle | 60.25 kB / 9.83 kB gzip | Loaded only for project routes |

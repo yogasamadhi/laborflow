@@ -19,8 +19,8 @@ v3.0：微信小程序现场端，已进入当前代码范围
 ```
 
 “已进入当前代码范围”不等同于已通过正式上线验收。当前发布范围、明确延期项和
-验收关卡以 [`LAUNCH_SCOPE.md`](LAUNCH_SCOPE.md) 与
-[`LOOPMAP2.md`](LOOPMAP2.md) 为准。
+验收关卡以 [`LAUNCH_SCOPE.md`](LAUNCH_SCOPE.md)、[`UAT_SIGNOFF.md`](UAT_SIGNOFF.md)
+与 [`LAUNCH_READINESS_REVIEW.md`](LAUNCH_READINESS_REVIEW.md) 为准。
 
 面向当前版本的操作路径与上线治理分别见
 [`USER_GUIDE_DESKTOP.md`](USER_GUIDE_DESKTOP.md)、[`USER_GUIDE_MINIAPP.md`](USER_GUIDE_MINIAPP.md)

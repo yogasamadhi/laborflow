@@ -11,7 +11,7 @@ Two active clients and one legacy client share one Spring Boot API + JWT; no cli
   `com.company.labor` (note: `labor`, **not** `laborflow`). Entry
   `LaborApplication.java`. Business code under `module/{system,employee,salary,file,project,compensation}`,
   plus `security/`, `common/`, `config/`.
-- `clients/desktop/` — Tauri 2 + React 19 + Vite + TanStack Query + TypeScript desktop admin console.
+- `clients/desktop/` — Electron 43 + React 19 + Vite + TanStack Query + TypeScript desktop admin console.
 - `clients/miniapp/` — Taro 4 + React 19 WeChat miniprogram. The watch build writes to `dist/`.
 - `legacy/miniapp/` — **legacy** (pending rework) WeChat native miniprogram (plain CommonJS
   JS, Vant Weapp). No build step; runs in WeChat DevTools.
@@ -25,7 +25,7 @@ Two active clients and one legacy client share one Spring Boot API + JWT; no cli
 Full local stack (Postgres + server + desktop + miniapp watch):
 
 ```bash
-python3 run.py            # starts docker, server, Tauri desktop, and the Taro miniapp watch build
+python3 run.py            # starts docker, server, Electron desktop, and the Taro miniapp watch build
 python3 run.py --no-miniapp                  # skip the miniapp watch build
 python3 run.py --no-docker --skip-install    # faster restart when infra already up
 python3 run.py --stop
@@ -61,7 +61,7 @@ pnpm --dir clients/desktop typecheck     # tsc --noEmit, strict
 pnpm --dir clients/desktop test          # vitest run (no watch)
 pnpm --dir clients/desktop test src/path/to/file   # single test file
 pnpm --dir clients/desktop build:renderer # tsc -b && vite build
-pnpm --dir clients/desktop build         # full native Tauri bundle for the current platform
+pnpm --dir clients/desktop build         # Electron Forge installer for the current platform
 ```
 
 CI order is `install → lint → typecheck → test → build:renderer`; any failure blocks merge.

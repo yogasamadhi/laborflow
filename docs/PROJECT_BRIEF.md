@@ -6,8 +6,9 @@
 
 本文保留项目最初的需求、技术约定和 v0.1 设计基线。它不再定义当前正式版的
 上线边界：当前交付范围、延期事项和上线前验收条件以
-[`LAUNCH_SCOPE.md`](LAUNCH_SCOPE.md) 为准，执行进度以
-[`LOOPMAP2.md`](LOOPMAP2.md) 为准。
+[`LAUNCH_SCOPE.md`](LAUNCH_SCOPE.md) 为准，实际验收与 Gate 状态以
+[`UAT_SIGNOFF.md`](UAT_SIGNOFF.md) 和 [`LAUNCH_READINESS_REVIEW.md`](LAUNCH_READINESS_REVIEW.md)
+为准。
 
 正式版操作与治理资料不写在本历史基线中：桌面管理端路径见
 [`USER_GUIDE_DESKTOP.md`](USER_GUIDE_DESKTOP.md)，小程序现场端路径见
@@ -77,8 +78,9 @@ Knife4j / OpenAPI
 
 ### 小程序端
 
-微信小程序现场端已纳入当前产品范围；其正式版体验与弱网验收仍按
-`docs/LOOPMAP2.md` 继续收口。
+微信小程序现场端已纳入当前产品范围；其正式版体验与弱网验收按
+[`UAT_CHECKLIST.md`](UAT_CHECKLIST.md) 执行，并在 [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md)
+记录结果。
 
 ```text
 微信原生小程序

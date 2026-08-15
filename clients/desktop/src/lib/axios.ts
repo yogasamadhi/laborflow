@@ -1,8 +1,7 @@
 import axios from "axios";
-import { isTauri } from "@tauri-apps/api/core";
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { clearToken, getToken } from "./auth";
-import { saveBlob } from "./desktop";
+import { isElectronRuntime, saveBlob } from "./desktop";
+import { electronAdapter } from "./electronAdapter";
 
 type ErrorPayload = { message?: string };
 
@@ -36,13 +35,13 @@ function emitRequestError(detail: RequestErrorDetail) {
   }
 }
 
-const desktopRuntime = isTauri();
+const desktopRuntime = isElectronRuntime();
 const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:8089/api").replace(/\/+$/, "");
 
 export const http = axios.create({
   baseURL: desktopRuntime ? configuredApiBaseUrl : "/api",
   timeout: 15000,
-  ...(desktopRuntime ? { adapter: "fetch" as const, env: { fetch: tauriFetch } } : {})
+  ...(desktopRuntime ? { adapter: electronAdapter } : {})
 });
 
 http.interceptors.request.use((config) => {
@@ -57,9 +56,15 @@ http.interceptors.response.use(
     const apiError = toApiError(error);
     if (apiError.status === 401) {
       clearToken();
-      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-        const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-        window.location.assign(`/login?reason=session-expired&next=${encodeURIComponent(next)}`);
+      if (typeof window !== "undefined") {
+        const next = desktopRuntime
+          ? window.location.hash.replace(/^#/, "") || "/"
+          : `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        if (next.split(/[?#]/, 1)[0] !== "/login") {
+          const login = `/login?reason=session-expired&next=${encodeURIComponent(next)}`;
+          if (desktopRuntime) window.location.hash = login;
+          else window.location.assign(login);
+        }
       }
     } else {
       emitRequestError({

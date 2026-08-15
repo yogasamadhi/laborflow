@@ -4,7 +4,7 @@
 
 ## 技术栈
 
-- Desktop：Tauri 2、Rust、React 19、React Router、TypeScript、Vite、TanStack Query、ECharts、Axios
+- Desktop：Electron 43、React 19、React Router、TypeScript、Vite、TanStack Query、ECharts、Axios
 - Miniapp：Taro 4 API、React 19、Tailwind CSS 4、weapp-tailwindcss、Taroify、TypeScript
 - Server：Spring Boot 4、Java 21、MyBatis Plus、Spring Security、JWT、Flyway、PostgreSQL 18、OpenAPI
 
@@ -16,8 +16,7 @@
 | Maven | 3.6.3+ | 后端构建；通过 `MAVEN_BIN` 或 PATH 提供 |
 | Node.js | 22.18.x 或 24.11+ | 桌面端渲染层、小程序构建与 CI；版本范围由 React 19 小程序工具链要求 |
 | pnpm | 11.2+（客户端 `packageManager` 锁定） | 桌面端与小程序依赖管理，`corepack enable` 即可 |
-| Rust | stable | Tauri 2 桌面端编译；通过 rustup 安装 |
-| 平台构建工具 | 当前操作系统对应版本 | macOS 使用 Xcode Command Line Tools；Windows 使用 C++ Build Tools 与 WebView2；Linux 使用 WebKitGTK 相关开发包 |
+| 平台构建工具 | 当前操作系统对应版本 | Electron Forge 在目标系统生成安装包；签名工具和 Linux 打包工具按发行格式安装 |
 | Docker | 任意现代版本 | 本地 PostgreSQL（`deploy/docker-laborflow`）；后端集成测试用 Testcontainers |
 | 微信开发者工具 | 稳定版 | 仅小程序本地开发/真机调试需要 |
 
@@ -28,7 +27,7 @@
 ```mermaid
 flowchart LR
   subgraph Clients
-    DESKTOP[桌面管理端\nTauri 2 + React + Vite]
+    DESKTOP[桌面管理端\nElectron 43 + React + Vite]
     MA[微信小程序\n现场端]
   end
   subgraph Server
@@ -43,7 +42,7 @@ flowchart LR
 ```
 
 - 三端共享同一套 Spring Boot API 与 JWT；角色决定可见范围。
-- 桌面端与小程序都是 API 的纯客户端，无独立业务后端；Tauri 仅提供桌面壳层和受限原生能力。
+- 桌面端与小程序都是 API 的纯客户端，无独立业务后端；Electron 仅通过受限 preload/IPC 提供桌面能力。
 - 数据库结构由 Flyway 管理（`server/src/main/resources/db/migration`），新表/新列时间列一律 `TIMESTAMP WITH TIME ZONE`（见 [`docs/TIMEZONE_POLICY.md`](docs/TIMEZONE_POLICY.md)）。
 
 ## 本地启动
@@ -83,7 +82,7 @@ pnpm --dir clients/desktop dev
 VITE_API_BASE_URL=https://api.example.com/api pnpm --dir clients/desktop build
 ```
 
-构建产物位于 `clients/desktop/src-tauri/target/release/bundle/`。Windows、macOS、Linux
+构建产物位于 `clients/desktop/out/make/`。Windows、macOS、Linux
 安装包应在对应操作系统的构建机上生成并完成代码签名。
 
 小程序：
@@ -104,8 +103,10 @@ pnpm --dir clients/miniapp dev
 ## 正式版验收资料
 
 当前正式上线范围、明确延期项和非部署 Gate 条件见
-[`docs/LAUNCH_SCOPE.md`](docs/LAUNCH_SCOPE.md)。实际执行进度与完成记录见
-[`docs/LOOPMAP2.md`](docs/LOOPMAP2.md)，它不应被代码存在与自动化通过所替代。
+[`docs/LAUNCH_SCOPE.md`](docs/LAUNCH_SCOPE.md)。实际验收、签字和 Gate 结论见
+[`docs/UAT_SIGNOFF.md`](docs/UAT_SIGNOFF.md) 与
+[`docs/LAUNCH_READINESS_REVIEW.md`](docs/LAUNCH_READINESS_REVIEW.md)，它们不应被代码存在
+与自动化通过所替代。
 
 - 桌面管理端角色路径见 [`docs/USER_GUIDE_DESKTOP.md`](docs/USER_GUIDE_DESKTOP.md)。
 - 小程序现场端角色路径见 [`docs/USER_GUIDE_MINIAPP.md`](docs/USER_GUIDE_MINIAPP.md)。
@@ -182,7 +183,7 @@ documented in [`docs/FILE_ACCESS_E2E_REGRESSION.md`](docs/FILE_ACCESS_E2E_REGRES
 ## 目录
 
 ```text
-clients/desktop/  Tauri 2 + React 桌面管理端
+clients/desktop/  Electron 43 + React 桌面管理端
 clients/miniapp/  Taro + React 19 微信小程序端
 server/   Spring Boot API 服务
 legacy/miniapp/  原生微信小程序端（legacy，迁移对照）

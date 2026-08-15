@@ -1,7 +1,8 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, createHashRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "../components/layout/AppLayout";
 import { NotFoundPage, RouteLoadingState } from "../components/common/AccessState";
+import { isElectronRuntime } from "../lib/desktop";
 
 const LoginPage = lazy(() => import("../features/auth/pages/LoginPage").then(({ LoginPage: page }) => ({ default: page })));
 const DashboardPage = lazy(() => import("../features/dashboard/pages/DashboardPage").then(({ DashboardPage: page }) => ({ default: page })));
@@ -57,7 +58,9 @@ function lazyElement(element: ReactNode) {
   return <Suspense fallback={<RouteLoadingState />}>{element}</Suspense>;
 }
 
-export const router = createBrowserRouter([
+const createRouter = isElectronRuntime() ? createHashRouter : createBrowserRouter;
+
+export const router = createRouter([
   { path: "/login", element: lazyElement(<LoginPage />) },
   {
     path: "/",

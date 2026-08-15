@@ -2,7 +2,7 @@
 
 ## Scope
 
-`L2-24-03` covers the Web project workspace actions that change operational or
+This checklist covers the Web project workspace actions that change operational or
 financial state: daily report submission and confirmation, variation amount
 confirmation, team-settlement payment registration, list empty states, and
 mobile table behavior. Project pricing, settlement calculation, permissions,

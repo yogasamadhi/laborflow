@@ -142,11 +142,11 @@
 
 - 涉及工资金额、已发放状态、项目结算、签证确认金额、数据越权、私有附件泄露、登录
   绕过或角色提升的缺陷，按 P0/P1 候选处理，不能以“后续优化”通过本次 UAT。
-- 功能可用但交互、文案、加载、空状态、弱网、窄屏或真机体验不达标时，关联 P24/P25
-  的体验 loop 并保留截图或录屏。
-- 每次完整执行使用 `docs/REGRESSION_RECORD_TEMPLATE.md`（在 L2-21-05 建立）或等价
-  记录格式，关联本清单的用例编号和证据。
-- 所有 `fail` 和 `blocked` 项必须在 `docs/UAT_SIGNOFF.md`（在 L2-27-02 建立）中有处理
+- 功能可用但交互、文案、加载、空状态、弱网、窄屏或真机体验不达标时，登记对应问题
+  并保留截图或录屏。
+- 每次完整执行使用 [`REGRESSION_EVIDENCE_RECORD_TEMPLATE.md`](REGRESSION_EVIDENCE_RECORD_TEMPLATE.md)
+  或等价记录格式，关联本清单的用例编号和证据。
+- 所有 `fail` 和 `blocked` 项必须在 [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md) 中有处理
   状态或延期批准，才能进入 G3 审查。
 - 本次 Gate 的实际执行状态、自动化结果、未执行原因和签字状态记录在
   [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md)；它必须逐项说明 `pass`、`fail` 或 `blocked`，不能把

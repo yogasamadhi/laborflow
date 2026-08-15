@@ -5,3 +5,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface Window {
+  readonly laborflowDesktop?: import("../electron/contracts").LaborFlowDesktopApi;
+}

@@ -1,7 +1,12 @@
-import { isTauri } from "@tauri-apps/api/core";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeFile } from "@tauri-apps/plugin-fs";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import type { LaborFlowDesktopApi } from "../../electron/contracts";
+
+export function getDesktopBridge(): LaborFlowDesktopApi | undefined {
+  return typeof window === "undefined" ? undefined : window.laborflowDesktop;
+}
+
+export function isElectronRuntime() {
+  return getDesktopBridge()?.isElectron === true;
+}
 
 function downloadInBrowser(blob: Blob, filename: string) {
   const objectUrl = URL.createObjectURL(blob);
@@ -15,14 +20,15 @@ function downloadInBrowser(blob: Blob, filename: string) {
 }
 
 export async function saveBlob(blob: Blob, filename: string) {
-  if (!isTauri()) {
+  const desktopBridge = getDesktopBridge();
+  if (!desktopBridge) {
     downloadInBrowser(blob, filename);
     return true;
   }
-  const path = await save({ defaultPath: filename });
-  if (!path) return false;
-  await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
-  return true;
+  return desktopBridge.saveFile({
+    filename,
+    data: new Uint8Array(await blob.arrayBuffer())
+  });
 }
 
 export async function openExternalUrl(url: string) {
@@ -30,8 +36,9 @@ export async function openExternalUrl(url: string) {
   if (target.protocol !== "https:" && target.protocol !== "http:") {
     throw new Error("仅允许打开 HTTP 或 HTTPS 地址");
   }
-  if (isTauri()) {
-    await openUrl(target.toString());
+  const desktopBridge = getDesktopBridge();
+  if (desktopBridge) {
+    await desktopBridge.openExternal(target.toString());
     return;
   }
   window.open(target.toString(), "_blank", "noopener,noreferrer");

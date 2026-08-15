@@ -459,8 +459,6 @@ def find_maven(env: dict[str, str]) -> str:
 def ensure_desktop_dependencies(env: dict[str, str]) -> None:
     if not command_exists("pnpm"):
         fail("pnpm is required for the desktop project")
-    if not command_exists("cargo"):
-        fail("Rust and Cargo are required for the Tauri desktop project")
     run_checked(["pnpm", "install"], DESKTOP_DIR, env)
 
 

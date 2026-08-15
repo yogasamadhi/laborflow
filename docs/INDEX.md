@@ -1,7 +1,7 @@
 # 文档索引
 
-`docs/` 目录的导航索引。文档按用途分组；追踪类文档（LOOPMAP/ROADMAP 等）
-单独成区，便于与产品/工程文档区分。
+`docs/` 目录的导航索引。文档按用途分组；路线图和可选工程规则单独成区，便于与
+产品/工程文档区分。
 
 > 语言约定：面向产品与发布的文档（本索引、README、UAT、launch gate、
 > 用户指南）使用中文；E2E 回归规格是技术契约文档，保持英文。
@@ -63,12 +63,7 @@
 - [`PROJECT_WORKSPACE_QA_CHECKLIST.md`](PROJECT_WORKSPACE_QA_CHECKLIST.md) — 项目工作台 QA
 - [`PAYROLL_WORKSPACE_QA_CHECKLIST.md`](PAYROLL_WORKSPACE_QA_CHECKLIST.md) — 工资工作台 QA
 
-## 工作流追踪（LOOPMAP 体系，非产品文档）
+## 项目规划与可选工程规则
 
-> 这些文件是开发进度追踪记录，体量大且持续更新，与产品/工程文档分开。
-> 不需要逐字阅读；按需查阅当前 loop 状态即可。
-
-- [`LOOPRULE.md`](LOOPRULE.md) — LOOPMAP 工作流方法论
-- [`LOOPMAP.md`](LOOPMAP.md) — 早期 loop 执行记录
-- [`LOOPMAP2.md`](LOOPMAP2.md) — 当前 loop 执行记录（L2 系列）
 - [`ROADMAP.md`](ROADMAP.md) — 路线图
+- [`LOOPRULE.md`](LOOPRULE.md) — 默认关闭；仅在用户手动显式开启时使用的可选工程规则
