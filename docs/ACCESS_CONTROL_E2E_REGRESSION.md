@@ -45,9 +45,10 @@ Use local or test accounts only. Record the result with
 Run the Web checks before recording a passing smoke result:
 
 ```bash
-pnpm --dir clients/desktop typecheck
-pnpm --dir clients/desktop test
-pnpm --dir clients/desktop build:renderer
+cd clients/desktop
+bun run typecheck
+bun run test
+bun run build:renderer
 ```
 
 Do not attach production user names, employee information, salary details, IP

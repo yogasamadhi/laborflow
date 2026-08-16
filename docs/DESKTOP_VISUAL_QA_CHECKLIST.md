@@ -10,10 +10,11 @@ screenshots in their own QA checklists.
 Run these commands before recording visual evidence:
 
 ```bash
-pnpm --dir clients/desktop typecheck
-pnpm --dir clients/desktop test
-pnpm --dir clients/desktop build:renderer
-pnpm --dir clients/desktop dev
+cd clients/desktop
+bun run typecheck
+bun run test
+bun run build:renderer
+bun run dev
 ```
 
 Use only local or test accounts. Do not capture production names, phone

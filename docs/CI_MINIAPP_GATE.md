@@ -1,35 +1,34 @@
-# Miniapp CI Gate
+# Miniapp Local Quality Gate
 
 ## Scope
 
-`.workflow/PRMiniappPipeline.yml` defines the Gitee Go pull-request check for
-`master`. It runs the repository script:
+The active Taro client in `clients/miniapp` uses Bun 1.3.14 for installation,
+script execution, TypeScript, Vite, and both WeChat and H5 builds. Its
+`bunfig.toml` forces packages with Node shebangs to run under Bun, so the gate
+does not require a system Node.js installation.
+
+Run from the repository root:
 
 ```bash
-npm --prefix legacy/miniapp run check
+cd clients/miniapp
+bun install --frozen-lockfile
+bun pm untrusted
+bun run check
+bun run build:h5
 ```
 
-The script checks every first-party `.js` file under `legacy/miniapp/` with
-`node --check`, then runs ESLint (`legacy/miniapp/.eslintrc.cjs`, `--max-warnings 0`)
-covering real-bug rules (`no-undef`, `no-debugger`, unused vars) while
-declaring the WeChat runtime globals (`wx`, `Page`, `App`, …), then runs the
-mocked identity and service-contract regression tests. Local formatting is
-owned by Prettier (`legacy/miniapp/.prettierrc`, `npm --prefix legacy/miniapp run format`)
-and is not enforced in CI yet. WeChat runtime, Vant component rendering,
-device permissions, real uploads, and real network behavior remain manual
-smoke responsibilities.
-
-## Enablement
-
-Import the pipeline in Gitee Go, run it once for a pull request targeting
-`master`, then configure the successful `PR Miniapp Syntax` status as required
-for the protected branch. A failed syntax check must block merge after that
-status is required.
+`check` runs the TypeScript project build and the WeChat production build. The
+H5 command validates the second supported Vite target. `bun pm untrusted` must
+report no blocked lifecycle scripts.
 
 ## Manual Evidence
 
-Every pull request that changes a user-visible miniapp flow must attach a
-completed record based on
-[`docs/MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md).
-The identity/session flow checklist is maintained in
-[`docs/MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md).
+WeChat DevTools rendering, device permissions, real uploads, account binding,
+and real network behavior remain manual smoke responsibilities. Every
+user-visible miniapp change must attach a completed record based on
+[`MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md), with
+the identity/session flow covered by
+[`MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md`](MINIAPP_IDENTITY_CONTRACT_QA_CHECKLIST.md).
+
+The native client in `legacy/miniapp` is retained only as a migration reference
+and keeps its npm/Node checks until that directory is reworked.

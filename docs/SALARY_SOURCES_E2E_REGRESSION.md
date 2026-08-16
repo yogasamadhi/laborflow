@@ -48,7 +48,8 @@ Use local or test fixtures only. Record the result in the pull request using
 Run the Web build before recording a passing smoke result:
 
 ```bash
-pnpm --dir clients/desktop build:renderer
+cd clients/desktop
+bun run build:renderer
 ```
 
 Do not attach production employee, project, bonus, payroll, or payment data.

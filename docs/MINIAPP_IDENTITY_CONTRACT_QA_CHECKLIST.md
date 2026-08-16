@@ -9,14 +9,15 @@ project pricing, or the backend API surface.
 Run the automated checks before DevTools verification:
 
 ```bash
-npm --prefix legacy/miniapp run check
-JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -B -ntp -f server/pom.xml test
+cd clients/miniapp
+bun run check
+cd ../../
+mvn -B -ntp -f server/pom.xml test
 ```
 
-The miniapp test runs with mocked `wx` APIs and verifies cache normalization,
-401/403 behavior, authentication service paths and payloads, and daily-report
-and variation attachment types. The backend suite verifies the checked-in core
-API contract against an isolated PostgreSQL container.
+The miniapp check validates TypeScript and the WeChat production build. The
+backend suite verifies the checked-in identity and service contracts against an
+isolated PostgreSQL container.
 
 ## Contract Surface
 

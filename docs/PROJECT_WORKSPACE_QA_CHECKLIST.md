@@ -13,10 +13,11 @@ project names, contracts, employee information, amounts, attachments, private
 file URLs, tokens, or browser storage in screenshots.
 
 ```bash
-pnpm --dir clients/desktop typecheck
-pnpm --dir clients/desktop test
-pnpm --dir clients/desktop build:renderer
-pnpm --dir clients/desktop dev
+cd clients/desktop
+bun run typecheck
+bun run test
+bun run build:renderer
+bun run dev
 ```
 
 ## Action Checks

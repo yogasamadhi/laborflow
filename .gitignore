@@ -20,7 +20,6 @@ Thumbs.db
 # Dependencies and package-manager caches
 node_modules/
 .npm/
-.pnpm-store/
 
 # Node / frontend build output
 dist/
@@ -36,7 +35,6 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
 # Python local files
 __pycache__/

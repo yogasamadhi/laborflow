@@ -10,12 +10,13 @@ do not record production identities, openids, salary values, or project photos.
 Run the automated baseline before the manual pass:
 
 ```bash
-npm --prefix legacy/miniapp run check
-JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn -B -ntp -f server/pom.xml test
+cd clients/miniapp
+bun run check
+cd ../../
+mvn -B -ntp -f server/pom.xml test
 ```
 
-The miniapp check covers syntax plus mocked identity, service-contract, upload
-partial-failure, and local-draft storage tests. The backend suite covers the
+The miniapp check covers TypeScript and the WeChat production build. The backend suite covers the
 existing API, attachment, access-control, and salary/project lifecycle
 contracts; it is not a substitute for WeChat rendering or device permissions.
 

@@ -1,54 +1,49 @@
-# Desktop CI Gate
+# Desktop Local Quality Gate
 
 ## Scope
 
-`.workflow/PRDesktopPipeline.yml` defines the Gitee Go renderer quality job for
-pull requests targeting `main`. It uses the pnpm version pinned in
-`clients/desktop/package.json` and runs:
+The desktop client uses Bun 1.3.14 for dependency installation, Electron Forge,
+native-module rebuild orchestration, linting, type checking, testing, and
+renderer builds. The launched Electron application uses Electron's embedded
+Node runtime; no separately installed system Node.js is required.
+
+Run from the repository root:
 
 ```bash
-pnpm --dir clients/desktop install --frozen-lockfile
-pnpm --dir clients/desktop lint
-pnpm --dir clients/desktop typecheck
-pnpm --dir clients/desktop test
-pnpm --dir clients/desktop build:renderer
+cd clients/desktop
+bun install --frozen-lockfile
+bun pm untrusted
+bun run lint
+bun run typecheck
+bun run test
+bun run build:renderer
 ```
 
-The typecheck covers the renderer, Electron main process, and preload bridge; the
-renderer gate remains operating-system independent. A release must additionally
-run `pnpm --dir clients/desktop build` on every target operating system because
-Electron Forge installers and code signing are platform-specific. Windows, macOS, and
-Linux release builds are not interchangeable.
+`bun pm untrusted` must report no blocked lifecycle scripts. The renderer gate
+covers the renderer, Electron main process, and preload bridge. `bunfig.toml`
+forces Electron Forge, ESLint, TypeScript, Vitest, Prettier, and Vite to execute
+under Bun. Forge does not recognize Bun as a package-manager name, so its three
+entry scripts provide a compatibility user-agent value; this avoids invoking
+an external npm/Node installation and does not change dependency installation.
 
-## Local verification
+## Platform Build
 
-Run the renderer quality sequence before the platform build:
+Release candidates require a build on every target operating system:
 
 ```bash
-pnpm --dir clients/desktop lint
-pnpm --dir clients/desktop typecheck
-pnpm --dir clients/desktop test
-pnpm --dir clients/desktop build:renderer
-pnpm --dir clients/desktop build
+cd clients/desktop
+bun run package
+bun run build
 ```
 
-Production builds must set `VITE_API_BASE_URL` to the HTTPS Spring API origin.
-The committed default is only for the local server on port `8089`. Signing keys,
-certificates, passwords, and updater private keys must only be provided through
-the protected release environment.
-
-Electron Forge 7 requires pnpm's hoisted linker. The desktop workspace also sets
-`blockExoticSubdeps: false` because Forge 7.11.2 depends on `@electron/rebuild`
-3.7.2, which resolves `@electron/node-gyp` from its upstream Git repository.
-Keep this exception scoped to `clients/desktop` and remove it after Forge adopts
-the newer rebuild dependency.
+Electron Forge installers and signing are platform-specific. Windows, macOS,
+and Linux outputs are not interchangeable. Production builds must set
+`VITE_API_BASE_URL` to the HTTPS Spring API origin; the committed default is
+only for local development.
 
 ## Contract
 
-- Any renderer lint, typecheck, test, or build failure blocks merge after the
-  Gitee Go status is configured as required.
-- Electron renderer processes must keep Node.js integration disabled, context
-  isolation and sandboxing enabled, and expose only the minimum API-scoped HTTP,
-  save-dialog, file-write, and external-URL operations through the preload bridge.
-- Release candidates require a successful signed platform build and a manual
-  launch smoke check on each distributed operating system.
+- Any install, trust, lint, typecheck, test, or renderer-build failure fails the local gate.
+- Electron renderer processes keep Node integration disabled, context isolation and sandboxing enabled.
+- The preload bridge exposes only the minimum API, save-dialog, file-write, and external-URL operations.
+- A release requires a successful signed platform build and a manual launch smoke check.

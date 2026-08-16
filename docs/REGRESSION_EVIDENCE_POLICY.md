@@ -77,5 +77,5 @@ Before approval, the reviewer confirms:
 4. The evidence contains no secret, personal, or production data.
 
 Missing or insufficient evidence blocks merge until it is completed or an
-approved exception is recorded. This manual review gate complements the Gitee
-Go automated checks documented in the CI gate documents.
+approved exception is recorded. This manual review gate complements the local
+automated checks documented in the quality gate documents.

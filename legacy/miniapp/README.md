@@ -39,7 +39,6 @@ The field-workspace visual, interaction, upload, and weak-network evidence is
 defined in
 [`docs/MINIAPP_VISUAL_QA_CHECKLIST.md`](../../docs/MINIAPP_VISUAL_QA_CHECKLIST.md).
 
-The Gitee PR workflow and activation requirements are documented in
-[`docs/CI_MINIAPP_GATE.md`](../../docs/CI_MINIAPP_GATE.md). Record manual
-user-flow verification with
+The active miniapp local quality gate is documented in
+[`docs/CI_MINIAPP_GATE.md`](../../docs/CI_MINIAPP_GATE.md). Record manual user-flow verification with
 [`docs/MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md`](../../docs/MINIAPP_SMOKE_EVIDENCE_TEMPLATE.md).

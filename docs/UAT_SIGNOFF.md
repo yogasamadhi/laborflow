@@ -28,7 +28,8 @@
 | AUTO-02 | `pnpm --dir clients/desktop typecheck && pnpm --dir clients/desktop lint && pnpm --dir clients/desktop test && pnpm --dir clients/desktop build:renderer` | typecheck、ESLint、Vitest 21 tests 和渲染层生产构建通过 | pass | 2026-07-28 本地回归输出；构建体积观察项见 OBS-001 |
 | AUTO-03 | `npm --prefix legacy/miniapp run check` | first-party JS 语法、ESLint 和 Node tests 19/19 通过 | pass | 2026-07-28 本地回归输出 |
 | AUTO-04 | `node scripts/ci/check-docs.mjs` | 44 个 Markdown 文件、24 个 Flyway 迁移及 `.env.example` 同步检查通过 | pass | 2026-07-28 本地回归输出 |
-| AUTO-05 | Gitee Go PR workflow 与 required-status 分支保护 | workflow 文件存在；未取得远端导入、首次运行或保护规则已启用的证据 | blocked | GATE-003 |
+| AUTO-05 | 托管 CI 与 required-status | 2026-07-28 曾登记为外部配置缺口；2026-08-16 起由本地质量门替代 | retired | 质量策略变更，不再构成发布阻断 |
+| AUTO-06 | Desktop 与 Miniapp Bun 迁移质量门 | Desktop lint/typecheck/24 tests/renderer/package/make，Miniapp typecheck/微信与 H5 构建，两端未信任安装脚本均为 0 | pass | 2026-08-16 本地 Bun 1.3.14 复测；不替代人工 UAT |
 
 `pass` 仅表示该自动化命令的结果，不能替代真实角色业务流程、真实账号登录、设备权限、
 弱网、截图/录屏或业务签字。
@@ -76,14 +77,13 @@
 
 ## 6. 重新审查条件
 
-1. 关闭或以正式范围变更批准 GATE-001 至 GATE-003；用户聊天中的“先不要管”不等同于
+1. 关闭或以正式范围变更批准 GATE-001 和 GATE-002；用户聊天中的“先不要管”不等同于
    缺陷策略要求的书面延期批准。
 2. 以非生产夹具执行 `UAT_CHECKLIST.md` 的 UAT-01 至 UAT-05，逐步记录角色、结果、证据
    位置、问题编号和复测结果。
 3. 完成小程序真实账号、上传、审批、工资确认、弱网、截图和录屏，或取得符合
    `LAUNCH_DEFECT_POLICY.md` 的书面范围延期批准。
-4. 导入并运行 Gitee Go 工作流，配置 required-status 分支保护，并记录可审计的远端结果。
-5. 按 [`FUNCTIONAL_INTEGRITY_AUDIT.md`](FUNCTIONAL_INTEGRITY_AUDIT.md) 在目标数据库
+4. 按 [`FUNCTIONAL_INTEGRITY_AUDIT.md`](FUNCTIONAL_INTEGRITY_AUDIT.md) 在目标数据库
    运行只读审计；已提交工资、已发放记录和已确认结算发现异常时，由业务批准单独纠正。
-6. 重新运行本记录第 2 节的自动化 Gate，并由业务、财务、项目、现场和 Gate 负责人完成
+5. 重新运行本记录第 2 节的自动化 Gate，并由业务、财务、项目、现场和 Gate 负责人完成
    实际签字；只有届时全部条件满足才可将结论更新为批准。

@@ -14,13 +14,13 @@
 |---|---|---|
 | JDK | 21 | 后端编译与运行；通过 `JAVA_HOME` 或 PATH 提供 |
 | Maven | 3.6.3+ | 后端构建；通过 `MAVEN_BIN` 或 PATH 提供 |
-| Node.js | 22.18.x 或 24.11+ | 桌面端渲染层、小程序构建与 CI；版本范围由 React 19 小程序工具链要求 |
-| pnpm | 11.2+（客户端 `packageManager` 锁定） | 桌面端与小程序依赖管理，`corepack enable` 即可 |
+| Bun | 1.3.14 | 根启动器、两个活跃客户端的依赖安装、脚本、检查与构建 |
+| Electron 内置 Node | 随 Electron 43 提供 | 仅 Electron 应用运行时使用，无需单独安装系统 Node.js；Miniapp 不需要 Node |
 | 平台构建工具 | 当前操作系统对应版本 | Electron Forge 在目标系统生成安装包；签名工具和 Linux 打包工具按发行格式安装 |
 | Docker | 任意现代版本 | 本地 PostgreSQL（`deploy/docker-laborflow`）；后端集成测试用 Testcontainers |
 | 微信开发者工具 | 稳定版 | 仅小程序本地开发/真机调试需要 |
 
-版本以各 CI 门文档（`docs/CI_*_GATE.md`）为准。
+版本与验证顺序以各本地质量门文档（`docs/CI_*_GATE.md`）为准。
 
 ## 架构
 
@@ -59,7 +59,7 @@ PostgreSQL 默认映射到宿主机 `5434` 端口，后端默认连接 `jdbc:pos
 一键启动本地 PostgreSQL、后端、桌面端和小程序 watch：
 
 ```bash
-python3 run.py
+bun run.ts
 ```
 
 后端需要 Java 21 和 Maven（通过 `JAVA_HOME` 或 PATH 提供）：
@@ -72,14 +72,16 @@ mvn spring-boot:run
 桌面端：
 
 ```bash
-pnpm --dir clients/desktop install --frozen-lockfile
-pnpm --dir clients/desktop dev
+cd clients/desktop
+bun install --frozen-lockfile
+bun run dev
 ```
 
 平台安装包使用构建时 API 地址生成：
 
 ```bash
-VITE_API_BASE_URL=https://api.example.com/api pnpm --dir clients/desktop build
+cd clients/desktop
+VITE_API_BASE_URL=https://api.example.com/api bun run build
 ```
 
 构建产物位于 `clients/desktop/out/make/`。Windows、macOS、Linux
@@ -88,8 +90,9 @@ VITE_API_BASE_URL=https://api.example.com/api pnpm --dir clients/desktop build
 小程序：
 
 ```bash
-pnpm --dir clients/miniapp install --frozen-lockfile
-pnpm --dir clients/miniapp dev
+cd clients/miniapp
+bun install --frozen-lockfile
+bun run dev
 # 微信开发者工具导入 clients/miniapp/dist/
 ```
 
@@ -150,11 +153,11 @@ cd server
 mvn test
 ```
 
-Gitee pull-request gate configuration and its Docker/Testcontainers runner
-requirement are documented in [`docs/CI_BACKEND_GATE.md`](docs/CI_BACKEND_GATE.md).
+The local backend gate and its Docker/Testcontainers requirement are documented
+in [`docs/CI_BACKEND_GATE.md`](docs/CI_BACKEND_GATE.md).
 The desktop renderer typecheck, test, and build gate is documented in
 [`docs/CI_DESKTOP_GATE.md`](docs/CI_DESKTOP_GATE.md).
-The miniapp syntax gate and manual smoke evidence template are documented in
+The active miniapp Bun build gate and manual smoke evidence template are documented in
 [`docs/CI_MINIAPP_GATE.md`](docs/CI_MINIAPP_GATE.md).
 The documentation, Flyway migration, and whitespace gate is documented in
 [`docs/CI_DOCS_GATE.md`](docs/CI_DOCS_GATE.md).

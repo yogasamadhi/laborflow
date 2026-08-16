@@ -15,10 +15,11 @@ URLs, tokens, or browser storage in evidence.
 Run the automated checks before the manual path:
 
 ```bash
-pnpm --dir clients/desktop typecheck
-pnpm --dir clients/desktop test
-pnpm --dir clients/desktop build:renderer
-pnpm --dir clients/desktop dev
+cd clients/desktop
+bun run typecheck
+bun run test
+bun run build:renderer
+bun run dev
 ```
 
 ## Payroll Workflow

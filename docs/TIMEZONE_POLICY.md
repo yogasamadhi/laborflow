@@ -17,7 +17,7 @@
 - **JSON 序列化**：`spring.jackson.time-zone` 在 `application.yml` 固定为
   `${LABORFLOW_TIMEZONE:Asia/Shanghai}`，保证 API 输出的日期/时间字段不随
   JVM 默认时区变化。
-- **JVM 默认时区**：`run.py` 启动服务时注入 `TZ=Asia/Shanghai`（除非已设置）。
+- **JVM 默认时区**：`run.ts` 启动服务时注入 `TZ=Asia/Shanghai`（除非已设置）。
   生产部署须在容器/进程环境显式设置 `TZ=Asia/Shanghai`。
 - **逻辑时区来源**：`LoginSecurityService` 等使用 `Clock.systemDefaultZone()`，
   因此固定 JVM 时区即固定了账号锁定/登录记录等的时间基准。
@@ -40,5 +40,5 @@ PostgreSQL 会把已存储的本地时间原样解释为目标时区，若列中
 | 配置 | 位置 | 默认 |
 |---|---|---|
 | `LABORFLOW_TIMEZONE` | `.env` / 运行环境 | `Asia/Shanghai` |
-| `TZ` | 运行环境（run.py / 容器）| `Asia/Shanghai` |
+| `TZ` | 运行环境（run.ts / 容器）| `Asia/Shanghai` |
 | `spring.jackson.time-zone` | `application.yml` | `${LABORFLOW_TIMEZONE:Asia/Shanghai}` |

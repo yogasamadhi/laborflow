@@ -18,31 +18,31 @@ Two active clients and one legacy client share one Spring Boot API + JWT; no cli
 - `deploy/docker-laborflow/` — local Postgres compose only (not a full deploy stack).
 - `docs/` — product (Chinese) + E2E regression specs (English, technical contracts).
   See `docs/INDEX.md` before assuming what a doc covers.
-- `.workflow/` — **Gitee Go** pipelines (not GitHub Actions). Remote is Gitee, not GitHub.
+- Quality gates are local commands documented in `docs/CI_*_GATE.md`; no hosted CI workflow is committed.
 
 ## Commands
 
 Full local stack (Postgres + server + desktop + miniapp watch):
 
 ```bash
-python3 run.py            # starts docker, server, Electron desktop, and the Taro miniapp watch build
-python3 run.py --no-miniapp                  # skip the miniapp watch build
-python3 run.py --no-docker --skip-install    # faster restart when infra already up
-python3 run.py --stop
+bun run.ts            # starts docker, server, Electron desktop, and the Taro miniapp watch build
+bun run.ts --no-miniapp                  # skip the miniapp watch build
+bun run.ts --no-docker --skip-install    # faster restart when infra already up
+bun run.ts --stop
 ```
 
 The miniapp watch build writes to `clients/miniapp/dist/`; import that directory into
-WeChat DevTools once and rely on hot reload. It has no TCP port, so `run.py` starts it
+WeChat DevTools once and rely on hot reload. It has no TCP port, so `run.ts` starts it
 alongside desktop without waiting. Use `--no-miniapp` to skip it entirely.
 
-`run.py` generates `.env` with random `POSTGRES_PASSWORD`/`JWT_SECRET` on first run —
+`run.ts` generates `.env` with random `POSTGRES_PASSWORD`/`JWT_SECRET` on first run —
 never uses the committed placeholder values. Do not hand-edit those two back to the
 `.env.example` values.
 
-Backend (run from repo root to mirror CI, or `cd server`):
+Backend (run from repo root to mirror the local quality gate, or `cd server`):
 
 ```bash
-mvn -B -ntp -f server/pom.xml test            # CI command; needs Docker for Testcontainers
+mvn -B -ntp -f server/pom.xml test            # local gate; needs Docker for Testcontainers
 mvn -B -ntp -f server/pom.xml jacoco:report
 # single test:
 mvn -B -ntp -f server/pom.xml test -Dtest=PostgresIntegrationTest
@@ -50,21 +50,31 @@ mvn -B -ntp -f server/pom.xml test -Dtest=PostgresIntegrationTest#seedsExpectedR
 ```
 
 Integration tests use Testcontainers (`postgres:18-alpine`) and need a reachable Docker
-daemon. They are not skippable; CI must run them on a Docker-capable runner.
+daemon. They are not skippable; the gate must run them with Docker available.
 
-Desktop (pnpm; version pinned via `clients/desktop/package.json` `packageManager`):
+Desktop (Bun; run from the client directory):
 
 ```bash
-pnpm --dir clients/desktop install --frozen-lockfile     # CI uses --frozen-lockfile; never commit lockfile drift
-pnpm --dir clients/desktop lint          # ESLint --max-warnings 0
-pnpm --dir clients/desktop typecheck     # tsc --noEmit, strict
-pnpm --dir clients/desktop test          # vitest run (no watch)
-pnpm --dir clients/desktop test src/path/to/file   # single test file
-pnpm --dir clients/desktop build:renderer # tsc -b && vite build
-pnpm --dir clients/desktop build         # Electron Forge installer for the current platform
+cd clients/desktop
+bun install --frozen-lockfile            # never commit lockfile drift
+bun run lint                             # ESLint --max-warnings 0
+bun run typecheck                        # tsc --noEmit, strict
+bun run test                             # vitest run (no watch)
+bun run test src/path/to/file            # single test file
+bun run build:renderer                   # tsc -b && vite build under Bun
+bun run build                            # Electron Forge installer; Electron uses its embedded Node
 ```
 
-CI order is `install → lint → typecheck → test → build:renderer`; any failure blocks merge.
+The local gate order is `install → lint → typecheck → test → build:renderer`; any failure blocks release.
+
+Active miniapp (Bun only; run from the client directory):
+
+```bash
+cd clients/miniapp
+bun install --frozen-lockfile
+bun run check
+bun run build:h5
+```
 
 Legacy miniapp (pending rework; no PR CI gate):
 
@@ -78,23 +88,21 @@ Docs/diff gate (run before pushing):
 
 ```bash
 git diff --check
-node scripts/ci/check-docs.mjs
+bun scripts/ci/check-docs.mjs
 ```
 
-## Branch mismatch (important)
+## Integration branch
 
-`.workflow/*.yml` and every `docs/CI_*_GATE.md` declare the PR target branch as `master`,
-but the Gitee remote default is **`main`** — no `master` branch exists locally or on
-`origin`. For local verification substitute `main` (e.g.
-`git diff --check origin/main...HEAD`). Treat `main` as the real integration branch.
+The remote default and real integration branch is **`main`**; no `master` branch exists.
+For branch-range verification use `git diff --check origin/main...HEAD`.
 
 ## Non-obvious build-breaking guards
 
-These fail CI or the build silently if ignored:
+These fail the local gate or build silently if ignored:
 
 - **`.env.example` ↔ `application.yml` sync** (`scripts/ci/check-docs.mjs`): every
   `${NEW_VAR}` referenced in `application.yml` must also appear as `NEW_VAR=` in
-  `.env.example`, or CI fails. Add the var in both places in the same change.
+  `.env.example`, or the gate fails. Add the var in both places in the same change.
 - **Hardcoded latest-migration assertion**: `PostgresIntegrationTest` asserts the Flyway
   version is `"24"`. When you add migration `V25`+, update that string and check
   `FlywayLegacyUpgradeIntegrationTest` (V12 upgrade fixture) for compatibility.
@@ -111,7 +119,7 @@ These fail CI or the build silently if ignored:
 ## Conventions
 
 - **Timezone**: business TZ is pinned to `Asia/Shanghai` via `LABORFLOW_TIMEZONE` /
-  `TZ` (set by `run.py`) / `spring.jackson.time-zone`. Historical columns are
+  `TZ` (set by `run.ts`) / `spring.jackson.time-zone`. Historical columns are
   `TIMESTAMP WITHOUT TIME ZONE` — **new** timestamp columns must be
   `TIMESTAMP WITH TIME ZONE` with Java `Instant`/`OffsetDateTime` (no automated guard;
   review-enforced). See `docs/TIMEZONE_POLICY.md`.
@@ -141,7 +149,7 @@ exception — state why the boundary is unaffected instead.
 
 - `docs/ROLE_PERMISSION_MATRIX.md` — roles (`ADMIN/BOSS/FINANCE/MANAGER/EMPLOYEE`) & scope
 - `docs/TIMEZONE_POLICY.md` — timestamp conventions
-- `docs/CI_*_GATE.md` — exact per-area CI contracts
+- `docs/CI_*_GATE.md` — exact per-area local quality contracts
 - `docs/FLYWAY_UPGRADE_GUIDE.md` — note its example command has machine-specific paths;
   use `mvn -B -ntp -f server/pom.xml test` instead.
 - `docs/TECH_DEBT_GOD_CLASS.md` — `ProjectManagementServiceImpl` split plan (in progress)

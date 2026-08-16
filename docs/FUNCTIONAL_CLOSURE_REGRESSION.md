@@ -41,6 +41,18 @@
 [`UAT_CHECKLIST.md`](UAT_CHECKLIST.md) 的业务执行或
 [`UAT_SIGNOFF.md`](UAT_SIGNOFF.md) 的签字。
 
+### 2026-08-16 Bun 工具链迁移复测
+
+2026-07-28 表格保留当时实际执行的 pnpm、npm 和 Node 命令。客户端工具链迁移后另行复测：
+
+| Gate | Bun 迁移结果 |
+| --- | --- |
+| Desktop | 冻结安装通过，0 个未信任安装脚本；lint、typecheck、8 files / 24 tests、renderer build、Electron package 和 Windows make 通过 |
+| Miniapp | 冻结安装通过，0 个未信任安装脚本；typecheck、微信生产构建和 H5 生产构建通过 |
+| Electron runtime | Electron 43 使用其内置 Node 24.18.1，无需单独安装系统 Node.js |
+
+本次复测只验证工具链迁移，没有补齐五角色 UAT、真机、弱网或业务签字。
+
 ## 4. 人工与外部 Gate
 
 | 项目 | 状态 | 解除条件 |
