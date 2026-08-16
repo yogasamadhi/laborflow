@@ -11,6 +11,7 @@ const { spawn, spawnSync } =
 type Environment = Record<string, string>;
 type ChildProcess = import("node:child_process").ChildProcess;
 type Readable = import("node:stream").Readable;
+type OutputListener = (line: string) => void;
 
 interface Arguments {
   noDocker: boolean;
@@ -33,6 +34,7 @@ const ENV_EXAMPLE = path.join(ROOT, ".env.example");
 const COMPOSE_DIR = path.join(ROOT, "deploy", "docker-laborflow");
 
 const processes: ChildProcess[] = [];
+const processNames = new Map<ChildProcess, string>();
 const childFailures: string[] = [];
 const managedPorts = new Set<number>();
 let stoppingPromise: Promise<void> | undefined;
@@ -103,6 +105,17 @@ function setEnv(env: Environment, name: string, value: string): void {
     }
   }
   env[name] = value;
+}
+
+function unsetEnv(env: Environment, name: string): void {
+  for (const key of Object.keys(env)) {
+    if (
+      key === name ||
+      (process.platform === "win32" && key.toLowerCase() === name.toLowerCase())
+    ) {
+      delete env[key];
+    }
+  }
 }
 
 function randomSecret(bytes: number): string {
@@ -254,7 +267,11 @@ function runChecked(
   }
 }
 
-function pumpOutput(name: string, stream: Readable | null): void {
+function pumpOutput(
+  name: string,
+  stream: Readable | null,
+  listener?: OutputListener,
+): void {
   if (stream === null) {
     return;
   }
@@ -263,7 +280,10 @@ function pumpOutput(name: string, stream: Readable | null): void {
     input: stream,
     crlfDelay: Infinity,
   });
-  lines.on("line", (line) => console.log(`[${name}] ${line}`));
+  lines.on("line", (line) => {
+    console.log(`[${name}] ${line}`);
+    listener?.(line);
+  });
 }
 
 function popenStream(
@@ -272,6 +292,7 @@ function popenStream(
   args: string[],
   cwd: string,
   env?: Environment,
+  listener?: OutputListener,
 ): ChildProcess {
   log(`starting ${name}: ${formatCommand(command, args)}`);
   const prepared = prepareCommand(command, args);
@@ -283,11 +304,12 @@ function popenStream(
     windowsHide: true,
   });
   processes.push(child);
+  processNames.set(child, name);
   child.once("error", (error) =>
     childFailures.push(`${name} could not start: ${error.message}`),
   );
-  pumpOutput(name, child.stdout);
-  pumpOutput(name, child.stderr);
+  pumpOutput(name, child.stdout, listener);
+  pumpOutput(name, child.stderr, listener);
   return child;
 }
 
@@ -462,9 +484,12 @@ function checkChildren(): void {
   }
   for (const child of processes) {
     if (child.exitCode !== null || child.signalCode !== null) {
-      fail(
-        `a child process exited unexpectedly with code ${child.exitCode ?? child.signalCode}`,
-      );
+      const name = processNames.get(child) ?? "child process";
+      const status =
+        child.exitCode !== null
+          ? `exit code ${child.exitCode}`
+          : `signal ${child.signalCode}`;
+      fail(`${name} exited unexpectedly with ${status}`);
     }
   }
 }
@@ -535,11 +560,17 @@ async function ensurePortAvailable(
   port: number,
   envName: string,
 ): Promise<void> {
-  if (!(await canConnect(host, port, 1_000))) {
+  if (
+    findListeningPids(port).size === 0 &&
+    !(await canConnect(host, port, 1_000))
+  ) {
     return;
   }
   await killProcessesOnPort(service, port);
-  if (await canConnect(host, port, 1_000)) {
+  if (
+    findListeningPids(port).size > 0 ||
+    (await canConnect(host, port, 1_000))
+  ) {
     fail(
       `${service} port ${port} is still in use after cleanup. Stop the existing process or set ${envName} to another port.`,
     );
@@ -619,14 +650,94 @@ function findMaven(env: Environment): string {
 }
 
 function ensureDesktopDependencies(env: Environment): void {
-  runChecked(process.execPath, ["install", "--frozen-lockfile"], DESKTOP_DIR, env);
+  runChecked(
+    process.execPath,
+    ["install", "--frozen-lockfile"],
+    DESKTOP_DIR,
+    env,
+  );
+}
+
+function desktopEnvironment(env: Environment): Environment {
+  const desktopEnv = { ...env };
+  for (const name of [
+    "ELECTRON_INSTALL_ARCH",
+    "ELECTRON_INSTALL_PLATFORM",
+    "ELECTRON_OVERRIDE_DIST_PATH",
+    "ELECTRON_RUN_AS_NODE",
+    "npm_config_arch",
+    "npm_config_platform",
+  ]) {
+    unsetEnv(desktopEnv, name);
+  }
+  if (getEnv(desktopEnv, "VITE_API_BASE_URL") === undefined) {
+    setEnv(
+      desktopEnv,
+      "VITE_API_BASE_URL",
+      `http://localhost:${getEnv(env, "SERVER_PORT") ?? "8089"}/api`,
+    );
+  }
+  return desktopEnv;
+}
+
+function electronRuntimePath(): string {
+  const dist = path.join(DESKTOP_DIR, "node_modules", "electron", "dist");
+  if (process.platform === "darwin") {
+    return path.join(dist, "Electron.app", "Contents", "MacOS", "Electron");
+  }
+  return path.join(
+    dist,
+    process.platform === "win32" ? "electron.exe" : "electron",
+  );
+}
+
+function ensureElectronRuntime(env: Environment): void {
+  const electronPackage = path.join(DESKTOP_DIR, "node_modules", "electron");
+  const installScript = path.join(electronPackage, "install.js");
+  if (!fs.existsSync(installScript)) {
+    fail(
+      "Electron dependency is missing. Run again without --skip-install to install desktop dependencies.",
+    );
+  }
+  const runtimeEnv = desktopEnvironment(env);
+  setEnv(runtimeEnv, "ELECTRON_INSTALL_PLATFORM", process.platform);
+  setEnv(runtimeEnv, "ELECTRON_INSTALL_ARCH", process.arch);
+  const runtime = electronRuntimePath();
+  if (!executableExists(runtime)) {
+    log(
+      `Electron runtime for ${process.platform}/${process.arch} is missing; downloading it before services start`,
+    );
+    runChecked(process.execPath, [installScript], DESKTOP_DIR, runtimeEnv);
+  }
+  if (!executableExists(runtime)) {
+    fail(`Electron runtime was not installed at ${runtime}`);
+  }
+  const result = spawnSync(runtime, ["--version"], {
+    cwd: DESKTOP_DIR,
+    env: runtimeEnv,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (result.error || result.status !== 0) {
+    const reason =
+      result.error?.message ?? result.stderr?.trim() ?? "unknown error";
+    fail(`Electron runtime could not execute: ${reason}`);
+  }
+  log(
+    `Electron ${result.stdout.trim() || "runtime"} is ready for ${process.platform}/${process.arch}`,
+  );
 }
 
 function ensureMiniappDependencies(env: Environment): void {
   if (!fs.existsSync(MINIAPP_DIR)) {
     return;
   }
-  runChecked(process.execPath, ["install", "--frozen-lockfile"], MINIAPP_DIR, env);
+  runChecked(
+    process.execPath,
+    ["install", "--frozen-lockfile"],
+    MINIAPP_DIR,
+    env,
+  );
 }
 
 function startServer(env: Environment): ChildProcess {
@@ -651,20 +762,52 @@ function startServer(env: Environment): ChildProcess {
   );
 }
 
-function startDesktop(env: Environment): ChildProcess {
-  const desktopEnv = { ...env };
-  if (getEnv(desktopEnv, "VITE_API_BASE_URL") === undefined) {
-    setEnv(
-      desktopEnv,
-      "VITE_API_BASE_URL",
-      `http://localhost:${getEnv(env, "SERVER_PORT") ?? "8089"}/api`,
-    );
-  }
-  return popenStream("desktop", process.execPath, ["run", "dev"], DESKTOP_DIR, desktopEnv);
+function startDesktop(env: Environment): () => boolean {
+  let windowReady = false;
+  popenStream(
+    "desktop",
+    process.execPath,
+    ["run", "dev"],
+    DESKTOP_DIR,
+    desktopEnvironment(env),
+    (line) => {
+      if (line.includes("LaborFlow desktop window is ready")) {
+        windowReady = true;
+      }
+    },
+  );
+  return () => windowReady;
 }
 
 function startMiniapp(env: Environment): ChildProcess {
-  return popenStream("miniapp", process.execPath, ["run", "dev"], MINIAPP_DIR, env);
+  return popenStream(
+    "miniapp",
+    process.execPath,
+    ["run", "dev"],
+    MINIAPP_DIR,
+    env,
+  );
+}
+
+async function waitForDesktopWindow(
+  isReady: () => boolean,
+  timeoutSeconds = 60,
+): Promise<void> {
+  log("waiting for the Electron desktop window");
+  const deadline = Date.now() + timeoutSeconds * 1_000;
+  while (Date.now() < deadline && !shutdownRequested) {
+    checkChildren();
+    if (isReady()) {
+      log("Electron desktop window is visible");
+      return;
+    }
+    await sleep(500);
+  }
+  if (!shutdownRequested) {
+    fail(
+      "Electron started its renderer but did not show a window. Check the [desktop] output above for the main-process error.",
+    );
+  }
 }
 
 async function waitForever(miniappEnabled: boolean): Promise<void> {
@@ -758,13 +901,17 @@ async function main(): Promise<void> {
       ensureMiniappDependencies(env);
     }
   }
+  ensureElectronRuntime(env);
   startServer(env);
-  startDesktop(env);
+  const desktopWindowReady = startDesktop(env);
   if (!args.noMiniapp) {
     startMiniapp(env);
   }
-  await waitForPort("API", "localhost", serverPort);
-  await waitForPort("Desktop renderer", "localhost", desktopPort);
+  await Promise.all([
+    waitForPort("API", "localhost", serverPort),
+    waitForPort("Desktop renderer", "localhost", desktopPort),
+    waitForDesktopWindow(desktopWindowReady),
+  ]);
   await waitForever(!args.noMiniapp);
 }
 

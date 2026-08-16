@@ -155,7 +155,12 @@ function createWindow() {
     }
   });
 
-  mainWindow.once("ready-to-show", () => mainWindow.show());
+  mainWindow.once("ready-to-show", () => {
+    if (process.platform === "darwin") app.focus({ steal: true });
+    mainWindow.show();
+    mainWindow.focus();
+    process.stdout.write("LaborFlow desktop window is ready\n");
+  });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     openExternalFromWindow(url);
     return { action: "deny" };
