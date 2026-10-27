@@ -63,8 +63,12 @@ class AuditLogLifecycleIntegrationTest {
     @Test
     void recordsQueryableAuditEntriesForSalaryProjectCompensationUserAndWechatActions() throws Exception {
         String adminToken = login(ADMIN_USERNAME, ADMIN_PASSWORD);
+        long departmentId = id(post("/api/departments", Map.of(
+                "name", "Audit Log E2E Department",
+                "status", "active"), adminToken));
         long employeeId = id(post("/api/employees", Map.of(
                 "name", "Audit Log E2E Employee",
+                "departmentId", departmentId,
                 "employeeType", "company_employee",
                 "entryDate", "2032-01-01",
                 "status", "active"), adminToken));
@@ -73,7 +77,7 @@ class AuditLogLifecycleIntegrationTest {
         updateUser(userId, employeeId, roleIds.get("EMPLOYEE"), adminToken);
 
         createSalaryProfile(employeeId, adminToken);
-        long monthlyId = createAndUpdateMonthly(adminToken);
+        long monthlyId = createAndUpdateMonthly(departmentId, adminToken);
         post("/api/salary/monthly/" + monthlyId + "/generate", null, adminToken);
         post("/api/salary/monthly/" + monthlyId + "/submit", null, adminToken);
         post("/api/salary/monthly/" + monthlyId + "/reject", Map.of("remark", "Audit E2E reject"), adminToken);
@@ -167,16 +171,26 @@ class AuditLogLifecycleIntegrationTest {
         assertLog(logs, "wechat_binding", bindingId, "unbind");
     }
 
-    private long createAndUpdateMonthly(String token) throws Exception {
-        Map<String, Object> request = monthlyRequest("Audit Log January");
+    private long createAndUpdateMonthly(long departmentId, String token) throws Exception {
+        Map<String, Object> request = monthlyCreateRequest("Audit Log January", departmentId);
         long monthlyId = id(post("/api/salary/monthly", request, token));
-        put("/api/salary/monthly/" + monthlyId, monthlyRequest("Audit Log January updated"), token);
+        put("/api/salary/monthly/" + monthlyId, monthlyUpdateRequest("Audit Log January updated"), token);
         return monthlyId;
     }
 
-    private Map<String, Object> monthlyRequest(String title) {
+    private Map<String, Object> monthlyCreateRequest(String title, long departmentId) {
         return Map.of(
                 "salaryMonth", "2032-01",
+                "departmentId", departmentId,
+                "title", title,
+                "includeFixedSalary", 1,
+                "includeAttendanceDeduction", 0,
+                "includePerformanceSalary", 0,
+                "includeProjectBonus", 0);
+    }
+
+    private Map<String, Object> monthlyUpdateRequest(String title) {
+        return Map.of(
                 "title", title,
                 "includeFixedSalary", 1,
                 "includeAttendanceDeduction", 0,

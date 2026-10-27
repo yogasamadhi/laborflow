@@ -1,11 +1,13 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarPlus, RefreshCw } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Field, SelectInput, TextArea, TextInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { postData } from "../../../lib/axios";
+import { getAllPages, postData } from "../../../lib/axios";
+import type { Department } from "../../department/types";
+import { defaultDepartmentalPayrollTitle, monthlyCreatePayload } from "../departmentalPayroll";
 
 function currentMonth() {
   return new Date().toISOString().slice(0, 7);
@@ -24,6 +26,7 @@ export function SalaryMonthlyCreatePage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     salaryMonth: currentMonth(),
+    departmentId: "",
     title: "",
     remark: "",
     includeFixedSalary: 1,
@@ -34,10 +37,16 @@ export function SalaryMonthlyCreatePage() {
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [error, setError] = useState("");
   const [createdMonthlyId, setCreatedMonthlyId] = useState<string | null>(null);
-  const defaultTitle = useMemo(() => `${form.salaryMonth || currentMonth()} 工资表`, [form.salaryMonth]);
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", "salary-monthly-create"],
+    queryFn: () => getAllPages<Department>("/reference/departments", { status: "active" })
+  });
+  const departments = departmentsData ?? [];
+  const departmentName = departments.find((department) => department.id === form.departmentId)?.name ?? "";
+  const defaultTitle = useMemo(() => defaultDepartmentalPayrollTitle(form.salaryMonth || currentMonth(), departmentName || "部门"), [departmentName, form.salaryMonth]);
   const save = useMutation({
     mutationFn: async () => {
-      const monthly = await postData<{ id: string }>("/salary/monthly", { ...form, title: form.title || defaultTitle });
+      const monthly = await postData<{ id: string }>("/salary/monthly", monthlyCreatePayload(form, departmentName));
       setCreatedMonthlyId(monthly.id);
       if (autoGenerate) {
         try {
@@ -60,6 +69,10 @@ export function SalaryMonthlyCreatePage() {
       setError("至少启用一项工资生成规则");
       return;
     }
+    if (!form.departmentId) {
+      setError("请选择部门");
+      return;
+    }
     save.mutate();
   }
 
@@ -70,7 +83,7 @@ export function SalaryMonthlyCreatePage() {
   const enabledRules = generationRules.filter((rule) => form[rule.key] === 1).map((rule) => rule.label).join("、") || "未启用";
 
   return (
-    <Page title="创建工资月份">
+    <Page title="创建部门工资表">
       <form className="panel grid create-monthly-form" onSubmit={submit}>
         {error && <div className="form-error">{error}</div>}
         {createdMonthlyId && error && (
@@ -87,11 +100,17 @@ export function SalaryMonthlyCreatePage() {
           <Field label="标题">
             <TextInput placeholder={defaultTitle} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
           </Field>
+          <Field label="直属部门">
+            <SelectInput value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })} required>
+              <option value="">请选择部门</option>
+              {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            </SelectInput>
+          </Field>
         </div>
         <Field label="生成方式">
           <SelectInput value={autoGenerate ? "auto" : "manual"} onChange={(event) => setAutoGenerate(event.target.value === "auto")}>
             <option value="auto">创建后立即按工资档案生成明细</option>
-            <option value="manual">只创建月份，稍后手动生成</option>
+            <option value="manual">只创建部门工资表，稍后手动生成</option>
           </SelectInput>
         </Field>
         <Field label="生成规则">
@@ -109,6 +128,7 @@ export function SalaryMonthlyCreatePage() {
         </Field>
         <div className="summary-strip">
           <span>月份：{form.salaryMonth || "-"}</span>
+          <span>部门：{departmentName || "-"}</span>
           <span>标题：{form.title || defaultTitle}</span>
           <span>规则：{enabledRules}</span>
           <strong>{autoGenerate ? "会立即生成工资明细" : "只保存草稿工资表"}</strong>

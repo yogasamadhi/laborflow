@@ -142,8 +142,8 @@ git diff --check
 go test ./...
 npm test
 npm run typecheck
-bun run test
-bun run typecheck
+pnpm run test
+pnpm run typecheck
 pytest
 python3 -m compileall <package>
 cargo test

@@ -8,7 +8,7 @@ import { Button } from "../../../components/ui/Button";
 import { downloadFile, getData } from "../../../lib/axios";
 import { statusText } from "../../../lib/utils";
 
-type Monthly = { id: string; title: string; salaryMonth: string; status: string; totalEmployeeCount: number; totalActualAmount: number };
+type Monthly = { id: string; title: string; salaryMonth: string; departmentName?: string; status: string; totalEmployeeCount: number; totalActualAmount: number };
 
 type ExportItem = { label: string; description: string; url: string; filename: string };
 
@@ -44,7 +44,7 @@ export function SalaryMonthlyExportPage() {
   }
 
   return (
-    <Page title="工资表导出" description="选择适合当前复核或发放场景的 Excel 文件。" actions={<Link to={`/salary/monthly/${monthlyId}`}><Button variant="secondary">返回工资明细</Button></Link>}>
+    <Page title="工资表导出" description="按当前部门工资表范围导出，避免混入其他部门数据。" actions={<Link to={`/salary/monthly/${monthlyId}`}><Button variant="secondary">返回工资明细</Button></Link>}>
       {monthlyQuery.isPending ? <RouteLoadingState /> : null}
       {monthlyQuery.error ? <DataErrorState message={monthlyQuery.error instanceof Error ? monthlyQuery.error.message : undefined} onRetry={() => void monthlyQuery.refetch()} /> : null}
       {!monthlyQuery.isPending && !monthlyQuery.error ? (
@@ -54,6 +54,7 @@ export function SalaryMonthlyExportPage() {
           <div className="summary-strip export-context">
             <strong>{monthlyQuery.data?.title}</strong>
             <span>{monthlyQuery.data?.salaryMonth}</span>
+            <span>{monthlyQuery.data?.departmentName ?? "历史全公司"}</span>
             <span>{monthlyQuery.data?.totalEmployeeCount ?? 0} 人</span>
             <span>{statusText(monthlyQuery.data?.status)}</span>
           </div>

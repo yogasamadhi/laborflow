@@ -17,7 +17,7 @@ spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5434/laborflow}
     username: ${POSTGRES_USER:laborflow}
-    # No default password — run.ts generates a random dev password in .env on
+    # No default password — run.py generates a random dev password in .env on
     # first start, and production must supply POSTGRES_PASSWORD explicitly.
     password: ${POSTGRES_PASSWORD:}
   flyway:

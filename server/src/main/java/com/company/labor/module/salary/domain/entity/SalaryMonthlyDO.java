@@ -15,6 +15,9 @@ public class SalaryMonthlyDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private String salaryMonth;
+    private Long departmentId;
+    @TableField(exist = false)
+    private String departmentName;
     private String title;
     private Integer totalEmployeeCount;
     private BigDecimal totalPayableAmount;

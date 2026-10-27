@@ -17,6 +17,8 @@ import { canRunMonthlyAction, getMonthlyActionCopy, monthlyWorkflowStage } from 
 type Monthly = {
   id: string;
   salaryMonth: string;
+  departmentId?: string;
+  departmentName?: string;
   title: string;
   includeFixedSalary?: number;
   includeAttendanceDeduction?: number;
@@ -32,7 +34,7 @@ type Monthly = {
 
 type RuleKey = "includeFixedSalary" | "includeAttendanceDeduction" | "includePerformanceSalary" | "includeProjectBonus";
 
-type MonthlyRuleForm = Pick<Monthly, "salaryMonth" | "title" | "remark"> & Record<RuleKey, number>;
+type MonthlyRuleForm = Pick<Monthly, "title" | "remark"> & Record<RuleKey, number>;
 
 type Detail = {
   id: string;
@@ -290,7 +292,6 @@ export function SalaryMonthlyDetailPage() {
   function openMonthlyRules() {
     if (!monthly) return;
     setEditingMonthly({
-      salaryMonth: monthly.salaryMonth,
       title: monthly.title,
       remark: monthly.remark,
       includeFixedSalary: monthly.includeFixedSalary ?? 1,
@@ -372,6 +373,7 @@ export function SalaryMonthlyDetailPage() {
       </div>
       <div className="grid grid-3">
         <div className="card"><div className="muted">工资月份</div><h3>{monthly?.salaryMonth ?? "-"}</h3></div>
+        <div className="card"><div className="muted">直属部门</div><h3>{monthly?.departmentName ?? "历史全公司"}</h3></div>
         <div className="card"><div className="muted">状态</div><h3>{statusText(monthly?.status)}</h3></div>
         <div className="card"><div className="muted">人数</div><h3>{monthly?.totalEmployeeCount ?? 0}</h3></div>
         <div className="card"><div className="muted">生成规则</div><h3>{ruleSummary(monthly)}</h3></div>
@@ -550,7 +552,8 @@ export function SalaryMonthlyDetailPage() {
         {editingMonthly && (
           <form id="salary-monthly-rule-form" className="grid" onSubmit={submitMonthlyRules}>
             <div className="summary-strip">
-              <span>{editingMonthly.salaryMonth}</span>
+              <span>{monthly?.salaryMonth}</span>
+              <span>{monthly?.departmentName ?? "历史全公司"}</span>
               <strong>{editingMonthly.title}</strong>
             </div>
             <Field label="生成规则">

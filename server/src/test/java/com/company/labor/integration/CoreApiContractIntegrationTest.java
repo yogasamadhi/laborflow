@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.company.labor.LaborApplication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -58,14 +59,40 @@ class CoreApiContractIntegrationTest {
         assertThat(contract.path("version").asInt()).isEqualTo(1);
 
         String token = login(contract);
+        long departmentId = prepareSalaryFixture(token);
         for (JsonNode write : contract.withArray("setupWrites")) {
-            JsonNode body = post(write.path("path").asText(), write.path("body"), token);
+            JsonNode requestBody = write.path("body").deepCopy();
+            if (write.path("name").asText().equals("salary-monthly-create")) {
+                ((ObjectNode) requestBody).put("departmentId", departmentId);
+            }
+            JsonNode body = post(write.path("path").asText(), requestBody, token);
             assertContractResponse(body, contract, write);
         }
         for (JsonNode read : contract.withArray("authenticatedReads")) {
             JsonNode body = get(read.path("path").asText(), token);
             assertContractResponse(body, contract, read);
         }
+    }
+
+    private long prepareSalaryFixture(String token) throws Exception {
+        long departmentId = post("/api/departments", objectMapper.valueToTree(java.util.Map.of(
+                "name", "contract-snapshot-department",
+                "status", "active")), token).path("data").path("id").asLong();
+        long employeeId = post("/api/employees", objectMapper.valueToTree(java.util.Map.of(
+                "name", "contract-snapshot-employee",
+                "departmentId", departmentId,
+                "employeeType", "company_employee",
+                "entryDate", "2030-01-01",
+                "status", "active")), token).path("data").path("id").asLong();
+        post("/api/salary/profiles", objectMapper.valueToTree(java.util.Map.of(
+                "employeeId", employeeId,
+                "effectiveDate", "2030-01-01",
+                "status", "active",
+                "items", java.util.List.of(java.util.Map.of(
+                        "salaryItemName", "contract-snapshot-salary-item",
+                        "salaryItemType", "earning",
+                        "amount", 1000)))), token);
+        return departmentId;
     }
 
     private String login(JsonNode contract) throws Exception {

@@ -27,9 +27,14 @@
       "path": "/api/salary/monthly",
       "body": {
         "salaryMonth": "2030-01",
-        "title": "contract-snapshot-salary"
+        "departmentId": 0,
+        "title": "contract-snapshot-salary",
+        "includeFixedSalary": 1,
+        "includeAttendanceDeduction": 0,
+        "includePerformanceSalary": 0,
+        "includeProjectBonus": 0
       },
-      "dataFields": ["id", "salaryMonth", "title", "status", "totalEmployeeCount", "totalActualAmount"]
+      "dataFields": ["id", "salaryMonth", "departmentId", "departmentName", "title", "status", "totalEmployeeCount", "totalActualAmount"]
     }
   ],
   "authenticatedReads": [
@@ -49,7 +54,7 @@
       "name": "salary-monthly-page",
       "path": "/api/salary/monthly?page=1&pageSize=10",
       "dataFields": ["records", "total", "page", "pageSize"],
-      "recordFields": ["id", "salaryMonth", "title", "status", "totalEmployeeCount", "totalActualAmount"]
+      "recordFields": ["id", "salaryMonth", "departmentId", "departmentName", "title", "status", "totalEmployeeCount", "totalActualAmount"]
     },
     {
       "name": "salary-overview",

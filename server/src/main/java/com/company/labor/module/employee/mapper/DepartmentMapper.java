@@ -11,12 +11,21 @@ public interface DepartmentMapper extends BaseMapper<DepartmentDO> {
     DepartmentDO selectByIdIncludingDeleted(@Param("id") Long id);
 
     @Select("""
+            <script>
             SELECT COUNT(1)
             FROM department
             WHERE name = #{name}
               AND deleted = 0
-              AND id <> #{id}
-              AND ((parent_id IS NULL AND #{parentId} IS NULL) OR parent_id = #{parentId})
+              AND id &lt;&gt; #{id}
+            <choose>
+              <when test="parentId == null">
+                AND parent_id IS NULL
+              </when>
+              <otherwise>
+                AND parent_id = #{parentId}
+              </otherwise>
+            </choose>
+            </script>
             """)
     long countActiveByNameAndParentExceptId(@Param("name") String name, @Param("parentId") Long parentId, @Param("id") Long id);
 

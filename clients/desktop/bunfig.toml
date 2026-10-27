@@ -1,7 +1,0 @@
-[install]
-linker = "hoisted"
-minimumReleaseAge = 86400
-
-[run]
-bun = true
-shell = "bun"

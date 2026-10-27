@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.labor.common.exception.BusinessException;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
+import com.company.labor.module.employee.domain.entity.DepartmentDO;
+import com.company.labor.module.employee.mapper.DepartmentMapper;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.salary.domain.dto.SalaryProfileItemDTO;
 import com.company.labor.module.salary.domain.dto.SalaryProfileSaveDTO;
@@ -16,6 +18,7 @@ import com.company.labor.module.salary.mapper.SalaryItemMapper;
 import com.company.labor.module.salary.mapper.SalaryProfileItemMapper;
 import com.company.labor.module.salary.mapper.SalaryProfileMapper;
 import com.company.labor.module.salary.service.SalaryProfileService;
+import com.company.labor.module.salary.domain.vo.SalaryProfileListVO;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,13 +32,16 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
     private final SalaryProfileItemMapper profileItemMapper;
     private final SalaryItemMapper salaryItemMapper;
     private final EmployeeMapper employeeMapper;
+    private final DepartmentMapper departmentMapper;
 
     @Override
-    public Page<SalaryProfileDO> search(long page, long pageSize, Long employeeId) {
-        LambdaQueryWrapper<SalaryProfileDO> wrapper = new LambdaQueryWrapper<SalaryProfileDO>().eq(SalaryProfileDO::getDeleted, 0);
-        if (employeeId != null) wrapper.eq(SalaryProfileDO::getEmployeeId, employeeId);
-        wrapper.orderByDesc(SalaryProfileDO::getCreatedAt);
-        return page(new Page<>(page, pageSize), wrapper);
+    public Page<SalaryProfileListVO> search(long page, long pageSize, Long employeeId, Long departmentId, String keyword) {
+        long current = Math.max(page, 1);
+        long size = Math.max(pageSize, 1);
+        Page<SalaryProfileListVO> result = new Page<>(current, size);
+        result.setTotal(baseMapper.countListPage(employeeId, departmentId, keyword));
+        result.setRecords(baseMapper.selectListPage(employeeId, departmentId, keyword, size, (current - 1) * size));
+        return result;
     }
 
     @Override
@@ -53,6 +59,9 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
         }
         if ("left".equals(employee.getStatus())) {
             throw new BusinessException("员工已离职，不能创建工资档案");
+        }
+        if ("active".equals(dto.getStatus()) || !StringUtils.hasText(dto.getStatus())) {
+            requireActiveDepartment(employee);
         }
         SalaryProfileDO profile = id == null ? new SalaryProfileDO() : getById(id);
         if (profile == null) {
@@ -103,5 +112,16 @@ public class SalaryProfileServiceImpl extends ServiceImpl<SalaryProfileMapper, S
     @Override
     public List<SalaryProfileItemDO> items(Long profileId) {
         return profileItemMapper.selectList(new LambdaQueryWrapper<SalaryProfileItemDO>().eq(SalaryProfileItemDO::getSalaryProfileId, profileId));
+    }
+
+    private void requireActiveDepartment(EmployeeDO employee) {
+        if (employee.getDepartmentId() == null) {
+            throw new BusinessException("员工未设置直属部门，不能启用工资档案");
+        }
+        DepartmentDO department = departmentMapper.selectById(employee.getDepartmentId());
+        if (department == null || department.getDeleted() != null && department.getDeleted() == 1
+                || !"active".equals(department.getStatus())) {
+            throw new BusinessException("员工直属部门未启用，不能启用工资档案");
+        }
     }
 }

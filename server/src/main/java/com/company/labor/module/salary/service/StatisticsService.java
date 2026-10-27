@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface StatisticsService {
-    SalaryOverviewVO overview();
-    List<SalaryTrendVO> monthlyTrend();
-    List<Map<String, Object>> departmentSummary();
+    SalaryOverviewVO overview(Long departmentId);
+    List<SalaryTrendVO> monthlyTrend(Long departmentId);
+    List<Map<String, Object>> departmentSummary(Long departmentId);
     SalaryEmployeeHistoryVO employeeHistory(Long employeeId);
     List<SalaryAnomalyVO> anomalies(double fluctuationRatio);
     void handleAnomaly(String anomalyKey, String status, String remark);

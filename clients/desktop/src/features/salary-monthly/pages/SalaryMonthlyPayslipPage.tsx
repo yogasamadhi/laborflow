@@ -6,10 +6,11 @@ import { DataErrorState, RouteLoadingState } from "../../../components/common/Ac
 import { Field, SelectInput } from "../../../components/common/Field";
 import { Page } from "../../../components/common/Page";
 import { Button } from "../../../components/ui/Button";
-import { downloadFile, getAllPages } from "../../../lib/axios";
+import { downloadFile, getAllPages, getData } from "../../../lib/axios";
 import type { Employee } from "../../employee/types";
 
 type Detail = { id: string; employeeId: string; paymentStatus: string };
+type Monthly = { salaryMonth: string; departmentName?: string };
 
 export function SalaryMonthlyPayslipPage() {
   const { id } = useParams();
@@ -18,6 +19,10 @@ export function SalaryMonthlyPayslipPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const monthlyQuery = useQuery({
+    queryKey: ["salary-monthly", monthlyId],
+    queryFn: () => getData<Monthly>(`/salary/monthly/${monthlyId}`)
+  });
   const detailsQuery = useQuery({
     queryKey: ["salary-payslip-details", monthlyId],
     queryFn: () => getAllPages<Detail>(`/salary/monthly/${monthlyId}/details`)
@@ -44,7 +49,7 @@ export function SalaryMonthlyPayslipPage() {
   }
 
   return (
-    <Page title="工资条导出" description="按员工筛选工资条，导出前确认范围，避免包含不需要的个人薪酬信息。" actions={<Link to={`/salary/monthly/${monthlyId}`}><Button variant="secondary">返回工资明细</Button></Link>}>
+    <Page title="工资条导出" description={`${monthlyQuery.data?.salaryMonth ?? "-"} · ${monthlyQuery.data?.departmentName ?? "历史全公司"}，按员工筛选工资条。`} actions={<Link to={`/salary/monthly/${monthlyId}`}><Button variant="secondary">返回工资明细</Button></Link>}>
       {detailsQuery.isPending ? <RouteLoadingState /> : null}
       {detailsQuery.error ? <DataErrorState message={detailsQuery.error instanceof Error ? detailsQuery.error.message : undefined} onRetry={() => void detailsQuery.refetch()} /> : null}
       {!detailsQuery.isPending && !detailsQuery.error ? (

@@ -30,6 +30,7 @@
 | AUTO-04 | `node scripts/ci/check-docs.mjs` | 44 个 Markdown 文件、24 个 Flyway 迁移及 `.env.example` 同步检查通过 | pass | 2026-07-28 本地回归输出 |
 | AUTO-05 | 托管 CI 与 required-status | 2026-07-28 曾登记为外部配置缺口；2026-08-16 起由本地质量门替代 | retired | 质量策略变更，不再构成发布阻断 |
 | AUTO-06 | Desktop 与 Miniapp Bun 迁移质量门 | Desktop lint/typecheck/24 tests/renderer/package/make，Miniapp typecheck/微信与 H5 构建，两端未信任安装脚本均为 0 | pass | 2026-08-16 本地 Bun 1.3.14 复测；不替代人工 UAT |
+| AUTO-07 | Desktop 与 Miniapp pnpm 迁移质量门 | Desktop lint/typecheck/28 tests/renderer，Miniapp typecheck/微信与 H5 构建，两端 `pnpm ignored-builds` 均为 0；Legacy miniapp 语法、ESLint、19 tests 通过 | pass | 2026-10-26 本地 pnpm 11.22.0 复测；不替代人工 UAT |
 
 `pass` 仅表示该自动化命令的结果，不能替代真实角色业务流程、真实账号登录、设备权限、
 弱网、截图/录屏或业务签字。

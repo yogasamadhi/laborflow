@@ -134,12 +134,16 @@ class FileAccessBoundaryIntegrationTest {
                 "fileId", dailyFileId,
                 "fileType", "evidence"), adminToken), HttpStatus.BAD_REQUEST, "附件已被其他业务使用");
 
-        long firstSalaryEmployeeId = createEmployee("File Access E2E First Salary Employee", adminToken);
-        long secondSalaryEmployeeId = createEmployee("File Access E2E Second Salary Employee", adminToken);
+        long salaryDepartmentId = id(post("/api/departments", Map.of(
+                "name", "File Access E2E Salary Department",
+                "status", "active"), adminToken));
+        long firstSalaryEmployeeId = createEmployee("File Access E2E First Salary Employee", salaryDepartmentId, adminToken);
+        long secondSalaryEmployeeId = createEmployee("File Access E2E Second Salary Employee", salaryDepartmentId, adminToken);
         createProfile(firstSalaryEmployeeId, adminToken);
         createProfile(secondSalaryEmployeeId, adminToken);
         long monthlyId = id(post("/api/salary/monthly", Map.of(
                 "salaryMonth", "2032-01",
+                "departmentId", salaryDepartmentId,
                 "title", "File Access E2E Salary",
                 "includeFixedSalary", 1,
                 "includeAttendanceDeduction", 0,
@@ -178,11 +182,17 @@ class FileAccessBoundaryIntegrationTest {
     }
 
     private long createEmployee(String name, String token) throws Exception {
-        return id(post("/api/employees", Map.of(
-                "name", name,
-                "employeeType", "company_employee",
-                "entryDate", "2032-01-01",
-                "status", "active"), token));
+        return createEmployee(name, null, token);
+    }
+
+    private long createEmployee(String name, Long departmentId, String token) throws Exception {
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("name", name);
+        payload.put("departmentId", departmentId);
+        payload.put("employeeType", "company_employee");
+        payload.put("entryDate", "2032-01-01");
+        payload.put("status", "active");
+        return id(post("/api/employees", payload, token));
     }
 
     private void createProfile(long employeeId, String token) throws Exception {

@@ -20,6 +20,8 @@ Thumbs.db
 # Dependencies and package-manager caches
 node_modules/
 .npm/
+.pnpm-store/
+.pnpm-debug.log*
 
 # Node / frontend build output
 dist/

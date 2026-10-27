@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-本演练验证从历史架构 V12 升级到当前 V21 时，匿名的用户、员工、工资、项目、日报附件、
+本演练验证从历史架构 V12 升级到当前 V25 时，匿名的用户、员工、工资、项目、日报附件、
 签证附件和微信绑定数据不会因后续约束或字段演进而丢失。本文件只描述可重复的测试
 fixture，不代替真实生产数据备份、恢复或发布操作。
 
@@ -11,8 +11,7 @@ fixture，不代替真实生产数据备份、恢复或发布操作。
 执行：
 
 ```bash
-cd server
-JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin/mvn test
+mvn -B -ntp -f server/pom.xml test -Dtest=FlywayLegacyUpgradeIntegrationTest
 ```
 
 `FlywayLegacyUpgradeIntegrationTest` 会使用 Testcontainers 启动隔离的 PostgreSQL 18：
@@ -21,8 +20,9 @@ JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin
 2. 写入匿名 fixture：EMPLOYEE 用户和角色关系、员工、工资表与工资明细、项目、施工段、
    班组、日报、签证、同一附件的日报/签证关联、微信绑定和项目成员关系。
 3. 将同一数据库迁移到最新版本。
-4. 断言版本为 V21，并验证上述记录仍存在；同时验证 V14 的工资生成字段、V16 的工资条
-   默认状态和 V20 对已确认签证金额的回填结果。
+4. 断言版本为 V25，并验证上述记录仍存在；同时验证 V14 的工资生成字段、V16 的工资条
+   默认状态、V20 对已确认签证金额的回填结果，以及无法明确归属单一部门的历史工资表在
+   V25 后保持 `department_id IS NULL`，由产品显示为“历史全公司”。
 
 运行环境需要 Docker；容器与匿名数据在测试结束后由 Testcontainers 自动清理。
 
@@ -33,6 +33,8 @@ JAVA_HOME=/Users/h/code/env/jdk-21/Contents/Home /Users/h/code/env/maven-3.9/bin
   微信绑定都能按 fixture ID 查询到。
 - 历史已确认签证的 `confirmed_amount` 等于升级前的 `estimated_amount`。
 - 迁移新增字段采用预期默认值，不破坏旧工资条或日报数据。
+- V25 仅在一张历史工资表的有效明细全部具有同一个部门快照时回填表头部门；无法明确归属
+  单一部门的记录保持空部门，不拆分、不重写已提交、已审核或已发放财务历史。
 - 任何新增约束、非空列、状态枚举或外键导致 fixture 失败时，必须先说明历史兼容策略，
   再更新迁移或 fixture；不能直接删除历史数据来让测试通过。
 

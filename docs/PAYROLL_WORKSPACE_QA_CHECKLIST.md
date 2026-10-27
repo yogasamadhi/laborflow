@@ -2,8 +2,8 @@
 
 ## Scope
 
-This checklist covers the Web payroll workspace: monthly payroll creation and state
-transitions, detail review, payment
+This checklist covers the Web payroll workspace: salary-profile department grouping,
+department payroll creation and state transitions, detail review, payment
 registration, exports, payslips, and salary anomaly handling. It does not
 change payroll calculation rules, approval permissions, payment APIs, or export
 formats.
@@ -16,17 +16,20 @@ Run the automated checks before the manual path:
 
 ```bash
 cd clients/desktop
-bun run typecheck
-bun run test
-bun run build:renderer
-bun run dev
+pnpm run typecheck
+pnpm run test
+pnpm run build:renderer
+pnpm run dev
 ```
 
 ## Payroll Workflow
 
 | Checkpoint | Role and starting state | Action | Pass criteria | Evidence |
 | --- | --- | --- | --- | --- |
-| Create and generate | Salary manager; no current draft | Create a month with enabled rules, then open its detail | Creation result is clear; draft shows the selected rules and employee/amount totals after generation | |
+| Profile grouping | Salary manager; employees in two direct departments | Filter salary profiles by department and employee keyword | Profiles are grouped by direct department; each group shows profile/active counts and earning/deduction/net subtotals | |
+| Create and generate | Salary manager; no current department draft | Select a month and one active department with enabled rules, then open its detail | One department payroll is created; title and detail show the department and only direct-department employees are generated | |
+| Same-month departments | Salary manager; two enabled departments | Create one payroll per department for the same month | Both payroll sheets exist under one month group and retain independent status, totals, approval, and payment actions | |
+| Duplicate employee boundary | Salary manager; an employee moved after a same-month draft was generated | Generate the new department payroll before and after regenerating the old draft | First generation is rejected with the original payroll context; regenerating the old draft removes the employee and the new payroll can then include them | |
 | Re-generate confirmation | Salary manager; draft with generated details | Select `重新生成`, inspect confirmation, then cancel and confirm with a test record | Cancel makes no request; confirm explains the replacement impact and refreshes counts and totals | |
 | Submit confirmation | Salary manager; draft with at least one detail | Select `提交审核` from list or detail | Confirmation identifies the payroll month, explains locking, and success changes status to pending approval | |
 | Approve and reject | Administrator or boss; pending approval | Approve one test month and reject another with a reason | Approval opens payment registration; rejection requires a reason, returns to draft, and appears in the audit trail | |

@@ -30,10 +30,34 @@ public final class SalaryWriteDTO {
     }
 
     @Data
-    public static class SalaryMonthlyRequest {
+    public static class SalaryMonthlyCreateRequest {
         @NotBlank(message = "工资月份必填")
         @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "工资月份格式必须为 yyyy-MM")
         private String salaryMonth;
+        @NotNull(message = "部门必填")
+        private Long departmentId;
+        private String title;
+        @NotNull(message = "固定工资规则必填")
+        @Min(value = 0, message = "固定工资规则只能为 0 或 1")
+        @Max(value = 1, message = "固定工资规则只能为 0 或 1")
+        private Integer includeFixedSalary;
+        @NotNull(message = "考勤扣款规则必填")
+        @Min(value = 0, message = "考勤扣款规则只能为 0 或 1")
+        @Max(value = 1, message = "考勤扣款规则只能为 0 或 1")
+        private Integer includeAttendanceDeduction;
+        @NotNull(message = "绩效工资规则必填")
+        @Min(value = 0, message = "绩效工资规则只能为 0 或 1")
+        @Max(value = 1, message = "绩效工资规则只能为 0 或 1")
+        private Integer includePerformanceSalary;
+        @NotNull(message = "项目奖金规则必填")
+        @Min(value = 0, message = "项目奖金规则只能为 0 或 1")
+        @Max(value = 1, message = "项目奖金规则只能为 0 或 1")
+        private Integer includeProjectBonus;
+        private String remark;
+    }
+
+    @Data
+    public static class SalaryMonthlyUpdateRequest {
         private String title;
         @Min(value = 0, message = "固定工资规则只能为 0 或 1")
         @Max(value = 1, message = "固定工资规则只能为 0 或 1")

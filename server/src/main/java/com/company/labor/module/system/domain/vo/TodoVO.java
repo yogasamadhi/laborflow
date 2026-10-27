@@ -12,6 +12,8 @@ public class TodoVO {
     private String title;
     private String description;
     private String status;
+    private Long departmentId;
+    private String departmentName;
     private Long projectId;
     private String projectName;
     private Long applicantId;

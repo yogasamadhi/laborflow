@@ -32,20 +32,20 @@ public class StatisticsController {
 
     @GetMapping("/overview")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryOverviewVO> overview() {
-        return Result.success(service.overview());
+    public Result<SalaryOverviewVO> overview(@RequestParam(required = false) Long departmentId) {
+        return Result.success(service.overview(departmentId));
     }
 
     @GetMapping("/monthly-trend")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<List<SalaryTrendVO>> monthlyTrend() {
-        return Result.success(service.monthlyTrend());
+    public Result<List<SalaryTrendVO>> monthlyTrend(@RequestParam(required = false) Long departmentId) {
+        return Result.success(service.monthlyTrend(departmentId));
     }
 
     @GetMapping("/department-summary")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<List<Map<String, Object>>> departmentSummary() {
-        return Result.success(service.departmentSummary());
+    public Result<List<Map<String, Object>>> departmentSummary(@RequestParam(required = false) Long departmentId) {
+        return Result.success(service.departmentSummary(departmentId));
     }
 
     @GetMapping("/employee-history/{employeeId}")

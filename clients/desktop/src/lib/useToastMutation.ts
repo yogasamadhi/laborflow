@@ -27,7 +27,11 @@ function emit(detail: RequestErrorDetail) {
  */
 export function describeError(error: unknown): RequestErrorDetail {
   if (error instanceof ApiError) {
-    return { status: error.status, message: error.message };
+    return {
+      status: error.status,
+      message: error.message,
+      ...(error.network ? { network: true } : {})
+    };
   }
   if (error instanceof Error) {
     return { message: error.message };

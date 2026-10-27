@@ -6,14 +6,16 @@ import { electronAdapter } from "./electronAdapter";
 type ErrorPayload = { message?: string };
 
 export const REQUEST_ERROR_EVENT = "laborflow:request-error";
+export const REQUEST_SUCCESS_EVENT = "laborflow:request-success";
 
 export type RequestErrorDetail = {
   status?: number;
   message: string;
+  network?: boolean;
 };
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status?: number) {
+  constructor(message: string, public readonly status?: number, public readonly network = false) {
     super(message);
     this.name = "ApiError";
   }
@@ -24,7 +26,7 @@ export function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError<ErrorPayload>(error)) {
     const status = error.response?.status;
     const message = error.response?.data?.message || error.message || "请求失败";
-    return new ApiError(message, status);
+    return new ApiError(message, status, !error.response);
   }
   return error instanceof Error ? new ApiError(error.message) : new ApiError("请求失败");
 }
@@ -32,6 +34,12 @@ export function toApiError(error: unknown): ApiError {
 function emitRequestError(detail: RequestErrorDetail) {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent<RequestErrorDetail>(REQUEST_ERROR_EVENT, { detail }));
+  }
+}
+
+function emitRequestSuccess() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(REQUEST_SUCCESS_EVENT));
   }
 }
 
@@ -51,7 +59,10 @@ http.interceptors.request.use((config) => {
 });
 
 http.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    emitRequestSuccess();
+    return response.data;
+  },
   (error) => {
     const apiError = toApiError(error);
     if (apiError.status === 401) {
@@ -69,7 +80,8 @@ http.interceptors.response.use(
     } else {
       emitRequestError({
         status: apiError.status,
-        message: apiError.message || (apiError.status === 403 ? "当前账号无权执行此操作" : "请求失败，请稍后重试")
+        message: apiError.message || (apiError.status === 403 ? "当前账号无权执行此操作" : "请求失败，请稍后重试"),
+        network: apiError.network
       });
     }
     return Promise.reject(apiError);

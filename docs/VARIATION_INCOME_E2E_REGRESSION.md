@@ -48,9 +48,9 @@ Run these local quality checks before recording a passing smoke result:
 
 ```bash
 cd clients/desktop
-bun run build:renderer
+pnpm run build:renderer
 cd ../miniapp
-bun run check
+pnpm run check
 ```
 
 Do not attach production project data, location details, phone numbers, or

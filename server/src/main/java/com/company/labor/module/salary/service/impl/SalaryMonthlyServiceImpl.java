@@ -18,6 +18,8 @@ import com.company.labor.module.compensation.mapper.ProjectBonusAllocationMapper
 import com.company.labor.module.compensation.mapper.SalaryDeductionRecordMapper;
 import com.company.labor.module.compensation.mapper.SalarySourceRecordMapper;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
+import com.company.labor.module.employee.domain.entity.DepartmentDO;
+import com.company.labor.module.employee.mapper.DepartmentMapper;
 import com.company.labor.module.employee.mapper.EmployeeMapper;
 import com.company.labor.module.file.service.FileBindingGuard;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
@@ -73,6 +75,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
     private final SalaryDeductionRecordMapper salaryDeductionRecordMapper;
     private final SalarySourceRecordMapper salarySourceRecordMapper;
     private final FileBindingGuard fileBindingGuard;
+    private final DepartmentMapper departmentMapper;
 
     @org.springframework.beans.factory.annotation.Autowired
     public SalaryMonthlyServiceImpl(
@@ -90,7 +93,8 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             ProjectBonusAllocationMapper bonusAllocationMapper,
             SalaryDeductionRecordMapper salaryDeductionRecordMapper,
             SalarySourceRecordMapper salarySourceRecordMapper,
-            FileBindingGuard fileBindingGuard) {
+            FileBindingGuard fileBindingGuard,
+            DepartmentMapper departmentMapper) {
         this.employeeMapper = employeeMapper;
         this.salaryProfileMapper = salaryProfileMapper;
         this.salaryProfileItemMapper = salaryProfileItemMapper;
@@ -106,6 +110,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         this.salaryDeductionRecordMapper = salaryDeductionRecordMapper;
         this.salarySourceRecordMapper = salarySourceRecordMapper;
         this.fileBindingGuard = fileBindingGuard;
+        this.departmentMapper = departmentMapper;
     }
 
     /**
@@ -130,7 +135,7 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         this(employeeMapper, salaryProfileMapper, salaryProfileItemMapper, null, detailMapper,
                 detailItemMapper, auditRecordMapper, operationLogService, auditUserProvider,
                 attendanceRecordMapper, performanceScoreMapper, bonusAllocationMapper,
-                salaryDeductionRecordMapper, salarySourceRecordMapper, fileBindingGuard);
+                salaryDeductionRecordMapper, salarySourceRecordMapper, fileBindingGuard, null);
     }
 
     @Override
@@ -139,11 +144,15 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         if (!StringUtils.hasText(monthly.getSalaryMonth())) {
             throw new BusinessException("工资月份必填");
         }
-        if (baseMapper.countActiveByMonth(monthly.getSalaryMonth()) > 0) {
-            throw new BusinessException("该月份工资表已存在，请勿重复创建");
+        DepartmentDO department = requireActiveDepartment(monthly.getDepartmentId());
+        if (baseMapper.countActiveByMonthAndDepartment(monthly.getSalaryMonth(), monthly.getDepartmentId()) > 0) {
+            throw new BusinessException("该部门当月工资表已存在，请勿重复创建");
+        }
+        if (latestActiveProfiles(monthly.getSalaryMonth(), monthly.getDepartmentId()).isEmpty()) {
+            throw new BusinessException("该部门没有可生成工资的在职员工档案");
         }
         if (!StringUtils.hasText(monthly.getTitle())) {
-            monthly.setTitle(monthly.getSalaryMonth() + " 工资表");
+            monthly.setTitle(monthly.getSalaryMonth() + " " + department.getName() + "工资表");
         }
         monthly.setStatus("draft");
         monthly.setTotalEmployeeCount(0);
@@ -152,6 +161,9 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         monthly.setTotalActualAmount(BigDecimal.ZERO);
         monthly.setDeleted(0);
         defaultGenerationRules(monthly);
+        if (!generationRules(monthly).hasAnyEnabled()) {
+            throw new BusinessException("至少启用一项工资生成规则");
+        }
         save(monthly);
         log("create_monthly", monthly.getId(), "创建工资表：" + monthly.getSalaryMonth());
         audit(monthly.getId(), null, "create_monthly", null, monthly.getStatus(), "创建工资表：" + monthly.getSalaryMonth(), null);
@@ -164,6 +176,8 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         SalaryMonthlyDO old = requireMonthly(monthlyId);
         requireDraftMonthly(old, "修改工资表");
         monthly.setId(monthlyId);
+        monthly.setSalaryMonth(old.getSalaryMonth());
+        monthly.setDepartmentId(old.getDepartmentId());
         monthly.setStatus(old.getStatus());
         inheritGenerationRules(monthly, old);
         updateById(monthly);
@@ -183,10 +197,10 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         if (!rules.hasAnyEnabled()) {
             throw new BusinessException("至少启用一项工资生成规则");
         }
-        List<SalaryProfileDO> activeProfiles = latestActiveProfiles(monthly.getSalaryMonth());
-        if (activeProfiles.isEmpty()) {
-            throw new BusinessException("没有启用的工资档案，无法生成工资明细");
+        if (monthly.getDepartmentId() == null) {
+            throw new BusinessException("历史全公司工资表不能重新生成，请先按部门创建工资表");
         }
+        List<SalaryProfileDO> activeProfiles = latestActiveProfiles(monthly.getSalaryMonth(), monthly.getDepartmentId());
         List<SalaryMonthlyDetailDO> oldDetails = detailMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDetailDO>().eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthlyId));
         for (SalaryMonthlyDetailDO old : oldDetails) {
             detailItemMapper.delete(new LambdaUpdateWrapper<SalaryDetailItemDO>().eq(SalaryDetailItemDO::getSalaryDetailId, old.getId()));
@@ -289,7 +303,19 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             SalaryMonthlyDetailDO detail = new SalaryMonthlyDetailDO();
             detail.setSalaryMonthlyId(monthlyId);
             detail.setEmployeeId(employee.getId());
-            detail.setDepartmentId(employee.getDepartmentId());
+            SalaryMonthlyDO conflictingMonthly = detailMapper.selectActiveMonthlyByEmployeeAndMonthExcludingMonthly(
+                    employee.getId(), monthly.getSalaryMonth(), monthlyId);
+            if (conflictingMonthly != null) {
+                String conflictingTitle = valueOrDefault(conflictingMonthly.getTitle(),
+                        conflictingMonthly.getSalaryMonth() + " " + valueOrDefault(conflictingMonthly.getDepartmentName(), "历史全公司") + "工资表");
+                if ("draft".equals(conflictingMonthly.getStatus())) {
+                    throw new BusinessException("员工“" + employee.getName() + "”已进入工资表“" + conflictingTitle
+                            + "”，请先重新生成该工资表移除该员工");
+                }
+                throw new BusinessException("员工“" + employee.getName() + "”已进入工资表“" + conflictingTitle
+                        + "”（状态：" + conflictingMonthly.getStatus() + "），不能在新部门工资表重复生成");
+            }
+            detail.setDepartmentId(monthly.getDepartmentId());
             detail.setPositionId(employee.getPositionId());
             detail.setPayableAmount(payable);
             detail.setDeductionAmount(deduction);
@@ -354,6 +380,13 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
             }
         }
         if (generatedCount == 0) {
+            if (activeProfiles.isEmpty()) {
+                summarize(monthlyId);
+                String ruleSummary = rules.summary();
+                log("generate_monthly", monthlyId, "生成工资明细，规则：" + ruleSummary);
+                audit(monthlyId, null, "generate_monthly", monthly.getStatus(), "draft", "生成工资明细：0 人；规则：" + ruleSummary, null);
+                return;
+            }
             String reason = skippedReasons.isEmpty() ? "未找到可生成的员工" : String.join("；", skippedReasons.subList(0, Math.min(skippedReasons.size(), 3)));
             throw new BusinessException("启用的工资档案未生成任何明细：" + reason);
         }
@@ -584,8 +617,10 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         if (monthly.getDeleted() == null || monthly.getDeleted() == 0) {
             return;
         }
-        if (baseMapper.countActiveByMonthExceptId(monthly.getSalaryMonth(), monthlyId) > 0) {
-            throw new BusinessException("同月份已存在正常工资表，不能恢复");
+        if (monthly.getDepartmentId() != null
+                && baseMapper.countActiveByMonthAndDepartmentExceptId(
+                        monthly.getSalaryMonth(), monthly.getDepartmentId(), monthlyId) > 0) {
+            throw new BusinessException("同部门同月份已存在正常工资表，不能恢复");
         }
         baseMapper.restoreById(monthlyId);
         detailMapper.update(null, new LambdaUpdateWrapper<SalaryMonthlyDetailDO>()
@@ -612,6 +647,32 @@ public class SalaryMonthlyServiceImpl extends ServiceImpl<SalaryMonthlyMapper, S
         return latestByEmployee.values().stream()
                 .sorted(Comparator.comparing(SalaryProfileDO::getEmployeeId))
                 .toList();
+    }
+
+    private List<SalaryProfileDO> latestActiveProfiles(String salaryMonth, Long departmentId) {
+        return latestActiveProfiles(salaryMonth).stream()
+                .filter(profile -> {
+                    EmployeeDO employee = employeeMapper.selectByIdIncludingDeleted(profile.getEmployeeId());
+                    return employee != null
+                            && (employee.getDeleted() == null || employee.getDeleted() == 0)
+                            && "active".equals(employee.getStatus())
+                            && departmentId.equals(employee.getDepartmentId());
+                })
+                .toList();
+    }
+
+    private DepartmentDO requireActiveDepartment(Long departmentId) {
+        if (departmentId == null) {
+            throw new BusinessException("部门必填");
+        }
+        DepartmentDO department = departmentMapper.selectById(departmentId);
+        if (department == null || department.getDeleted() != null && department.getDeleted() == 1) {
+            throw new BusinessException("部门不存在");
+        }
+        if (!"active".equals(department.getStatus())) {
+            throw new BusinessException("只能为启用部门创建工资表");
+        }
+        return department;
     }
 
     private boolean isLaterProfile(SalaryProfileDO candidate, SalaryProfileDO current) {

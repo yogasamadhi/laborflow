@@ -136,6 +136,8 @@ function openExternalFromWindow(value: string) {
   if (isHttpUrl(value)) void shell.openExternal(new URL(value).toString()).catch(() => undefined);
 }
 
+const appIconPath = path.join(app.getAppPath(), "resources", "icons", "icon.png");
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     title: "LaborFlow",
@@ -145,7 +147,7 @@ function createWindow() {
     minHeight: 720,
     backgroundColor: "#f4f7fb",
     show: false,
-    icon: path.join(app.getAppPath(), "resources", "icons", "icon.png"),
+    icon: appIconPath,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -184,6 +186,7 @@ if (started) {
   app.setAppUserModelId("com.company.laborflow");
   registerDesktopHandlers();
   void app.whenReady().then(() => {
+    if (process.platform === "darwin") app.dock?.setIcon(appIconPath);
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
     createWindow();
     app.on("activate", () => {

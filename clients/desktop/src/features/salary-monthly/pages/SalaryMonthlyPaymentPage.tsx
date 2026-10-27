@@ -14,6 +14,7 @@ import type { Employee } from "../../employee/types";
 type Monthly = {
   id: string;
   salaryMonth: string;
+  departmentName?: string;
   title: string;
   status: string;
   totalActualAmount: number;
@@ -164,6 +165,7 @@ export function SalaryMonthlyPaymentPage() {
 
           <div className="grid grid-3">
             <div className="card"><div className="muted">工资月份</div><h3>{monthly?.salaryMonth ?? "-"}</h3></div>
+            <div className="card"><div className="muted">直属部门</div><h3>{monthly?.departmentName ?? "历史全公司"}</h3></div>
             <div className="card"><div className="muted">已发人数</div><h3>{paidDetails.length}/{details.length}</h3></div>
             <div className="card"><div className="muted">已发金额</div><h3>{money(paidAmount)}</h3></div>
           </div>

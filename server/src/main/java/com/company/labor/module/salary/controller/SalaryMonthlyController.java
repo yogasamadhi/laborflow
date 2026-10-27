@@ -5,6 +5,8 @@ import com.company.labor.common.exception.BusinessException;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.compensation.domain.entity.SalarySourceRecordDO;
+import com.company.labor.module.employee.domain.entity.DepartmentDO;
+import com.company.labor.module.employee.mapper.DepartmentMapper;
 import com.company.labor.module.salary.domain.dto.SalaryApprovalDTO;
 import com.company.labor.module.salary.domain.dto.BatchSalaryPaymentDTO;
 import com.company.labor.module.salary.domain.dto.SalaryPaymentDTO;
@@ -51,6 +53,7 @@ public class SalaryMonthlyController {
     private final SalaryDetailItemMapper detailItemMapper;
     private final SalaryMonthlyDetailMapper detailMapper;
     private final SalaryMonthlyMapper monthlyMapper;
+    private final DepartmentMapper departmentMapper;
 
     @GetMapping("/monthly")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
@@ -59,34 +62,35 @@ public class SalaryMonthlyController {
             @RequestParam(defaultValue = "20") long pageSize,
             @RequestParam(required = false, defaultValue = "0") Integer deleted,
             @RequestParam(required = false) String salaryMonth,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long departmentId) {
         int deletedFilter = deleted == null ? 0 : deleted;
         long currentPage = Math.max(page, 1);
         long size = Math.max(pageSize, 1);
         long offset = (currentPage - 1) * size;
         return Result.success(new PageResult<>(
-                monthlyMapper.selectPageIncludingDeleted(deletedFilter, salaryMonth, status, size, offset),
-                monthlyMapper.countIncludingDeleted(deletedFilter, salaryMonth, status),
+                monthlyMapper.selectPageIncludingDeleted(deletedFilter, salaryMonth, status, departmentId, size, offset),
+                monthlyMapper.countIncludingDeleted(deletedFilter, salaryMonth, status, departmentId),
                 currentPage,
                 size));
     }
 
     @PostMapping("/monthly")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDO> create(@Valid @RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
-        return Result.success(service.createMonthly(copy(dto, SalaryMonthlyDO.class)));
+    public Result<SalaryMonthlyDO> create(@Valid @RequestBody SalaryWriteDTO.SalaryMonthlyCreateRequest dto) {
+        return Result.success(withDepartmentName(service.createMonthly(copy(dto, SalaryMonthlyDO.class))));
     }
 
     @GetMapping("/monthly/{id}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> detail(@PathVariable Long id) {
-        return Result.success(service.getById(id));
+        return Result.success(withDepartmentName(service.getById(id)));
     }
 
     @PutMapping("/monthly/{id}")
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
-    public Result<SalaryMonthlyDO> update(@PathVariable Long id, @Valid @RequestBody SalaryWriteDTO.SalaryMonthlyRequest dto) {
-        return Result.success(service.updateMonthly(id, copy(dto, SalaryMonthlyDO.class)));
+    public Result<SalaryMonthlyDO> update(@PathVariable Long id, @Valid @RequestBody SalaryWriteDTO.SalaryMonthlyUpdateRequest dto) {
+        return Result.success(withDepartmentName(service.updateMonthly(id, copy(dto, SalaryMonthlyDO.class))));
     }
 
     @PostMapping("/monthly/{id}/delete")
@@ -107,7 +111,7 @@ public class SalaryMonthlyController {
     @PreAuthorize(RoleExpressions.SALARY_MANAGE)
     public Result<SalaryMonthlyDO> generate(@PathVariable Long id) {
         service.generate(id);
-        return Result.success(service.getById(id));
+        return Result.success(withDepartmentName(service.getById(id)));
     }
 
     @PostMapping("/monthly/{id}/submit")
@@ -270,5 +274,18 @@ public class SalaryMonthlyController {
         if (currentEmployeeId == null || !currentEmployeeId.equals(detail.getEmployeeId())) {
             throw new BusinessException("无权查看该工资明细");
         }
+    }
+
+    private SalaryMonthlyDO withDepartmentName(SalaryMonthlyDO monthly) {
+        if (monthly == null) {
+            return null;
+        }
+        if (monthly.getDepartmentId() == null) {
+            monthly.setDepartmentName("历史全公司");
+            return monthly;
+        }
+        DepartmentDO department = departmentMapper.selectById(monthly.getDepartmentId());
+        monthly.setDepartmentName(department == null ? "已删除部门" : department.getName());
+        return monthly;
     }
 }

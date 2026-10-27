@@ -4,10 +4,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.labor.common.result.PageResult;
 import com.company.labor.common.result.Result;
 import com.company.labor.module.employee.domain.entity.EmployeeDO;
+import com.company.labor.module.employee.domain.entity.DepartmentDO;
 import com.company.labor.module.employee.domain.entity.PositionDO;
+import com.company.labor.module.employee.domain.vo.DepartmentReferenceVO;
 import com.company.labor.module.employee.domain.vo.EmployeeReferenceVO;
 import com.company.labor.module.employee.domain.vo.PositionReferenceVO;
 import com.company.labor.module.employee.service.EmployeeService;
+import com.company.labor.module.employee.service.DepartmentService;
 import com.company.labor.module.employee.service.PositionService;
 import com.company.labor.security.RoleExpressions;
 import java.util.List;
@@ -25,6 +28,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReferenceDataController {
     private final EmployeeService employeeService;
     private final PositionService positionService;
+    private final DepartmentService departmentService;
+
+    @GetMapping("/departments")
+    public Result<PageResult<DepartmentReferenceVO>> departments(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
+        Page<DepartmentDO> rows = departmentService.search(page, pageSize, keyword, status);
+        List<DepartmentReferenceVO> records = rows.getRecords().stream().map(DepartmentReferenceVO::from).toList();
+        return Result.success(new PageResult<>(records, rows.getTotal(), rows.getCurrent(), rows.getSize()));
+    }
 
     @GetMapping("/employees")
     public Result<PageResult<EmployeeReferenceVO>> employees(

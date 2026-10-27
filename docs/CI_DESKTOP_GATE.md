@@ -2,7 +2,7 @@
 
 ## Scope
 
-The desktop client uses Bun 1.3.14 for dependency installation, Electron Forge,
+The desktop client uses pnpm 11.22.0 for dependency installation, Electron Forge,
 native-module rebuild orchestration, linting, type checking, testing, and
 renderer builds. The launched Electron application uses Electron's embedded
 Node runtime; no separately installed system Node.js is required.
@@ -11,20 +11,19 @@ Run from the repository root:
 
 ```bash
 cd clients/desktop
-bun install --frozen-lockfile
-bun pm untrusted
-bun run lint
-bun run typecheck
-bun run test
-bun run build:renderer
+pnpm install --frozen-lockfile
+pnpm ignored-builds
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run build:renderer
 ```
 
-`bun pm untrusted` must report no blocked lifecycle scripts. The renderer gate
-covers the renderer, Electron main process, and preload bridge. `bunfig.toml`
-forces Electron Forge, ESLint, TypeScript, Vitest, Prettier, and Vite to execute
-under Bun. Forge does not recognize Bun as a package-manager name, so its three
-entry scripts provide a compatibility user-agent value; this avoids invoking
-an external npm/Node installation and does not change dependency installation.
+`pnpm ignored-builds` must report no blocked lifecycle scripts. The renderer
+gate covers the renderer, Electron main process, and preload bridge.
+`pnpm-workspace.yaml` pins the hoisted node linker, the approved build-script
+allowlist, and the `@electron/rebuild` override; Electron Forge resolves pnpm
+natively, so no package-manager user-agent override is required.
 
 ## Platform Build
 
@@ -32,8 +31,8 @@ Release candidates require a build on every target operating system:
 
 ```bash
 cd clients/desktop
-bun run package
-bun run build
+pnpm run package
+pnpm run build
 ```
 
 Electron Forge installers and signing are platform-specific. Windows, macOS,

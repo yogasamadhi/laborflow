@@ -34,7 +34,7 @@ export function EmployeeListPage() {
 
   return (
     <Page
-      title="员工信息"
+      title="员工管理"
       actions={
         <Link to="/employees/create">
           <Button>

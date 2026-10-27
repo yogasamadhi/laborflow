@@ -59,8 +59,12 @@ class SalaryLifecycleIntegrationTest {
     @Test
     void completesSalaryLifecycleFromEmployeeOnboardingToPayslipConfirmation() throws Exception {
         String adminToken = login(ADMIN_USERNAME, ADMIN_PASSWORD);
+        long departmentId = post("/api/departments", Map.of(
+                "name", "Payroll E2E Department",
+                "status", "active"), adminToken).path("data").path("id").asLong();
         long employeeId = post("/api/employees", Map.of(
                 "name", "Payroll E2E Employee",
+                "departmentId", departmentId,
                 "employeeType", "company_employee",
                 "entryDate", "2031-08-01",
                 "status", "active"), adminToken).path("data").path("id").asLong();
@@ -81,6 +85,7 @@ class SalaryLifecycleIntegrationTest {
 
         JsonNode monthly = post("/api/salary/monthly", Map.of(
                 "salaryMonth", "2031-08",
+                "departmentId", departmentId,
                 "title", "Payroll E2E August",
                 "includeFixedSalary", 1,
                 "includeAttendanceDeduction", 0,
@@ -88,6 +93,8 @@ class SalaryLifecycleIntegrationTest {
                 "includeProjectBonus", 0), adminToken).path("data");
         long monthlyId = monthly.path("id").asLong();
         assertThat(monthly.path("status").asText()).isEqualTo("draft");
+        assertThat(monthly.path("departmentId").asLong()).isEqualTo(departmentId);
+        assertThat(monthly.path("departmentName").asText()).isEqualTo("Payroll E2E Department");
 
         post("/api/salary/monthly/" + monthlyId + "/generate", null, adminToken);
         JsonNode detail = get("/api/salary/monthly/" + monthlyId + "/details?page=1&pageSize=20", adminToken)

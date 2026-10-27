@@ -8,6 +8,11 @@ describe("describeError", () => {
     expect(describeError(error)).toEqual({ status: 400, message: "余额不足" });
   });
 
+  it("keeps the network marker of a transport ApiError", () => {
+    const error = new ApiError("无法连接服务端", undefined, true);
+    expect(describeError(error)).toEqual({ status: undefined, message: "无法连接服务端", network: true });
+  });
+
   it("uses the message of a generic Error without a status", () => {
     expect(describeError(new Error("网络中断"))).toEqual({ message: "网络中断", status: undefined });
   });

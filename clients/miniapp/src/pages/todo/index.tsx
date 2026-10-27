@@ -16,6 +16,7 @@ function detailRowsFor(item: ApiRecord, detail: ApiRecord): Array<{ label: strin
     const header = detail.header && typeof detail.header === 'object' ? detail.header as ApiRecord : {}
     return [
       { label: '工资月份', value: textOf(header, 'salaryMonth', '-') },
+      { label: '直属部门', value: textOf(header, 'departmentName', '历史全公司') },
       { label: '工资人数', value: textOf(header, 'employeeCount', '0') },
       { label: '应发合计', value: money(header.payableAmount) },
       { label: '扣款合计', value: money(header.deductionAmount) },
@@ -194,7 +195,7 @@ export default function TodoPage() {
       <PageBody lifted>
         {error && rows.length ? <Notice tone="danger">{error}</Notice> : null}
         <SectionTitle title="等待处理" subtitle="审批范围由服务端实时校验" />
-        {rows.map((item) => <Card key={textOf(item, 'id', textOf(item, 'businessId'))} className="flex items-center gap-4 p-4" onClick={() => void openDetail(item)}><RoundIcon className="bg-[#eaf7f0] text-[#39987d]"><TodoListOutlined size={24} /></RoundIcon><View className="min-w-0 flex-1"><View className="mb-2 flex items-start justify-between gap-3"><Text className="block truncate text-base font-bold">{textOf(item, 'title', '待办审批')}</Text><StatusTag text={status(item.status)} tone={statusTone(item.status)} /></View><View className="flex items-center gap-1 text-[#9aa19d]"><ClockOutlined size={14} /><Text className="text-xs">{dateTime(item.occurredAt)} · {textOf(item, 'type')}</Text></View></View><Text className="text-xl text-[#a1a8a4]">›</Text></Card>)}
+        {rows.map((item) => <Card key={textOf(item, 'id', textOf(item, 'businessId'))} className="flex items-center gap-4 p-4" onClick={() => void openDetail(item)}><RoundIcon className="bg-[#eaf7f0] text-[#39987d]"><TodoListOutlined size={24} /></RoundIcon><View className="min-w-0 flex-1"><View className="mb-2 flex items-start justify-between gap-3"><Text className="block truncate text-base font-bold">{textOf(item, 'title', '待办审批')}</Text><StatusTag text={status(item.status)} tone={statusTone(item.status)} /></View><View className="flex items-center gap-1 text-[#9aa19d]"><ClockOutlined size={14} /><Text className="text-xs">{dateTime(item.occurredAt)} · {textOf(item, 'type') === 'salary' ? textOf(item, 'departmentName', '历史全公司') : textOf(item, 'type')}</Text></View></View><Text className="text-xl text-[#a1a8a4]">›</Text></Card>)}
         {error && !rows.length && !loading ? <StateView text={error} actionText="重新加载" onAction={() => void load(true)} /> : null}
         {!error && !rows.length && !loading ? <StateView text="暂无待办，所有审批都已处理。" /> : null}
         {loading ? <StateView text="加载中…" /> : null}

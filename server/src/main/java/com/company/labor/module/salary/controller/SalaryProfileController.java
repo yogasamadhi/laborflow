@@ -5,6 +5,7 @@ import com.company.labor.common.result.Result;
 import com.company.labor.module.salary.domain.dto.SalaryProfileSaveDTO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileDO;
 import com.company.labor.module.salary.domain.entity.SalaryProfileItemDO;
+import com.company.labor.module.salary.domain.vo.SalaryProfileListVO;
 import com.company.labor.module.salary.service.SalaryProfileService;
 import com.company.labor.security.RoleExpressions;
 import jakarta.validation.Valid;
@@ -30,8 +31,13 @@ public class SalaryProfileController {
     private final SalaryProfileService service;
 
     @GetMapping
-    public Result<PageResult<SalaryProfileDO>> list(@RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "20") long pageSize, @RequestParam(required = false) Long employeeId) {
-        return Result.success(PageResult.of(service.search(page, pageSize, employeeId)));
+    public Result<PageResult<SalaryProfileListVO>> list(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) String keyword) {
+        return Result.success(PageResult.of(service.search(page, pageSize, employeeId, departmentId, keyword)));
     }
 
     @PostMapping

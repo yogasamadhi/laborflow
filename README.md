@@ -14,8 +14,9 @@
 |---|---|---|
 | JDK | 21 | 后端编译与运行；通过 `JAVA_HOME` 或 PATH 提供 |
 | Maven | 3.6.3+ | 后端构建；通过 `MAVEN_BIN` 或 PATH 提供 |
-| Bun | 1.3.14 | 根启动器、两个活跃客户端的依赖安装、脚本、检查与构建 |
-| Electron 内置 Node | 随 Electron 43 提供 | 仅 Electron 应用运行时使用，无需单独安装系统 Node.js；Miniapp 不需要 Node |
+| pnpm | 11.22.0 | 两个活跃客户端的依赖安装、脚本、检查与构建 |
+| Python | 3.10+ | 根启动器 `python3 run.py`（仅标准库） |
+| Node.js | 22.18.0+ | Electron 客户端的构建与 Electron 运行时下载；Electron 应用运行时使用 Electron 内置 Node |
 | 平台构建工具 | 当前操作系统对应版本 | Electron Forge 在目标系统生成安装包；签名工具和 Linux 打包工具按发行格式安装 |
 | Docker | 任意现代版本 | 本地 PostgreSQL（`deploy/docker-laborflow`）；后端集成测试用 Testcontainers |
 | 微信开发者工具 | 稳定版 | 仅小程序本地开发/真机调试需要 |
@@ -59,7 +60,7 @@ PostgreSQL 默认映射到宿主机 `5434` 端口，后端默认连接 `jdbc:pos
 一键启动本地 PostgreSQL、后端、桌面端和小程序 watch：
 
 ```bash
-bun run.ts
+python3 run.py
 ```
 
 后端需要 Java 21 和 Maven（通过 `JAVA_HOME` 或 PATH 提供）：
@@ -73,15 +74,15 @@ mvn spring-boot:run
 
 ```bash
 cd clients/desktop
-bun install --frozen-lockfile
-bun run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 ```
 
 平台安装包使用构建时 API 地址生成：
 
 ```bash
 cd clients/desktop
-VITE_API_BASE_URL=https://api.example.com/api bun run build
+VITE_API_BASE_URL=https://api.example.com/api pnpm run build
 ```
 
 构建产物位于 `clients/desktop/out/make/`。Windows、macOS、Linux
@@ -91,8 +92,8 @@ VITE_API_BASE_URL=https://api.example.com/api bun run build
 
 ```bash
 cd clients/miniapp
-bun install --frozen-lockfile
-bun run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 # 微信开发者工具导入 clients/miniapp/dist/
 ```
 
@@ -157,7 +158,7 @@ The local backend gate and its Docker/Testcontainers requirement are documented
 in [`docs/CI_BACKEND_GATE.md`](docs/CI_BACKEND_GATE.md).
 The desktop renderer typecheck, test, and build gate is documented in
 [`docs/CI_DESKTOP_GATE.md`](docs/CI_DESKTOP_GATE.md).
-The active miniapp Bun build gate and manual smoke evidence template are documented in
+The active miniapp pnpm build gate and manual smoke evidence template are documented in
 [`docs/CI_MINIAPP_GATE.md`](docs/CI_MINIAPP_GATE.md).
 The documentation, Flyway migration, and whitespace gate is documented in
 [`docs/CI_DOCS_GATE.md`](docs/CI_DOCS_GATE.md).

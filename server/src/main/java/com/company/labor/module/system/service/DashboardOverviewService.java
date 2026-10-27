@@ -77,29 +77,33 @@ public class DashboardOverviewService {
     }
 
     private SalaryOverviewVO salaryOverview(String month) {
-        SalaryMonthlyDO monthly = salaryMonthlyMapper.selectOne(new LambdaQueryWrapper<SalaryMonthlyDO>()
+        List<SalaryMonthlyDO> monthlies = salaryMonthlyMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDO>()
                 .eq(SalaryMonthlyDO::getDeleted, 0)
-                .eq(SalaryMonthlyDO::getSalaryMonth, month)
-                .orderByDesc(SalaryMonthlyDO::getCreatedAt)
-                .last("LIMIT 1"));
-        if (monthly == null) {
+                .eq(SalaryMonthlyDO::getSalaryMonth, month));
+        if (monthlies.isEmpty()) {
             return new SalaryOverviewVO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         }
-        List<SalaryMonthlyDetailDO> details = salaryDetailMapper.selectList(
-                new LambdaQueryWrapper<SalaryMonthlyDetailDO>()
-                        .eq(SalaryMonthlyDetailDO::getDeleted, 0)
-                        .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthly.getId()));
+        List<Long> monthlyIds = monthlies.stream().map(SalaryMonthlyDO::getId).toList();
+        List<SalaryMonthlyDetailDO> details = salaryDetailMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDetailDO>()
+                .eq(SalaryMonthlyDetailDO::getDeleted, 0)
+                .in(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthlyIds));
+        BigDecimal payable = monthlies.stream().map(SalaryMonthlyDO::getTotalPayableAmount).map(this::nvl)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal deduction = monthlies.stream().map(SalaryMonthlyDO::getTotalDeductionAmount).map(this::nvl)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal actual = monthlies.stream().map(SalaryMonthlyDO::getTotalActualAmount).map(this::nvl)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal paid = details.stream().filter(item -> "paid".equals(item.getPaymentStatus()))
                 .map(SalaryMonthlyDetailDO::getActualAmount).map(this::nvl)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         long paidCount = details.stream().filter(item -> "paid".equals(item.getPaymentStatus())).count();
         return new SalaryOverviewVO(
-                nvl(monthly.getTotalPayableAmount()),
-                nvl(monthly.getTotalDeductionAmount()),
-                nvl(monthly.getTotalActualAmount()),
+                payable,
+                deduction,
+                actual,
                 paid,
-                nvl(monthly.getTotalActualAmount()).subtract(paid),
+                actual.subtract(paid),
                 paidCount,
                 details.size() - paidCount);
     }

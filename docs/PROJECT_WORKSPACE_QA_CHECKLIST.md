@@ -14,10 +14,10 @@ file URLs, tokens, or browser storage in screenshots.
 
 ```bash
 cd clients/desktop
-bun run typecheck
-bun run test
-bun run build:renderer
-bun run dev
+pnpm run typecheck
+pnpm run test
+pnpm run build:renderer
+pnpm run dev
 ```
 
 ## Action Checks

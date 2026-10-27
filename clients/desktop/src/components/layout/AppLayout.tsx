@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight, LogOut, Menu, PanelLeftClose, X } from "luci
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { canAccessRoles, canAccessRoute, roleGroups } from "../../lib/access";
-import { getData, postData, REQUEST_ERROR_EVENT } from "../../lib/axios";
+import { getData, postData, REQUEST_ERROR_EVENT, REQUEST_SUCCESS_EVENT } from "../../lib/axios";
 import { clearToken, getLoginUser, getToken, LoginUser, setLoginUser } from "../../lib/auth";
 import type { RequestErrorDetail } from "../../lib/axios";
 import { AccessDeniedState, AuthLoadingState } from "../common/AccessState";
@@ -22,9 +22,9 @@ const groups = [
     title: "工作台",
     links: [
       { to: "/dashboard", label: "仪表盘", end: true },
-      { to: "/employees", label: "员工信息", end: true, roles: orgRoles },
       { to: "/departments", label: "部门管理", roles: orgRoles },
-      { to: "/positions", label: "岗位管理", roles: orgRoles }
+      { to: "/positions", label: "岗位管理", roles: orgRoles },
+      { to: "/employees", label: "员工管理", end: true, roles: orgRoles }
     ]
   },
   {
@@ -127,9 +127,31 @@ export function AppLayout() {
       const detail = (event as CustomEvent<RequestErrorDetail>).detail;
       if (detail) setRequestNotice(detail);
     }
+    function handleRequestSuccess() {
+      setRequestNotice((current) => current?.network ? null : current);
+    }
     window.addEventListener(REQUEST_ERROR_EVENT, handleRequestError);
-    return () => window.removeEventListener(REQUEST_ERROR_EVENT, handleRequestError);
+    window.addEventListener(REQUEST_SUCCESS_EVENT, handleRequestSuccess);
+    return () => {
+      window.removeEventListener(REQUEST_ERROR_EVENT, handleRequestError);
+      window.removeEventListener(REQUEST_SUCCESS_EVENT, handleRequestSuccess);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!requestNotice?.network) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    async function probeServer() {
+      await getData<LoginUser>("/auth/me").catch(() => undefined);
+      if (active) timer = setTimeout(probeServer, 1_000);
+    }
+    timer = setTimeout(probeServer, 1_000);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [requestNotice?.network]);
 
   useEffect(() => {
     if (!getToken()) {

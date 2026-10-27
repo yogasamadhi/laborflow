@@ -11,10 +11,10 @@ Run these commands before recording visual evidence:
 
 ```bash
 cd clients/desktop
-bun run typecheck
-bun run test
-bun run build:renderer
-bun run dev
+pnpm run typecheck
+pnpm run test
+pnpm run build:renderer
+pnpm run dev
 ```
 
 Use only local or test accounts. Do not capture production names, phone

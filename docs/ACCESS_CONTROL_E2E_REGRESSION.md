@@ -46,9 +46,9 @@ Run the Web checks before recording a passing smoke result:
 
 ```bash
 cd clients/desktop
-bun run typecheck
-bun run test
-bun run build:renderer
+pnpm run typecheck
+pnpm run test
+pnpm run build:renderer
 ```
 
 Do not attach production user names, employee information, salary details, IP

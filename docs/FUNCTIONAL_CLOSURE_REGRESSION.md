@@ -53,6 +53,20 @@
 
 本次复测只验证工具链迁移，没有补齐五角色 UAT、真机、弱网或业务签字。
 
+### 2026-10-26 pnpm 工具链迁移复测
+
+客户端与遗留小程序统一切换到 pnpm 11.22.0，`bun.lock` / `package-lock.json`
+替换为各目录独立的 `pnpm-lock.yaml`：
+
+| Gate | pnpm 迁移结果 |
+| --- | --- |
+| Desktop | 冻结安装通过，`pnpm ignored-builds` 无待批准脚本；lint、typecheck、9 files / 28 tests、renderer build 通过 |
+| Miniapp | 冻结安装通过，`pnpm ignored-builds` 无待批准脚本；typecheck、微信生产构建和 H5 生产构建通过 |
+| Legacy miniapp | `pnpm --dir legacy/miniapp run check` 通过：语法、ESLint、19 tests；`node_modules/@vant/weapp` 保持真实目录，满足微信开发者工具构建 npm 要求 |
+| Electron runtime | Electron 43 使用其内置 Node 24.18.1，无需单独安装系统 Node.js |
+
+本次复测只验证工具链迁移，没有补齐五角色 UAT、真机、弱网或业务签字。
+
 ## 4. 人工与外部 Gate
 
 | 项目 | 状态 | 解除条件 |

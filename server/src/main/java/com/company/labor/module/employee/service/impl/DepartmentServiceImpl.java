@@ -64,6 +64,7 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
                 Reference.active("department", "parent_id", "下级部门"),
                 Reference.active("position", "department_id", "岗位"),
                 Reference.active("employee", "department_id", "员工"),
+                Reference.active("salary_monthly", "department_id", "月度工资表"),
                 Reference.active("salary_monthly_detail", "department_id", "工资明细"));
         department.setDeleted(1);
         if (!updateById(department)) {

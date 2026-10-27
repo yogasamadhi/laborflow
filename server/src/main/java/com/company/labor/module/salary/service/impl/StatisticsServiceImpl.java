@@ -48,61 +48,76 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final AuditUserProvider auditUserProvider;
 
     @Override
-    public SalaryOverviewVO overview() {
-        SalaryMonthlyDO monthly = latestMonthly();
-        if (monthly == null) {
+    public SalaryOverviewVO overview(Long departmentId) {
+        String salaryMonth = latestSalaryMonth(departmentId);
+        if (salaryMonth == null) {
             return new SalaryOverviewVO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         }
-        List<SalaryMonthlyDetailDO> details = details(monthly.getId());
+        List<SalaryMonthlyDO> monthlies = monthlies(salaryMonth, departmentId);
         BigDecimal paidAmount = BigDecimal.ZERO;
+        BigDecimal payableAmount = BigDecimal.ZERO;
+        BigDecimal deductionAmount = BigDecimal.ZERO;
+        BigDecimal actualAmount = BigDecimal.ZERO;
         long paidCount = 0;
-        for (SalaryMonthlyDetailDO detail : details) {
-            if ("paid".equals(detail.getPaymentStatus())) {
-                paidAmount = paidAmount.add(nvl(detail.getActualAmount()));
-                paidCount++;
+        long detailCount = 0;
+        for (SalaryMonthlyDO monthly : monthlies) {
+            payableAmount = payableAmount.add(nvl(monthly.getTotalPayableAmount()));
+            deductionAmount = deductionAmount.add(nvl(monthly.getTotalDeductionAmount()));
+            actualAmount = actualAmount.add(nvl(monthly.getTotalActualAmount()));
+            List<SalaryMonthlyDetailDO> details = details(monthly.getId());
+            detailCount += details.size();
+            for (SalaryMonthlyDetailDO detail : details) {
+                if ("paid".equals(detail.getPaymentStatus())) {
+                    paidAmount = paidAmount.add(nvl(detail.getActualAmount()));
+                    paidCount++;
+                }
             }
         }
-        BigDecimal actual = nvl(monthly.getTotalActualAmount());
         return new SalaryOverviewVO(
-                nvl(monthly.getTotalPayableAmount()),
-                nvl(monthly.getTotalDeductionAmount()),
-                actual,
+                payableAmount,
+                deductionAmount,
+                actualAmount,
                 paidAmount,
-                actual.subtract(paidAmount),
+                actualAmount.subtract(paidAmount),
                 paidCount,
-                details.size() - paidCount);
+                detailCount - paidCount);
     }
 
     @Override
-    public List<SalaryTrendVO> monthlyTrend() {
+    public List<SalaryTrendVO> monthlyTrend(Long departmentId) {
         List<SalaryMonthlyDO> rows = monthlyMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDO>()
                 .eq(SalaryMonthlyDO::getDeleted, 0)
-                .orderByDesc(SalaryMonthlyDO::getSalaryMonth)
-                .last("LIMIT 12"));
-        List<SalaryTrendVO> result = new ArrayList<>();
-        for (int i = rows.size() - 1; i >= 0; i--) {
-            SalaryMonthlyDO row = rows.get(i);
-            result.add(new SalaryTrendVO(row.getSalaryMonth(), nvl(row.getTotalActualAmount())));
+                .eq(departmentId != null, SalaryMonthlyDO::getDepartmentId, departmentId)
+                .orderByAsc(SalaryMonthlyDO::getSalaryMonth));
+        Map<String, BigDecimal> grouped = new LinkedHashMap<>();
+        for (SalaryMonthlyDO row : rows) {
+            grouped.merge(row.getSalaryMonth(), nvl(row.getTotalActualAmount()), BigDecimal::add);
         }
-        return result;
+        List<Map.Entry<String, BigDecimal>> entries = new ArrayList<>(grouped.entrySet());
+        int from = Math.max(entries.size() - 12, 0);
+        return entries.subList(from, entries.size()).stream()
+                .map(entry -> new SalaryTrendVO(entry.getKey(), entry.getValue()))
+                .toList();
     }
 
     @Override
-    public List<Map<String, Object>> departmentSummary() {
-        SalaryMonthlyDO monthly = latestMonthly();
-        if (monthly == null) return List.of();
+    public List<Map<String, Object>> departmentSummary(Long departmentId) {
+        String salaryMonth = latestSalaryMonth(departmentId);
+        if (salaryMonth == null) return List.of();
         Map<Long, Map<String, Object>> grouped = new LinkedHashMap<>();
-        for (SalaryMonthlyDetailDO detail : details(monthly.getId())) {
-            Long key = detail.getDepartmentId() == null ? 0L : detail.getDepartmentId();
-            Map<String, Object> row = grouped.computeIfAbsent(key, id -> {
-                Map<String, Object> item = new LinkedHashMap<>();
-                item.put("departmentId", id);
-                item.put("employeeCount", 0);
-                item.put("actualAmount", BigDecimal.ZERO);
-                return item;
-            });
-            row.put("employeeCount", (Integer) row.get("employeeCount") + 1);
-            row.put("actualAmount", ((BigDecimal) row.get("actualAmount")).add(nvl(detail.getActualAmount())));
+        for (SalaryMonthlyDO monthly : monthlies(salaryMonth, departmentId)) {
+            for (SalaryMonthlyDetailDO detail : details(monthly.getId())) {
+                Long key = detail.getDepartmentId() == null ? 0L : detail.getDepartmentId();
+                Map<String, Object> row = grouped.computeIfAbsent(key, id -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("departmentId", id);
+                    item.put("employeeCount", 0);
+                    item.put("actualAmount", BigDecimal.ZERO);
+                    return item;
+                });
+                row.put("employeeCount", (Integer) row.get("employeeCount") + 1);
+                row.put("actualAmount", ((BigDecimal) row.get("actualAmount")).add(nvl(detail.getActualAmount())));
+            }
         }
         return new ArrayList<>(grouped.values());
     }
@@ -169,10 +184,11 @@ public class StatisticsServiceImpl implements StatisticsService {
         List<SalaryMonthlyDO> monthlies = monthlyMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDO>()
                 .eq(SalaryMonthlyDO::getDeleted, 0)
                 .orderByAsc(SalaryMonthlyDO::getSalaryMonth));
-        Map<String, Integer> monthCounts = new LinkedHashMap<>();
+        Map<String, Integer> monthDepartmentCounts = new LinkedHashMap<>();
         Map<Long, BigDecimal> previousActualByEmployee = new HashMap<>();
         for (SalaryMonthlyDO monthly : monthlies) {
-            monthCounts.merge(monthly.getSalaryMonth(), 1, Integer::sum);
+            String monthlyKey = monthly.getSalaryMonth() + "|" + (monthly.getDepartmentId() == null ? 0 : monthly.getDepartmentId());
+            monthDepartmentCounts.merge(monthlyKey, 1, Integer::sum);
             List<SalaryMonthlyDetailDO> rows = details(monthly.getId());
             for (SalaryMonthlyDetailDO detail : rows) {
                 EmployeeDO employee = employeeMap.get(detail.getEmployeeId());
@@ -204,8 +220,9 @@ public class StatisticsServiceImpl implements StatisticsService {
             }
         }
         for (SalaryMonthlyDO monthly : monthlies) {
-            if (monthCounts.getOrDefault(monthly.getSalaryMonth(), 0) > 1) {
-                result.add(anomaly("duplicate_monthly", "danger", monthly, null, null, "重复创建同月份工资表", null));
+            String monthlyKey = monthly.getSalaryMonth() + "|" + (monthly.getDepartmentId() == null ? 0 : monthly.getDepartmentId());
+            if (monthDepartmentCounts.getOrDefault(monthlyKey, 0) > 1) {
+                result.add(anomaly("duplicate_monthly", "danger", monthly, null, null, "重复创建同部门同月份工资表", null));
             }
         }
         applyAnomalyRecords(result);
@@ -246,11 +263,20 @@ public class StatisticsServiceImpl implements StatisticsService {
         operationLogService.record("salary", null, "handle_anomaly", "处理工资异常：" + anomalyKey + " -> " + status);
     }
 
-    private SalaryMonthlyDO latestMonthly() {
-        return monthlyMapper.selectOne(new LambdaQueryWrapper<SalaryMonthlyDO>()
+    private String latestSalaryMonth(Long departmentId) {
+        SalaryMonthlyDO monthly = monthlyMapper.selectOne(new LambdaQueryWrapper<SalaryMonthlyDO>()
                 .eq(SalaryMonthlyDO::getDeleted, 0)
+                .eq(departmentId != null, SalaryMonthlyDO::getDepartmentId, departmentId)
                 .orderByDesc(SalaryMonthlyDO::getSalaryMonth)
                 .last("LIMIT 1"));
+        return monthly == null ? null : monthly.getSalaryMonth();
+    }
+
+    private List<SalaryMonthlyDO> monthlies(String salaryMonth, Long departmentId) {
+        return monthlyMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDO>()
+                .eq(SalaryMonthlyDO::getDeleted, 0)
+                .eq(SalaryMonthlyDO::getSalaryMonth, salaryMonth)
+                .eq(departmentId != null, SalaryMonthlyDO::getDepartmentId, departmentId));
     }
 
     private List<SalaryMonthlyDetailDO> details(Long monthlyId) {
@@ -301,6 +327,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         vo.setLevel(level);
         vo.setSalaryMonth(monthly == null ? null : monthly.getSalaryMonth());
         vo.setMonthlyId(monthly == null ? null : monthly.getId());
+        vo.setDepartmentId(monthly == null ? null : monthly.getDepartmentId());
         vo.setDetailId(detail == null ? null : detail.getId());
         vo.setEmployeeId(detail == null ? null : detail.getEmployeeId());
         vo.setEmployeeName(employee == null ? null : employee.getName());

@@ -10,16 +10,20 @@ import org.apache.ibatis.annotations.Update;
 public interface SalaryMonthlyMapper extends BaseMapper<SalaryMonthlyDO> {
     @Select("""
         <script>
-        SELECT *
-        FROM salary_monthly
-        WHERE (#{deleted} &lt; 0 OR deleted = #{deleted})
+        SELECT monthly.*, COALESCE(department.name, '历史全公司') AS department_name
+        FROM salary_monthly monthly
+        LEFT JOIN department ON department.id = monthly.department_id
+        WHERE (#{deleted} &lt; 0 OR monthly.deleted = #{deleted})
         <if test="salaryMonth != null and salaryMonth != ''">
-          AND salary_month = #{salaryMonth}
+          AND monthly.salary_month = #{salaryMonth}
         </if>
         <if test="status != null and status != ''">
-          AND status = #{status}
+          AND monthly.status = #{status}
         </if>
-        ORDER BY salary_month DESC, created_at DESC
+        <if test="departmentId != null">
+          AND monthly.department_id = #{departmentId}
+        </if>
+        ORDER BY monthly.salary_month DESC, department.sort_order NULLS LAST, department.name NULLS LAST, monthly.created_at DESC
         LIMIT #{limit} OFFSET #{offset}
         </script>
         """)
@@ -27,26 +31,31 @@ public interface SalaryMonthlyMapper extends BaseMapper<SalaryMonthlyDO> {
             @Param("deleted") Integer deleted,
             @Param("salaryMonth") String salaryMonth,
             @Param("status") String status,
+            @Param("departmentId") Long departmentId,
             @Param("limit") long limit,
             @Param("offset") long offset);
 
     @Select("""
         <script>
         SELECT COUNT(*)
-        FROM salary_monthly
-        WHERE (#{deleted} &lt; 0 OR deleted = #{deleted})
+        FROM salary_monthly monthly
+        WHERE (#{deleted} &lt; 0 OR monthly.deleted = #{deleted})
         <if test="salaryMonth != null and salaryMonth != ''">
-          AND salary_month = #{salaryMonth}
+          AND monthly.salary_month = #{salaryMonth}
         </if>
         <if test="status != null and status != ''">
-          AND status = #{status}
+          AND monthly.status = #{status}
+        </if>
+        <if test="departmentId != null">
+          AND monthly.department_id = #{departmentId}
         </if>
         </script>
         """)
     long countIncludingDeleted(
             @Param("deleted") Integer deleted,
             @Param("salaryMonth") String salaryMonth,
-            @Param("status") String status);
+            @Param("status") String status,
+            @Param("departmentId") Long departmentId);
 
     @Select("SELECT * FROM salary_monthly WHERE id = #{id}")
     SalaryMonthlyDO selectByIdIncludingDeleted(@Param("id") Long id);
@@ -67,6 +76,30 @@ public interface SalaryMonthlyMapper extends BaseMapper<SalaryMonthlyDO> {
           AND deleted = 0
         """)
     long countActiveByMonth(@Param("salaryMonth") String salaryMonth);
+
+    @Select("""
+        SELECT COUNT(*)
+        FROM salary_monthly
+        WHERE salary_month = #{salaryMonth}
+          AND department_id = #{departmentId}
+          AND deleted = 0
+        """)
+    long countActiveByMonthAndDepartment(
+            @Param("salaryMonth") String salaryMonth,
+            @Param("departmentId") Long departmentId);
+
+    @Select("""
+        SELECT COUNT(*)
+        FROM salary_monthly
+        WHERE salary_month = #{salaryMonth}
+          AND department_id = #{departmentId}
+          AND deleted = 0
+          AND id != #{id}
+        """)
+    long countActiveByMonthAndDepartmentExceptId(
+            @Param("salaryMonth") String salaryMonth,
+            @Param("departmentId") Long departmentId,
+            @Param("id") Long id);
 
     @Update("UPDATE salary_monthly SET deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int softDeleteById(@Param("id") Long id);

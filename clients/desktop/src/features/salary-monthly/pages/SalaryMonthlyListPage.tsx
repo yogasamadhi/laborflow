@@ -12,10 +12,14 @@ import { Button } from "../../../components/ui/Button";
 import { getAllPages, postData } from "../../../lib/axios";
 import { money, statusText } from "../../../lib/utils";
 import { canRunMonthlyAction, getMonthlyActionCopy, type MonthlyAction } from "../salaryWorkflow";
+import type { Department } from "../../department/types";
+import { groupMonthliesByMonth } from "../departmentalPayroll";
 
 type Monthly = {
   id: string;
   salaryMonth: string;
+  departmentId?: string;
+  departmentName?: string;
   title: string;
   totalEmployeeCount: number;
   totalPayableAmount: number;
@@ -61,6 +65,7 @@ export function SalaryMonthlyListPage() {
   const [recycleOpen, setRecycleOpen] = useState(false);
   const [monthFilter, setMonthFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -68,8 +73,14 @@ export function SalaryMonthlyListPage() {
   const monthlyQuery = usePagedQuery<Monthly>(["salary-monthly", dataScope], "/salary/monthly", {
     deleted: dataScope === "all" ? -1 : Number(dataScope),
     salaryMonth: monthFilter || undefined,
-    status: statusFilter || undefined
+    status: statusFilter || undefined,
+    departmentId: departmentFilter || undefined
   });
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", "salary-monthly-list"],
+    queryFn: () => getAllPages<Department>("/reference/departments")
+  });
+  const departments = departmentsData ?? [];
   const recycleQuery = useQuery({
     queryKey: ["salary-monthly", "recycle-bin"],
     queryFn: () => getAllPages<Monthly>("/salary/monthly", { deleted: 1 }),
@@ -77,6 +88,7 @@ export function SalaryMonthlyListPage() {
   });
   const rows = monthlyQuery.data?.records ?? [];
   const visibleRows = rows;
+  const groupedRows = groupMonthliesByMonth(visibleRows);
   const totals = visibleRows.reduce(
     (sum, row) => ({
       employeeCount: sum.employeeCount + Number(row.totalEmployeeCount ?? 0),
@@ -132,7 +144,7 @@ export function SalaryMonthlyListPage() {
   return (
     <Page
       title="月度工资表"
-      description="从生成、审核到发放，按状态推进每个工资月份。"
+      description="工资表按月份分区，各直属部门独立生成、审核和发放。"
       actions={
         <div className="table-actions">
           <Button type="button" variant="secondary" onClick={() => setRecycleOpen(true)}>
@@ -142,7 +154,7 @@ export function SalaryMonthlyListPage() {
           <Link to="/salary/monthly/create">
             <Button>
               <Plus size={16} />
-              创建工资月份
+              创建部门工资表
             </Button>
           </Link>
         </div>
@@ -180,7 +192,13 @@ export function SalaryMonthlyListPage() {
                 <option value="all">全部</option>
               </SelectInput>
             </Field>
-            <Button type="button" variant="secondary" onClick={() => { setMonthFilter(""); setStatusFilter(""); setDataScope("0"); }}>
+            <Field label="部门">
+              <SelectInput value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
+                <option value="">全部部门</option>
+                {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+              </SelectInput>
+            </Field>
+            <Button type="button" variant="secondary" onClick={() => { setMonthFilter(""); setStatusFilter(""); setDepartmentFilter(""); setDataScope("0"); }}>
               <RefreshCw size={16} />
               重置
             </Button>
@@ -197,6 +215,7 @@ export function SalaryMonthlyListPage() {
                   <tr>
                     <th>月份</th>
                     <th>标题</th>
+                    <th>部门</th>
                     <th>规则</th>
                     <th>人数</th>
                     <th>应发</th>
@@ -210,10 +229,16 @@ export function SalaryMonthlyListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map((monthly) => (
+                  {groupedRows.flatMap((group) => {
+                    return [
+                    <tr key={`month-${group.salaryMonth}`}>
+                      <td colSpan={13}><div className="section-heading"><strong>{group.salaryMonth}</strong><span className="muted">{group.records.length} 个部门 · {group.employeeCount} 人 · 实发 {money(group.actualAmount)}</span></div></td>
+                    </tr>,
+                    ...group.records.map((monthly) => (
                     <tr key={monthly.id}>
                       <td>{monthly.salaryMonth}</td>
                       <td><Link to={`/salary/monthly/${monthly.id}`}>{monthly.title}</Link></td>
+                      <td>{monthly.departmentName ?? "历史全公司"}</td>
                       <td>{ruleSummary(monthly)}</td>
                       <td>{monthly.totalEmployeeCount ?? 0}</td>
                       <td>{money(monthly.totalPayableAmount)}</td>
@@ -243,7 +268,8 @@ export function SalaryMonthlyListPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    ))];
+                  })}
                 </tbody>
               </table>
             )}

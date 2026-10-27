@@ -74,8 +74,16 @@ class ApiRequestValidationIntegrationTest {
     void returnsUnifiedBadRequestForInvalidMonthAmountAndStatus() throws Exception {
         String adminToken = login(ADMIN_USERNAME, ADMIN_PASSWORD);
 
-        assertError(post("/api/salary/monthly", Map.of("salaryMonth", "2025-13"), adminToken),
+        assertError(post("/api/salary/monthly", Map.of(
+                        "salaryMonth", "2025-13",
+                        "departmentId", 1,
+                        "includeFixedSalary", 1,
+                        "includeAttendanceDeduction", 0,
+                        "includePerformanceSalary", 0,
+                        "includeProjectBonus", 0), adminToken),
                 HttpStatus.BAD_REQUEST, "工资月份格式必须为 yyyy-MM");
+        assertError(post("/api/salary/monthly", Map.of("salaryMonth", "2030-01", "departmentId", 1), adminToken),
+                HttpStatus.BAD_REQUEST, "规则必填");
         assertError(post("/api/projects", Map.of("name", "校验项目", "contractAmount", -0.01), adminToken),
                 HttpStatus.BAD_REQUEST, "合同金额不能小于 0");
         assertError(post("/api/projects/1/status", Map.of("status", "invalid-status"), adminToken),
@@ -87,7 +95,13 @@ class ApiRequestValidationIntegrationTest {
         insertEmployeeUser();
         String employeeToken = login(EMPLOYEE_USERNAME, EMPLOYEE_PASSWORD);
 
-        assertError(post("/api/salary/monthly", Map.of("salaryMonth", "2030-01"), employeeToken),
+        assertError(post("/api/salary/monthly", Map.of(
+                        "salaryMonth", "2030-01",
+                        "departmentId", 1,
+                        "includeFixedSalary", 1,
+                        "includeAttendanceDeduction", 0,
+                        "includePerformanceSalary", 0,
+                        "includeProjectBonus", 0), employeeToken),
                 HttpStatus.FORBIDDEN, "无权操作");
     }
 

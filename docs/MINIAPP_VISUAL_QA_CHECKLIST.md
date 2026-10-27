@@ -11,7 +11,7 @@ Run the automated baseline before the manual pass:
 
 ```bash
 cd clients/miniapp
-bun run check
+pnpm run check
 cd ../../
 mvn -B -ntp -f server/pom.xml test
 ```

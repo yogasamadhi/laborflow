@@ -65,8 +65,11 @@ class AccessControlIntegrationTest {
 
         String adminToken = login(ADMIN_USERNAME, ADMIN_PASSWORD);
         Map<String, Long> roleIds = roleIds(adminToken);
-        long employeeA = createEmployee("Access E2E Employee A", adminToken);
-        long employeeB = createEmployee("Access E2E Employee B", adminToken);
+        long departmentId = id(post("/api/departments", Map.of(
+                "name", "Access E2E Department",
+                "status", "active"), adminToken));
+        long employeeA = createEmployee("Access E2E Employee A", departmentId, adminToken);
+        long employeeB = createEmployee("Access E2E Employee B", departmentId, adminToken);
         createUser("access_e2e_employee_a", "access-e2e-employee-a-password", employeeA, roleIds.get("EMPLOYEE"), adminToken);
         createUser("access_e2e_employee_b", "access-e2e-employee-b-password", employeeB, roleIds.get("EMPLOYEE"), adminToken);
         createUser("access_e2e_finance", "access-e2e-finance-password", null, roleIds.get("FINANCE"), adminToken);
@@ -105,6 +108,7 @@ class AccessControlIntegrationTest {
         createProfile(employeeB, adminToken);
         long monthlyId = id(post("/api/salary/monthly", Map.of(
                 "salaryMonth", "2031-12",
+                "departmentId", departmentId,
                 "title", "Access Control E2E",
                 "includeFixedSalary", 1,
                 "includeAttendanceDeduction", 0,
@@ -153,6 +157,13 @@ class AccessControlIntegrationTest {
                 "estimatedAmount", new BigDecimal("100.00"))), employeeBToken), HttpStatus.BAD_REQUEST, "无权访问该项目");
 
         String financeToken = login("access_e2e_finance", "access-e2e-finance-password");
+        JsonNode departmentReference = get("/api/reference/departments?status=active", financeToken)
+                .path("data").path("records").get(0);
+        assertThat(departmentReference.path("id").asLong()).isEqualTo(departmentId);
+        assertThat(departmentReference.path("name").asText()).isEqualTo("Access E2E Department");
+        assertError(postRaw("/api/departments", objectMapper.writeValueAsString(Map.of(
+                "name", "Finance cannot create department",
+                "status", "active")), financeToken), HttpStatus.FORBIDDEN, "无权操作");
         JsonNode financeDashboard = get("/api/dashboard/overview?month=2031-12", financeToken).path("data");
         assertThat(financeDashboard.path("capabilities").path("salary").asBoolean()).isTrue();
         assertThat(financeDashboard.path("capabilities").path("projects").asBoolean()).isTrue();
@@ -185,9 +196,10 @@ class AccessControlIntegrationTest {
         }
     }
 
-    private long createEmployee(String name, String token) throws Exception {
+    private long createEmployee(String name, long departmentId, String token) throws Exception {
         return id(post("/api/employees", Map.of(
                 "name", name,
+                "departmentId", departmentId,
                 "employeeType", "company_employee",
                 "entryDate", "2031-12-01",
                 "status", "active"), token));
@@ -272,6 +284,7 @@ class AccessControlIntegrationTest {
     private HttpResponse<String> postRaw(String path, String payload, String token) throws Exception {
         HttpRequest.Builder request = HttpRequest.newBuilder(uri(path))
                 .header("Content-Type", "application/json")
+                .header("Accept-Language", "zh-CN")
                 .POST(HttpRequest.BodyPublishers.ofString(payload));
         if (token != null) request.header("Authorization", "Bearer " + token);
         return httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString());

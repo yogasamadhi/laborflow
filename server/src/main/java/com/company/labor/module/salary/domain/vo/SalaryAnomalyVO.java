@@ -11,6 +11,7 @@ public class SalaryAnomalyVO {
     private String level;
     private String salaryMonth;
     private Long monthlyId;
+    private Long departmentId;
     private Long detailId;
     private Long employeeId;
     private String employeeName;

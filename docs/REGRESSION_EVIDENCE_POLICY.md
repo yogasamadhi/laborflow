@@ -9,10 +9,10 @@ the reviewed change and its merge history.
 
 ## Required Pull-Request Content
 
-Every pull request targeting `master` starts from
-[`PULL_REQUEST_TEMPLATE.md`](../PULL_REQUEST_TEMPLATE.md). The author selects
-all affected risk categories and records the executed checks, result, and an
-evidence reference in the pull-request description.
+Every pull request targeting `main` uses
+[`REGRESSION_EVIDENCE_RECORD_TEMPLATE.md`](REGRESSION_EVIDENCE_RECORD_TEMPLATE.md).
+The author selects all affected risk categories and records the executed checks,
+result, and an evidence reference in the pull-request description.
 
 The author must attach a completed record based on
 [`REGRESSION_EVIDENCE_RECORD_TEMPLATE.md`](REGRESSION_EVIDENCE_RECORD_TEMPLATE.md)

@@ -49,12 +49,14 @@ class FlywayLegacyUpgradeIntegrationTest {
                 WHERE success = true
                 ORDER BY installed_rank DESC
                 LIMIT 1
-                """)).isEqualTo("24");
+                """)).isEqualTo("25");
         assertThat(count("SELECT COUNT(*) FROM sys_user WHERE id = " + USER_ID + " AND username = 'legacy_upgrade_user'"))
                 .isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM employee WHERE id = " + EMPLOYEE_ID + " AND name = '历史迁移员工'"))
                 .isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM salary_monthly_detail WHERE id = " + SALARY_DETAIL_ID + " AND payslip_status = 'unconfirmed'"))
+                .isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM salary_monthly WHERE id = " + SALARY_MONTHLY_ID + " AND department_id IS NULL"))
                 .isEqualTo(1);
         assertThat(count("""
                 SELECT COUNT(*)

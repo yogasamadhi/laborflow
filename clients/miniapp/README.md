@@ -7,19 +7,19 @@
 - Tailwind CSS 4
 - weapp-tailwindcss 5
 - Taroify 1
-- TypeScript 7、Vite 8、Bun 1.3.14
+- TypeScript 7、Vite 8、pnpm 11.22.0
 
 ## 环境要求
 
-- Bun 1.3.14
+- pnpm 11.22.0
 - 微信开发者工具稳定版
 
 ## 本地开发
 
 ```bash
-bun install --frozen-lockfile
+pnpm install --frozen-lockfile
 cp .env.example .env.local
-bun run dev
+pnpm run dev
 ```
 
 如有正式微信 App ID，将它写入不会提交的 `.env.local`：
@@ -34,17 +34,17 @@ VITE_UPLOAD_URL=https://你的服务域名/api/files/upload
 
 如需启用微信绑定，除小程序 `.env.local` 的 `VITE_PLUGIN_TARO_WECHAT_APP_ID` 外，还需在仓库根目录运行环境中配置同一 AppID 的 `WECHAT_MINIAPP_APP_ID` 与 `WECHAT_MINIAPP_APP_SECRET`，然后重启服务与小程序构建。
 
-仓库根目录的 `bun run.ts` 会同时启动该 watch 构建；使用 `bun run.ts --no-miniapp` 可跳过。
+仓库根目录的 `python3 run.py` 会同时启动该 watch 构建；使用 `python3 run.py --no-miniapp` 可跳过。
 
 ## 常用命令
 
 ```bash
-bun run dev          # 微信小程序 watch 构建
-bun run dev:h5       # H5 开发服务
-bun run typecheck    # TypeScript 检查
-bun run build        # 微信小程序生产构建
-bun run build:h5     # H5 生产构建
-bun run check        # 类型检查 + 微信小程序构建
+pnpm run dev          # 微信小程序 watch 构建
+pnpm run dev:h5       # H5 开发服务
+pnpm run typecheck    # TypeScript 检查
+pnpm run build        # 微信小程序生产构建
+pnpm run build:h5     # H5 生产构建
+pnpm run check        # 类型检查 + 微信小程序构建
 ```
 
 ## 已迁移功能

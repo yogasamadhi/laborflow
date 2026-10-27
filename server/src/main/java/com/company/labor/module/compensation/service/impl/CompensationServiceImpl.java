@@ -779,16 +779,15 @@ public class CompensationServiceImpl implements CompensationService {
         }
         if ("salary".equals(indicator.getDataSource())) {
             String sourceMonth = YearMonth.parse(score.getPerformanceMonth()).minusMonths(1).toString();
-            SalaryMonthlyDO monthly = salaryMonthlyMapper.selectOne(new LambdaQueryWrapper<SalaryMonthlyDO>()
+            List<SalaryMonthlyDO> monthlies = salaryMonthlyMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDO>()
                     .eq(SalaryMonthlyDO::getDeleted, 0)
-                    .eq(SalaryMonthlyDO::getSalaryMonth, sourceMonth)
-                    .orderByDesc(SalaryMonthlyDO::getCreatedAt)
-                    .last("LIMIT 1"));
-            if (monthly == null) throw new BusinessException("自动指标不可计算：缺少上月工资表");
+                    .eq(SalaryMonthlyDO::getSalaryMonth, sourceMonth));
+            if (monthlies.isEmpty()) throw new BusinessException("自动指标不可计算：缺少上月工资表");
             SalaryMonthlyDetailDO detail = salaryMonthlyDetailMapper.selectOne(
                     new LambdaQueryWrapper<SalaryMonthlyDetailDO>()
                             .eq(SalaryMonthlyDetailDO::getDeleted, 0)
-                            .eq(SalaryMonthlyDetailDO::getSalaryMonthlyId, monthly.getId())
+                            .in(SalaryMonthlyDetailDO::getSalaryMonthlyId,
+                                    monthlies.stream().map(SalaryMonthlyDO::getId).toList())
                             .eq(SalaryMonthlyDetailDO::getEmployeeId, score.getEmployeeId())
                             .last("LIMIT 1"));
             if (detail == null) throw new BusinessException("自动指标不可计算：缺少员工工资明细");

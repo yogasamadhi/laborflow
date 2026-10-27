@@ -6,13 +6,13 @@
 database and the real HTTP API to verify that four operational compensation
 sources reach one employee's monthly salary and remain traceable:
 
-1. Create an active employee, project, and salary profile. The payroll disables
+1. Create an active department, employee, project, and salary profile. The department payroll disables
    fixed salary so the expected amounts come only from variable sources.
 2. Create an attendance record with an automatically calculated leave deduction
    and a separate active social-security deduction record.
 3. Create and confirm a performance score, then create, release, allocate, and
    confirm a project bonus allocation.
-4. Generate the monthly salary and verify salary-detail amounts, four detail
+4. Generate the department monthly salary and verify salary-detail amounts, four detail
    items, source IDs and signed source amounts, and the compensation dashboard.
 
 Run the focused regression from the repository root:
@@ -49,7 +49,7 @@ Run the Web build before recording a passing smoke result:
 
 ```bash
 cd clients/desktop
-bun run build:renderer
+pnpm run build:renderer
 ```
 
 Do not attach production employee, project, bonus, payroll, or payment data.

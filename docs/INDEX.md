@@ -38,11 +38,12 @@
 
 - [`CI_BACKEND_GATE.md`](CI_BACKEND_GATE.md) — 后端测试 + JaCoCo 报告门
 - [`CI_DESKTOP_GATE.md`](CI_DESKTOP_GATE.md) — 桌面端渲染层质量门与平台构建要求
-- [`CI_MINIAPP_GATE.md`](CI_MINIAPP_GATE.md) — 活跃小程序 TypeScript、微信与 H5 Bun 构建门
+- [`CI_MINIAPP_GATE.md`](CI_MINIAPP_GATE.md) — 活跃小程序 TypeScript、微信与 H5 pnpm 构建门
 - [`CI_DOCS_GATE.md`](CI_DOCS_GATE.md) — 文档链接 + 迁移命名 + .env 同步门
 - [`REGRESSION_EVIDENCE_POLICY.md`](REGRESSION_EVIDENCE_POLICY.md) — PR 回归证据与评审规则
 - [`REGRESSION_EVIDENCE_RECORD_TEMPLATE.md`](REGRESSION_EVIDENCE_RECORD_TEMPLATE.md) — 证据记录模板
 - [`FUNCTIONAL_CLOSURE_REGRESSION.md`](FUNCTIONAL_CLOSURE_REGRESSION.md) — Desktop/小程序全功能闭环回归记录
+- [`DEPARTMENTAL_PAYROLL_REGRESSION_EVIDENCE.md`](DEPARTMENTAL_PAYROLL_REGRESSION_EVIDENCE.md) — 分部门工资核算自动化回归证据
 
 ## E2E 回归规格（英文，技术契约）
 

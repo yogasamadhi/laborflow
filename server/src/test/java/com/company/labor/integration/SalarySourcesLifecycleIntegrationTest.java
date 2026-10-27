@@ -59,8 +59,12 @@ class SalarySourcesLifecycleIntegrationTest {
     @Test
     void generatesSalaryFromAttendanceDeductionsPerformanceAndProjectBonus() throws Exception {
         String token = login();
+        long departmentId = id(post("/api/departments", Map.of(
+                "name", "Salary Sources E2E Department",
+                "status", "active"), token));
         long employeeId = id(post("/api/employees", Map.of(
                 "name", "Salary Sources E2E Employee",
+                "departmentId", departmentId,
                 "employeeType", "company_employee",
                 "entryDate", "2031-11-01",
                 "status", "active"), token));
@@ -151,6 +155,7 @@ class SalarySourcesLifecycleIntegrationTest {
 
         JsonNode monthly = post("/api/salary/monthly", Map.of(
                 "salaryMonth", SALARY_MONTH,
+                "departmentId", departmentId,
                 "title", "Salary Sources E2E",
                 "includeFixedSalary", 0,
                 "includeAttendanceDeduction", 1,

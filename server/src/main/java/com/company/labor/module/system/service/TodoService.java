@@ -11,6 +11,8 @@ import com.company.labor.module.project.mapper.ProjectMapper;
 import com.company.labor.module.project.mapper.TeamSettlementMapper;
 import com.company.labor.module.project.mapper.VariationOrderMapper;
 import com.company.labor.module.project.service.ProjectAccessService;
+import com.company.labor.module.employee.domain.entity.DepartmentDO;
+import com.company.labor.module.employee.mapper.DepartmentMapper;
 import com.company.labor.module.salary.domain.entity.SalaryMonthlyDO;
 import com.company.labor.module.salary.mapper.SalaryMonthlyMapper;
 import com.company.labor.module.system.domain.entity.SysUserDO;
@@ -39,6 +41,7 @@ public class TodoService {
     private final ProjectMapper projectMapper;
     private final SysUserMapper userMapper;
     private final ProjectAccessService projectAccessService;
+    private final DepartmentMapper departmentMapper;
 
     public Page<TodoVO> page(long page, long pageSize, String type, Authentication authentication) {
         List<TodoVO> rows = new ArrayList<>();
@@ -47,9 +50,13 @@ public class TodoService {
             for (SalaryMonthlyDO monthly : salaryMonthlyMapper.selectList(new LambdaQueryWrapper<SalaryMonthlyDO>()
                     .eq(SalaryMonthlyDO::getDeleted, 0)
                     .eq(SalaryMonthlyDO::getStatus, "pending_approval"))) {
+                DepartmentDO department = monthly.getDepartmentId() == null ? null : departmentMapper.selectById(monthly.getDepartmentId());
+                String departmentName = department == null ? "历史全公司" : department.getName();
                 TodoVO todo = base("salary", monthly.getId(),
-                        monthly.getTitle(), "待审核工资表", monthly.getStatus(),
+                        monthly.getTitle(), departmentName + "待审核工资表", monthly.getStatus(),
                         monthly.getCreatedBy(), monthly.getCreatedAt(), List.of("approve", "reject"));
+                todo.setDepartmentId(monthly.getDepartmentId());
+                todo.setDepartmentName(departmentName);
                 rows.add(todo);
             }
         }
